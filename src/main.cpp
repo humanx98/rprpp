@@ -24,62 +24,21 @@ const bool enableValidationLayers = true;
         }                                                                                 \
     }
 
-std::string computeShaderGlsl = R"(#version 450
-#extension GL_ARB_separate_shader_objects : enable
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
 
-#define WIDTH 3200
-#define HEIGHT 2400
-#define WORKGROUP_SIZE 32
-layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
-
-struct Pixel{
-  vec4 value;
-};
-
-layout(std140, binding = 0) buffer buf
-{
-   Pixel imageData[];
-};
-
-void main() {
-
-  /*
-  In order to fit the work into workgroups, some unnecessary threads are launched.
-  We terminate those threads here. 
-  */
-  if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT)
-    return;
-
-  float x = float(gl_GlobalInvocationID.x) / float(WIDTH);
-  float y = float(gl_GlobalInvocationID.y) / float(HEIGHT);
-
-  /*
-  What follows is code for rendering the mandelbrot set. 
-  */
-  vec2 uv = vec2(x,y);
-  float n = 0.0;
-  vec2 c = vec2(-.445, 0.0) +  (uv - 0.5)*(2.0+ 1.7*0.2  ), 
-  z = vec2(0.0);
-  const int M =128;
-  for (int i = 0; i<M; i++)
-  {
-    z = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y) + c;
-    if (dot(z, z) > 2) break;
-    n++;
-  }
-          
-  // we use a simple cosine palette to determine color:
-  // http://iquilezles.org/www/articles/palettes/palettes.htm         
-  float t = float(n) / float(M);
-  vec3 d = vec3(0.3, 0.3 ,0.5);
-  vec3 e = vec3(-0.2, -0.3 ,-0.5);
-  vec3 f = vec3(2.1, 2.0, 3.0);
-  vec3 g = vec3(0.0, 0.1, 0.0);
-  vec4 color = vec4( d + e*cos( 6.28318*(f*t+g) ) ,1.0);
-          
-  // store the rendered mandelbrot set into a storage buffer:
-  imageData[WIDTH * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x].value = color;
-})";
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
 
 class ComputeApplication {
 private:
@@ -91,7 +50,7 @@ private:
     } float4;
 
     VkInstance instance;
-    VkDebugReportCallbackEXT debugReportCallback;
+    VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice;
     VkDevice device;
     VkPipeline pipeline;
@@ -114,6 +73,7 @@ public:
     {
         bufferSize = sizeof(float4) * WIDTH * HEIGHT;
         createInstance();
+        setupDebugMessenger();
         findPhysicalDevice();
         createDevice();
         createBuffer();
@@ -126,61 +86,33 @@ public:
         cleanup();
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugReportCallbackFn(
-        VkDebugReportFlagsEXT flags,
-        VkDebugReportObjectTypeEXT objectType,
-        uint64_t object,
-        size_t location,
-        int32_t messageCode,
-        const char* pLayerPrefix,
-        const char* pMessage,
-        void* pUserData)
-    {
-        printf("Debug Report: %s: %s\n", pLayerPrefix, pMessage);
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+        createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+    }
+
+    void setupDebugMessenger() {
+        if (!enableValidationLayers) return;
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        populateDebugMessengerCreateInfo(createInfo);
+
+        if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+            throw std::runtime_error("failed to set up debug messenger!");
+        }
+    }
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
         return VK_FALSE;
     }
 
     void createInstance()
     {
-        std::vector<const char*> enabledExtensions;
-        if (enableValidationLayers) {
-            uint32_t layerCount;
-            vkEnumerateInstanceLayerProperties(&layerCount, NULL);
-            std::vector<VkLayerProperties> layerProperties(layerCount);
-            vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
-
-            bool foundLayer = false;
-            for (VkLayerProperties prop : layerProperties) {
-                if (strcmp("VK_LAYER_LUNARG_standard_validation", prop.layerName) == 0) {
-                    foundLayer = true;
-                    break;
-                }
-            }
-
-            if (!foundLayer) {
-                throw std::runtime_error("Layer VK_LAYER_LUNARG_standard_validation not supported\n");
-            }
-            enabledLayers.push_back("VK_LAYER_LUNARG_standard_validation");
-
-            uint32_t extensionCount;
-            vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
-            std::vector<VkExtensionProperties> extensionProperties(extensionCount);
-            vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensionProperties.data());
-
-            bool foundExtension = false;
-            for (VkExtensionProperties prop : extensionProperties) {
-                if (strcmp(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, prop.extensionName) == 0) {
-                    foundExtension = true;
-                    break;
-                }
-            }
-
-            if (!foundExtension) {
-                throw std::runtime_error("Extension VK_EXT_DEBUG_REPORT_EXTENSION_NAME not supported\n");
-            }
-            enabledExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-        }
-
         VkApplicationInfo applicationInfo = {};
         applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         applicationInfo.pApplicationName = "Hello world app";
@@ -194,26 +126,58 @@ public:
         createInfo.flags = 0;
         createInfo.pApplicationInfo = &applicationInfo;
 
+
+        std::vector<const char*> enabledExtensions;
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        if (enableValidationLayers) {
+            uint32_t layerCount;
+            vkEnumerateInstanceLayerProperties(&layerCount, NULL);
+            std::vector<VkLayerProperties> layerProperties(layerCount);
+            vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
+
+            bool foundLayer = false;
+            for (VkLayerProperties& prop : layerProperties) {
+                if (strcmp("VK_LAYER_KHRONOS_validation", prop.layerName) == 0) {
+                    foundLayer = true;
+                    break;
+                }
+            }
+
+            if (!foundLayer) {
+                throw std::runtime_error("Layer VK_LAYER_KHRONOS_validation not supported\n");
+            }
+            enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
+
+            uint32_t extensionCount;
+            vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
+            std::vector<VkExtensionProperties> extensionProperties(extensionCount);
+            vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensionProperties.data());
+
+            bool foundExtension = false;
+            for (VkExtensionProperties& prop : extensionProperties) {
+                if (strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, prop.extensionName) == 0) {
+                    foundExtension = true;
+                    break;
+                }
+            }
+
+            if (!foundExtension) {
+                throw std::runtime_error("Extension VK_EXT_DEBUG_UTILS_EXTENSION_NAME not supported\n");
+            }
+
+            enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            populateDebugMessengerCreateInfo(debugCreateInfo);
+            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+        }
+        else {
+            createInfo.pNext = nullptr;
+        }
+
         createInfo.enabledLayerCount = enabledLayers.size();
         createInfo.ppEnabledLayerNames = enabledLayers.data();
         createInfo.enabledExtensionCount = enabledExtensions.size();
         createInfo.ppEnabledExtensionNames = enabledExtensions.data();
-
         VK_CHECK_RESULT(vkCreateInstance(&createInfo, NULL, &instance));
-
-        if (enableValidationLayers) {
-            VkDebugReportCallbackCreateInfoEXT createInfo = {};
-            createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-            createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-            createInfo.pfnCallback = &debugReportCallbackFn;
-
-            auto vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
-            if (vkCreateDebugReportCallbackEXT == nullptr) {
-                throw std::runtime_error("Could not load vkCreateDebugReportCallbackEXT");
-            }
-
-            VK_CHECK_RESULT(vkCreateDebugReportCallbackEXT(instance, &createInfo, NULL, &debugReportCallback));
-        }
     }
 
     void findPhysicalDevice()
@@ -365,6 +329,62 @@ public:
 
     void createComputePipeline()
     {
+        std::string computeShaderGlsl = R"(#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define WIDTH 3200
+#define HEIGHT 2400
+#define WORKGROUP_SIZE 32
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+struct Pixel{
+  vec4 value;
+};
+
+layout(std140, binding = 0) buffer buf
+{
+   Pixel imageData[];
+};
+
+void main() {
+
+  /*
+  In order to fit the work into workgroups, some unnecessary threads are launched.
+  We terminate those threads here. 
+  */
+  if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT)
+    return;
+
+  float x = float(gl_GlobalInvocationID.x) / float(WIDTH);
+  float y = float(gl_GlobalInvocationID.y) / float(HEIGHT);
+
+  /*
+  What follows is code for rendering the mandelbrot set. 
+  */
+  vec2 uv = vec2(x,y);
+  float n = 0.0;
+  vec2 c = vec2(-.445, 0.0) +  (uv - 0.5)*(2.0+ 1.7*0.2  ), 
+  z = vec2(0.0);
+  const int M =128;
+  for (int i = 0; i<M; i++)
+  {
+    z = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y) + c;
+    if (dot(z, z) > 2) break;
+    n++;
+  }
+          
+  // we use a simple cosine palette to determine color:
+  // http://iquilezles.org/www/articles/palettes/palettes.htm         
+  float t = float(n) / float(M);
+  vec3 d = vec3(0.3, 0.3 ,0.5);
+  vec3 e = vec3(-0.2, -0.3 ,-0.5);
+  vec3 f = vec3(2.1, 2.0, 3.0);
+  vec3 g = vec3(0.0, 0.1, 0.0);
+  vec4 color = vec4( d + e*cos( 6.28318*(f*t+g) ) ,1.0);
+          
+  // store the rendered mandelbrot set into a storage buffer:
+  imageData[WIDTH * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x].value = color;
+})";
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
@@ -379,7 +399,7 @@ public:
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.pCode = spv.cbegin();
-        createInfo.codeSize = std::distance(spv.cbegin(), spv.cend());
+        createInfo.codeSize = std::distance(spv.cbegin(), spv.cend()) * sizeof(uint32_t);
         VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, NULL, &computeShaderModule));
 
         VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {};
@@ -398,7 +418,6 @@ public:
         pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
         pipelineCreateInfo.stage = shaderStageCreateInfo;
         pipelineCreateInfo.layout = pipelineLayout;
-        VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, NULL, &pipelineLayout));
         VK_CHECK_RESULT(vkCreateComputePipelines(
             device,
             VK_NULL_HANDLE,
@@ -478,13 +497,8 @@ public:
     void cleanup()
     {
         if (enableValidationLayers) {
-            auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-            if (func == nullptr) {
-                throw std::runtime_error("Could not load vkDestroyDebugReportCallbackEXT");
-            }
-            func(instance, debugReportCallback, NULL);
+            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
-
         vkFreeMemory(device, bufferMemory, NULL);
         vkDestroyBuffer(device, buffer, NULL);
         vkDestroyShaderModule(device, computeShaderModule, NULL);
