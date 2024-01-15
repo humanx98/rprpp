@@ -32,7 +32,11 @@ FetchContent_MakeAvailable(lodepng)
 add_library(lodepng STATIC ${lodepng_SOURCE_DIR}/lodepng.cpp ${lodepng_SOURCE_DIR}/lodepng.h)
 target_include_directories(lodepng PUBLIC ${lodepng_SOURCE_DIR})
 
-set(HEADERS)
+set(HEADERS
+    vkcompute.hpp
+    dx11app.hpp
+)
+
 set(SOURCES)
 add_executable (vkdx11_interop ${SOURCES} ${HEADERS} main.cpp)
 
