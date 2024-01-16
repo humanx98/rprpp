@@ -10,13 +10,15 @@
 #include <dxgi.h>
 #pragma comment(lib, "dxgi.lib")
 
-#define DX_CHECK(f)                                                                \
-    {                                                                                     \
+#include "vkcompute.hpp"
+
+#define DX_CHECK(f)                                                                      \
+    {                                                                                    \
         HRESULT res = (f);                                                               \
-        if (!SUCCEEDED(res)) {                                                          \
+        if (!SUCCEEDED(res)) {                                                           \
             printf("Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            assert(false);                                                    \
-        }                                                                                 \
+            assert(false);                                                               \
+        }                                                                                \
     }
 
 class Dx11App {
@@ -30,10 +32,10 @@ private:
 	IDXGISwapChain* swapChain;
 	ID3D11DeviceContext* deviceContex;
 	ID3D11RenderTargetView* renderTargetView;
-    
     ID3D11Texture2D *sharedTexture;
     IDXGIResource1 *sharedTextureResource;
     HANDLE sharedTextureHandle;
+    VkCompute vkcompute;
 
 public:
     Dx11App(int w, int h) : width(w), height(h)
@@ -42,6 +44,7 @@ public:
 
     ~Dx11App()
     {
+        vkcompute.cleanup();
         backBuffer->Release();
         sharedTexture->Release();
         renderTargetView->Release();
@@ -57,6 +60,7 @@ public:
     {
         initWindow();
         initDx11();
+        vkcompute.init(sharedTextureHandle, width, height);
         mainLoop();
     }
 
@@ -71,11 +75,12 @@ public:
 
     void initDx11()
     {
+        auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
         DXGI_SWAP_CHAIN_DESC scd = {};
         ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
         scd.BufferDesc.Width = width;
         scd.BufferDesc.Height = height;
-        scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        scd.BufferDesc.Format = format;
         scd.SampleDesc.Count = 1;
         scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         scd.BufferCount = 1;
@@ -108,7 +113,7 @@ public:
         sharedTextureDesc.MipLevels = 1;
         sharedTextureDesc.ArraySize = 1;
         sharedTextureDesc.SampleDesc = {1, 0};
-        sharedTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        sharedTextureDesc.Format = format;
         sharedTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
         DX_CHECK(device->CreateTexture2D(&sharedTextureDesc, nullptr, &sharedTexture));
         DX_CHECK(sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void **)&sharedTextureResource));
@@ -131,6 +136,7 @@ public:
             //     0.3f, 0.5f, 0.8f, 1.0f
             // };
             // deviceContex->ClearRenderTargetView(renderTargetView, color);
+            vkcompute.render();
             
             IDXGIKeyedMutex *km;
             DX_CHECK(sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&km));

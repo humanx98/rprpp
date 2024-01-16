@@ -7,9 +7,8 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
+#include <winnt.h>
 
-const int WIDTH = 1600;
-const int HEIGHT = 1000;
 const int WORKGROUP_SIZE = 32;
 
 #ifdef NDEBUG
@@ -43,15 +42,9 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
     }
 }
 
-class ComputeApplication {
+class VkCompute {
 private:
-    typedef union {
-        struct {
-            float x, y, z, w;
-        };
-        float data[4];
-    } float4;
-
+    int width, height;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice;
@@ -64,29 +57,27 @@ private:
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
     VkDescriptorSetLayout descriptorSetLayout;
-    VkBuffer buffer;
-    VkDeviceMemory bufferMemory;
-    uint32_t bufferSize;
+    VkImage sharedOutput;
+    VkImageView sharedOutputView;
+    VkDeviceMemory sharedOutputMemory;
     VkQueue queue;
     uint32_t queueFamilyIndex;
     std::vector<const char*> enabledLayers;
 
 public:
-    void run()
+    void init(HANDLE sharedTextureHandle, int w, int h)
     {
-        bufferSize = sizeof(float4) * WIDTH * HEIGHT;
+        width = w;
+        height = h;
         createInstance();
         setupDebugMessenger();
         findPhysicalDevice();
         createDevice();
-        createBuffer();
         createDescriptorSetLayout();
-        createDescriptorSet();
         createComputePipeline();
         createCommandBuffer();
-        runCommandBuffer();
-        saveRenderedImage();
-        cleanup();
+        createSharedOutput(sharedTextureHandle);
+        createDescriptorSet();
     }
 
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
@@ -134,9 +125,9 @@ public:
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
         if (enableValidationLayers) {
             uint32_t layerCount;
-            vkEnumerateInstanceLayerProperties(&layerCount, NULL);
+            VK_CHECK_RESULT(vkEnumerateInstanceLayerProperties(&layerCount, nullptr));
             std::vector<VkLayerProperties> layerProperties(layerCount);
-            vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data());
+            VK_CHECK_RESULT(vkEnumerateInstanceLayerProperties(&layerCount, layerProperties.data()));
 
             bool foundLayer = false;
             for (VkLayerProperties& prop : layerProperties) {
@@ -152,9 +143,9 @@ public:
             enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
 
             uint32_t extensionCount;
-            vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
+            VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr));
             std::vector<VkExtensionProperties> extensionProperties(extensionCount);
-            vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensionProperties.data());
+            VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionProperties.data()));
 
             bool foundDebugUtilsExtension = false;
             bool foundExternalMemoryExtension = false;
@@ -193,18 +184,18 @@ public:
         createInfo.ppEnabledLayerNames = enabledLayers.data();
         createInfo.enabledExtensionCount = enabledExtensions.size();
         createInfo.ppEnabledExtensionNames = enabledExtensions.data();
-        VK_CHECK_RESULT(vkCreateInstance(&createInfo, NULL, &instance));
+        VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
     }
 
     void findPhysicalDevice()
     {
         uint32_t deviceCount;
-        vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
+        VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
         if (deviceCount == 0) {
             throw std::runtime_error("could not find a device with vulkan support");
         }
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+        VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
 
         for (VkPhysicalDevice device : devices) {
             if (true) { // no feature checks right now, so just accept
@@ -217,7 +208,7 @@ public:
     uint32_t getComputeQueueFamilyIndex()
     {
         uint32_t queueFamilyCount;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, NULL);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
         uint32_t i = 0;
@@ -238,9 +229,9 @@ public:
     void createDevice()
     {
         uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+        VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr));
         std::vector<VkExtensionProperties> extensionProperties(extensionCount);
-        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, extensionProperties.data());
+        VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, extensionProperties.data()));
 
         std::vector<const char*> enabledExtensions;
         bool foundExternalMemoryExtension = false;
@@ -294,7 +285,7 @@ public:
         deviceCreateInfo.queueCreateInfoCount = 1;
         deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
-        VK_CHECK_RESULT(vkCreateDevice(physicalDevice, &deviceCreateInfo, NULL, &device));
+        VK_CHECK_RESULT(vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
         vkGetDeviceQueue(device, queueFamilyIndex, 0, &queue);
     }
 
@@ -309,34 +300,143 @@ public:
         return -1;
     }
 
-    void createBuffer()
+    VkCommandBuffer beginSingleTimeCommands()
     {
-        VkBufferCreateInfo bufferCreateInfo = {};
-        bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferCreateInfo.size = bufferSize;
-        bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        VK_CHECK_RESULT(vkCreateBuffer(device, &bufferCreateInfo, NULL, &buffer));
+        VkCommandBufferAllocateInfo allocInfo {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = commandPool;
+        allocInfo.commandBufferCount = 1;
 
-        VkMemoryRequirements memoryRequirements;
-        vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
+        VkCommandBuffer singleTimeCommandBuffer;
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &allocInfo, &singleTimeCommandBuffer));
 
-        VkMemoryAllocateInfo allocateInfo = {};
-        allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocateInfo.allocationSize = memoryRequirements.size;
-        allocateInfo.memoryTypeIndex = findMemoryType(
-            memoryRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        VkCommandBufferBeginInfo beginInfo {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        VK_CHECK_RESULT(vkAllocateMemory(device, &allocateInfo, NULL, &bufferMemory));
-        VK_CHECK_RESULT(vkBindBufferMemory(device, buffer, bufferMemory, 0));
+        VK_CHECK_RESULT(vkBeginCommandBuffer(singleTimeCommandBuffer, &beginInfo));
+
+        return singleTimeCommandBuffer;
+    }
+
+    void endSingleTimeCommands(VkCommandBuffer singleTimeCommandBuffer)
+    {
+        VK_CHECK_RESULT(vkEndCommandBuffer(singleTimeCommandBuffer));
+
+        VkSubmitInfo submitInfo {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &singleTimeCommandBuffer;
+
+        VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+        VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+
+        vkFreeCommandBuffers(device, commandPool, 1, &singleTimeCommandBuffer);
+    }
+
+    void transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
+    {
+        VkCommandBuffer singleTimeCommandBuffer = beginSingleTimeCommands();
+
+        VkImageMemoryBarrier barrier {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_NONE_KHR;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        vkCmdPipelineBarrier(
+            singleTimeCommandBuffer,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier);
+
+        endSingleTimeCommands(singleTimeCommandBuffer);
+    }
+
+    void createSharedOutput(HANDLE sharedTextureHandle)
+    {
+        auto format = VK_FORMAT_R8G8B8A8_UNORM;
+        VkExternalMemoryImageCreateInfo emici = {};
+        emici.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+        emici.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
+        VkImageCreateInfo ici = {};
+        ici.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        ici.pNext = &emici;
+        ici.imageType = VK_IMAGE_TYPE_2D;
+        ici.extent.width = width;
+        ici.extent.height = height;
+        ici.extent.depth = 1;
+        ici.mipLevels = 1;
+        ici.arrayLayers = 1;
+        ici.format = format;
+        ici.tiling = VK_IMAGE_TILING_OPTIMAL;
+        ici.usage = VK_IMAGE_USAGE_STORAGE_BIT;
+        ici.samples = VK_SAMPLE_COUNT_1_BIT;
+        VK_CHECK_RESULT(vkCreateImage(device, &ici, nullptr, &sharedOutput));
+
+        VkMemoryDedicatedRequirements mdr = {};
+        mdr.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS;
+        VkMemoryRequirements2 mr2 = {};
+        mr2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
+        mr2.pNext = &mdr;
+        VkImageMemoryRequirementsInfo2 imri2 = {};
+        imri2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2;
+        imri2.image = sharedOutput;
+        vkGetImageMemoryRequirements2(device, &imri2, &mr2);
+
+        VkMemoryDedicatedAllocateInfo mdai = {};
+        mdai.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
+        mdai.image = sharedOutput;
+        VkImportMemoryWin32HandleInfoKHR imw32hi = {};
+        imw32hi.sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+        imw32hi.pNext = &mdai;
+        imw32hi.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
+        imw32hi.handle = sharedTextureHandle;
+        VkMemoryAllocateInfo mai = {};
+        mai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        mai.pNext = &imw32hi;
+        mai.allocationSize = mr2.memoryRequirements.size;
+        mai.memoryTypeIndex = findMemoryType(mr2.memoryRequirements.memoryTypeBits, VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+        VK_CHECK_RESULT(vkAllocateMemory(device, &mai, nullptr, &sharedOutputMemory));
+        VK_CHECK_RESULT(vkBindImageMemory(device, sharedOutput, sharedOutputMemory, 0));
+
+        VkImageViewCreateInfo ivci = {};
+        ivci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        ivci.image = sharedOutput;
+        ivci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        ivci.format = format;
+        ivci.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        ivci.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        ivci.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        ivci.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        ivci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        ivci.subresourceRange.baseMipLevel = 0;
+        ivci.subresourceRange.levelCount = 1;
+        ivci.subresourceRange.baseArrayLayer = 0;
+        ivci.subresourceRange.layerCount = 1;
+        VK_CHECK_RESULT(vkCreateImageView(device, &ivci, nullptr, &sharedOutputView));
+
+        transitionImageLayout(sharedOutput, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
 
     void createDescriptorSetLayout()
     {
         VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {};
         descriptorSetLayoutBinding.binding = 0;
-        descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descriptorSetLayoutBinding.descriptorCount = 1;
         descriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
@@ -344,13 +444,13 @@ public:
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.bindingCount = 1;
         descriptorSetLayoutCreateInfo.pBindings = &descriptorSetLayoutBinding;
-        VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, NULL, &descriptorSetLayout));
+        VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout));
     }
 
     void createDescriptorSet()
     {
         VkDescriptorPoolSize descriptorPoolSize = {};
-        descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descriptorPoolSize.descriptorCount = 1;
 
         VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
@@ -358,7 +458,7 @@ public:
         descriptorPoolCreateInfo.maxSets = 1;
         descriptorPoolCreateInfo.poolSizeCount = 1;
         descriptorPoolCreateInfo.pPoolSizes = &descriptorPoolSize;
-        VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, NULL, &descriptorPool));
+        VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
 
         VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
         descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -367,19 +467,19 @@ public:
         descriptorSetAllocateInfo.pSetLayouts = &descriptorSetLayout;
         VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &descriptorSetAllocateInfo, &descriptorSet));
 
-        VkDescriptorBufferInfo descriptorBufferInfo = {};
-        descriptorBufferInfo.buffer = buffer;
-        descriptorBufferInfo.offset = 0;
-        descriptorBufferInfo.range = bufferSize;
+        VkDescriptorImageInfo dii = {};
+        dii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        dii.imageView = sharedOutputView;
+        dii.sampler = nullptr;
 
         VkWriteDescriptorSet writeDescriptorSet = {};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.dstSet = descriptorSet;
         writeDescriptorSet.dstBinding = 0;
         writeDescriptorSet.descriptorCount = 1;
-        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        writeDescriptorSet.pBufferInfo = &descriptorBufferInfo;
-        vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, NULL);
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writeDescriptorSet.pImageInfo = &dii;
+        vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
     }
 
     void createComputePipeline()
@@ -390,14 +490,7 @@ public:
 #define WORKGROUP_SIZE 32
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
-struct Pixel{
-  vec4 value;
-};
-
-layout(std140, binding = 0) buffer buf
-{
-   Pixel imageData[];
-};
+layout (binding = 0, rgba8) uniform image2D outputBuffer;
 
 void main() {
   if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT)
@@ -405,9 +498,8 @@ void main() {
 
   float x = float(gl_GlobalInvocationID.x) / float(WIDTH);
   float y = float(gl_GlobalInvocationID.y) / float(HEIGHT);
-
-          
-  imageData[WIDTH * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x].value = vec4(x, y, 0.0f, 1.0f);
+  
+  imageStore(outputBuffer, ivec2(gl_GlobalInvocationID.xy), vec4(x, y, 0.0f, 1.0f));
 })";
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
@@ -424,7 +516,7 @@ void main() {
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.pCode = spv.cbegin();
         createInfo.codeSize = std::distance(spv.cbegin(), spv.cend()) * sizeof(uint32_t);
-        VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, NULL, &computeShaderModule));
+        VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, nullptr, &computeShaderModule));
 
         VkPipelineShaderStageCreateInfo shaderStageCreateInfo = {};
         shaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -436,7 +528,7 @@ void main() {
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCreateInfo.setLayoutCount = 1;
         pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-        VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, NULL, &pipelineLayout));
+        VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
         VkComputePipelineCreateInfo pipelineCreateInfo = {};
         pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -447,7 +539,7 @@ void main() {
             VK_NULL_HANDLE,
             1,
             &pipelineCreateInfo,
-            NULL,
+            nullptr,
             &pipeline));
     }
 
@@ -455,9 +547,9 @@ void main() {
     {
         VkCommandPoolCreateInfo commandPoolCreateInfo = {};
         commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        commandPoolCreateInfo.flags = 0;
+        commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex;
-        VK_CHECK_RESULT(vkCreateCommandPool(device, &commandPoolCreateInfo, NULL, &commandPool));
+        VK_CHECK_RESULT(vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool));
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -465,23 +557,21 @@ void main() {
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = 1;
         VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, &commandBuffer));
-
-        {
-            VkCommandBufferBeginInfo beginInfo = {};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-            vkCmdDispatch(commandBuffer, (uint32_t)ceil(WIDTH / float(WORKGROUP_SIZE)), (uint32_t)ceil(HEIGHT / float(WORKGROUP_SIZE)), 1);
-            VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
-        }
     }
 
-    void runCommandBuffer()
+    void render()
     {
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0;
+        VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+        vkCmdDispatch(commandBuffer, (uint32_t)ceil(width / float(WORKGROUP_SIZE)), (uint32_t)ceil(height / float(WORKGROUP_SIZE)), 1);
+        VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
@@ -491,31 +581,10 @@ void main() {
         VkFenceCreateInfo fenceCreateInfo = {};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.flags = 0;
-        VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, NULL, &fence));
+        VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
         VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
         VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, 100000000000));
-        vkDestroyFence(device, fence, NULL);
-    }
-
-    void saveRenderedImage()
-    {
-        void* mappedMemory = NULL;
-        vkMapMemory(device, bufferMemory, 0, bufferSize, 0, &mappedMemory);
-        float4* pmappedMemory = (float4*)mappedMemory;
-
-        std::vector<unsigned char> image;
-        image.reserve(WIDTH * HEIGHT * 4);
-        for (int i = 0; i < WIDTH * HEIGHT; i += 1) {
-            image.push_back((unsigned char)(255.0f * (pmappedMemory[i].x)));
-            image.push_back((unsigned char)(255.0f * (pmappedMemory[i].y)));
-            image.push_back((unsigned char)(255.0f * (pmappedMemory[i].z)));
-            image.push_back((unsigned char)(255.0f * (pmappedMemory[i].w)));
-        }
-        vkUnmapMemory(device, bufferMemory);
-
-        unsigned error = lodepng::encode("mandelbrot.png", image, WIDTH, HEIGHT);
-        if (error)
-            printf("encoder error %d: %s", error, lodepng_error_text(error));
+        vkDestroyFence(device, fence, nullptr);
     }
 
     void cleanup()
@@ -523,15 +592,16 @@ void main() {
         if (enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
-        vkFreeMemory(device, bufferMemory, NULL);
-        vkDestroyBuffer(device, buffer, NULL);
-        vkDestroyShaderModule(device, computeShaderModule, NULL);
-        vkDestroyDescriptorPool(device, descriptorPool, NULL);
-        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, NULL);
-        vkDestroyPipelineLayout(device, pipelineLayout, NULL);
-        vkDestroyPipeline(device, pipeline, NULL);
-        vkDestroyCommandPool(device, commandPool, NULL);
-        vkDestroyDevice(device, NULL);
-        vkDestroyInstance(instance, NULL);
+        vkDestroyImageView(device, sharedOutputView, nullptr);
+        vkDestroyImage(device, sharedOutput, nullptr);
+        vkFreeMemory(device, sharedOutputMemory, nullptr);
+        vkDestroyShaderModule(device, computeShaderModule, nullptr);
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+        vkDestroyPipeline(device, pipeline, nullptr);
+        vkDestroyCommandPool(device, commandPool, nullptr);
+        vkDestroyDevice(device, nullptr);
+        vkDestroyInstance(instance, nullptr);
     }
 };

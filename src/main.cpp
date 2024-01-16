@@ -1,13 +1,12 @@
 #include <iostream>
 #include "dx11app.hpp"
-#include "vkcompute.hpp"
 
 int main(int argc, const char* argv[])
 {
     std::cout << "VkDx11Interop App started..." << std::endl;
 
-    // Dx11App app(WIDTH, HEIGHT);
-    ComputeApplication app;
+    // notice that resolution is hardcoded in the vk compute shader
+    Dx11App app(1600, 1000);
     try {
         app.run();
     } catch (const std::runtime_error& e) {
