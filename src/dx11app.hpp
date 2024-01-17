@@ -7,16 +7,22 @@
 #include <GLFW/glfw3native.h>
 #include <d3d11_3.h>
 #pragma comment(lib, "d3d11.lib")
-#include <dxgi.h>
+#include <dxgi1_6.h>
 #pragma comment(lib, "dxgi.lib")
 
 #include "vkcompute.hpp"
+
+#include <wrl/client.h>
+#include <comdef.h>
+using Microsoft::WRL::ComPtr;
 
 #define DX_CHECK(f)                                                                      \
     {                                                                                    \
         HRESULT res = (f);                                                               \
         if (!SUCCEEDED(res)) {                                                           \
             printf("Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
+            _com_error err(res);                                                           \
+            printf("messsage : %s\n", err.ErrorMessage());                               \
             assert(false);                                                               \
         }                                                                                \
     }
@@ -25,16 +31,17 @@ class Dx11App {
 private:
     int width;
     int height;
-    GLFWwindow* window;
-    HWND hWnd;
-    ID3D11Device* device;
-    ID3D11Resource* backBuffer;
-	IDXGISwapChain* swapChain;
-	ID3D11DeviceContext* deviceContex;
-	ID3D11RenderTargetView* renderTargetView;
-    ID3D11Texture2D *sharedTexture;
-    IDXGIResource1 *sharedTextureResource;
-    HANDLE sharedTextureHandle;
+    GLFWwindow* window = nullptr;
+    HWND hWnd = nullptr;
+    ComPtr<IDXGIAdapter1> adapter;
+    ComPtr<ID3D11Device> device;
+    ComPtr<ID3D11Resource> backBuffer;
+    ComPtr<IDXGISwapChain> swapChain;
+    ComPtr<ID3D11DeviceContext> deviceContex;
+    ComPtr<ID3D11RenderTargetView> renderTargetView;
+    ComPtr<ID3D11Texture2D> sharedTexture;
+    ComPtr<IDXGIResource1> sharedTextureResource;
+    HANDLE sharedTextureHandle = nullptr;
     VkCompute vkcompute;
 
 public:
@@ -45,13 +52,6 @@ public:
     ~Dx11App()
     {
         vkcompute.cleanup();
-        backBuffer->Release();
-        sharedTexture->Release();
-        renderTargetView->Release();
-        deviceContex->Release();
-        swapChain->Release();
-        device->Release();
-
         glfwDestroyWindow(window);
         glfwTerminate();
     }
@@ -59,7 +59,8 @@ public:
     void run() 
     {
         initWindow();
-        initDx11();
+        findAdapter();
+        intiDx11();
         vkcompute.init(sharedTextureHandle, width, height);
         mainLoop();
     }
@@ -73,7 +74,40 @@ public:
         hWnd = glfwGetWin32Window(window);
     }
 
-    void initDx11()
+    void findAdapter()
+    {
+        ComPtr<IDXGIFactory4> factory;
+        DX_CHECK(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
+        ComPtr<IDXGIFactory6> factory6;
+        DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
+
+        std::cout << "[dx11app.hpp] " << "All Physical devices:" << std::endl;
+        bool requestHighPerformanceAdapter = true;
+        DXGI_GPU_PREFERENCE gpuPreference = requestHighPerformanceAdapter == true ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+        
+        ComPtr<IDXGIAdapter1> tmpAdapter;
+        DXGI_ADAPTER_DESC1 selectedAdapterDesc;
+        for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, gpuPreference, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
+            DXGI_ADAPTER_DESC1 desc;
+            tmpAdapter->GetDesc1(&desc);
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+                continue;
+            }
+
+            std::wcout << "[dx11app.hpp] " << "\t--" << desc.Description << std::endl;
+            if (adapterIndex == 0) {
+                // select first gpu
+                adapter = tmpAdapter;
+                selectedAdapterDesc = desc;
+            }
+
+        }
+
+        std::wcout << "[dx11app.hpp] " << "Selected Device: " << selectedAdapterDesc.Description << std::endl;
+    }
+
+    void intiDx11()
     {
         auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
         DXGI_SWAP_CHAIN_DESC scd = {};
@@ -86,11 +120,10 @@ public:
         scd.BufferCount = 1;
         scd.OutputWindow = hWnd;
         scd.Windowed = TRUE;
-
         auto featureLevel = D3D_FEATURE_LEVEL_11_1;
         DX_CHECK(D3D11CreateDeviceAndSwapChain(
-            nullptr,
-            D3D_DRIVER_TYPE_HARDWARE,
+            adapter.Get(),
+            D3D_DRIVER_TYPE_UNKNOWN,
             nullptr,
             0,
             &featureLevel,
@@ -100,11 +133,9 @@ public:
             &swapChain,
             &device,
             nullptr,
-            &deviceContex
-        ));
-        
-        DX_CHECK(swapChain->GetBuffer(0, __uuidof(ID3D11Resource), reinterpret_cast<void**>(&backBuffer)));
-        DX_CHECK(device->CreateRenderTargetView(backBuffer, nullptr, &renderTargetView));
+            &deviceContex));
+        DX_CHECK(swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
+        DX_CHECK(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView));
         deviceContex->OMSetRenderTargets(1, &renderTargetView, nullptr);
 
         D3D11_TEXTURE2D_DESC sharedTextureDesc = {};
@@ -131,19 +162,15 @@ public:
     {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            // DX_CHECK(swapChain->Present(1u, 0u));
-            // float color[4] = {
-            //     0.3f, 0.5f, 0.8f, 1.0f
-            // };
-            // deviceContex->ClearRenderTargetView(renderTargetView, color);
+
             vkcompute.render();
             
             IDXGIKeyedMutex *km;
             DX_CHECK(sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&km));
-
             DX_CHECK(km->AcquireSync(0, INFINITE));
-            deviceContex->CopyResource(backBuffer, sharedTexture);
+            deviceContex->CopyResource(backBuffer.Get(), sharedTexture.Get());
             DX_CHECK(km->ReleaseSync(0));
+
             DX_CHECK(swapChain->Present(1, 0));
         }
     }

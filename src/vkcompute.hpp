@@ -197,12 +197,52 @@ public:
         std::vector<VkPhysicalDevice> devices(deviceCount);
         VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
 
-        for (VkPhysicalDevice device : devices) {
-            if (true) { // no feature checks right now, so just accept
-                physicalDevice = device;
-                break;
+
+        std::cout << "[vkcompute.hpp] " << "All Physical devices:" << std::endl;
+        int maxScore = -1;
+        VkPhysicalDevice wantedDevice = nullptr;
+        VkPhysicalDeviceProperties wantedDeviceProps;
+        for (VkPhysicalDevice d : devices) {
+            VkPhysicalDeviceProperties props;
+            vkGetPhysicalDeviceProperties(d, &props);
+            std::cout << "[vkcompute.hpp] " << "\t--" << props.deviceName;
+            
+            int score = 0;
+            switch (props.deviceType) {
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                {
+                    score += 1;
+                    std::cout << ", deviceType = CPU";
+                    break;
+                }
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                {
+                    score += 20;
+                    std::cout << ", deviceType = DGPU";
+                    break;
+                }
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                {
+                    score += 10;
+                    std::cout << ", deviceType = IGPU";
+                    break;
+                }
+            }
+
+            std::cout << std::endl;
+
+            if (score > maxScore) {
+                wantedDevice = d;
+                wantedDeviceProps = props;
+                maxScore = score;
             }
         }
+
+        physicalDevice = wantedDevice;
+        std::cout << "[vkcompute.hpp] " 
+            << "Selected Device (with score = " << maxScore << "): "
+            << wantedDeviceProps.deviceName 
+            << std::endl;
     }
 
     uint32_t getComputeQueueFamilyIndex()
