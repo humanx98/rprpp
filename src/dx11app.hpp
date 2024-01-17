@@ -1,19 +1,20 @@
 #pragma once
 
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include <iostream>
-#include <assert.h>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+#include <assert.h>
 #include <d3d11_3.h>
+#include <iostream>
 #pragma comment(lib, "d3d11.lib")
 #include <dxgi1_6.h>
 #pragma comment(lib, "dxgi.lib")
+#include <comdef.h>
+#include <wrl/client.h>
 
+#include "common.hpp"
 #include "vkcompute.hpp"
 
-#include <wrl/client.h>
-#include <comdef.h>
 using Microsoft::WRL::ComPtr;
 
 #define DX_CHECK(f)                                                                      \
@@ -21,7 +22,7 @@ using Microsoft::WRL::ComPtr;
         HRESULT res = (f);                                                               \
         if (!SUCCEEDED(res)) {                                                           \
             printf("Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            _com_error err(res);                                                           \
+            _com_error err(res);                                                         \
             printf("messsage : %s\n", err.ErrorMessage());                               \
             assert(false);                                                               \
         }                                                                                \
@@ -31,6 +32,7 @@ class Dx11App {
 private:
     int width;
     int height;
+    RequestHighPerformanceDevice requestHighPerformanceDevice;
     GLFWwindow* window = nullptr;
     HWND hWnd = nullptr;
     ComPtr<IDXGIAdapter1> adapter;
@@ -45,7 +47,10 @@ private:
     VkCompute vkcompute;
 
 public:
-    Dx11App(int w, int h) : width(w), height(h)
+    Dx11App(int w, int h, RequestHighPerformanceDevice rhpd)
+        : width(w)
+        , height(h)
+        , requestHighPerformanceDevice(rhpd)
     {
     }
 
@@ -56,12 +61,12 @@ public:
         glfwTerminate();
     }
 
-    void run() 
+    void run()
     {
         initWindow();
         findAdapter();
         intiDx11();
-        vkcompute.init(sharedTextureHandle, width, height);
+        vkcompute.init(sharedTextureHandle, width, height, requestHighPerformanceDevice);
         mainLoop();
     }
 
@@ -81,10 +86,10 @@ public:
         ComPtr<IDXGIFactory6> factory6;
         DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
 
-        std::cout << "[dx11app.hpp] " << "All Physical devices:" << std::endl;
-        bool requestHighPerformanceAdapter = true;
-        DXGI_GPU_PREFERENCE gpuPreference = requestHighPerformanceAdapter == true ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER;
-        
+        std::cout << "[dx11app.hpp] "
+                  << "All Physical devices:" << std::endl;
+        DXGI_GPU_PREFERENCE gpuPreference = requestHighPerformanceDevice.forDx11 ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+
         ComPtr<IDXGIAdapter1> tmpAdapter;
         DXGI_ADAPTER_DESC1 selectedAdapterDesc;
         for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, gpuPreference, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
@@ -95,16 +100,17 @@ public:
                 continue;
             }
 
-            std::wcout << "[dx11app.hpp] " << "\t--" << desc.Description << std::endl;
+            std::wcout << "[dx11app.hpp] "
+                       << "\t--" << desc.Description << std::endl;
             if (adapterIndex == 0) {
                 // select first gpu
                 adapter = tmpAdapter;
                 selectedAdapterDesc = desc;
             }
-
         }
 
-        std::wcout << "[dx11app.hpp] " << "Selected Device: " << selectedAdapterDesc.Description << std::endl;
+        std::wcout << "[dx11app.hpp] "
+                   << "Selected Device: " << selectedAdapterDesc.Description << std::endl;
     }
 
     void intiDx11()
@@ -143,11 +149,11 @@ public:
         sharedTextureDesc.Height = height;
         sharedTextureDesc.MipLevels = 1;
         sharedTextureDesc.ArraySize = 1;
-        sharedTextureDesc.SampleDesc = {1, 0};
+        sharedTextureDesc.SampleDesc = { 1, 0 };
         sharedTextureDesc.Format = format;
         sharedTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
         DX_CHECK(device->CreateTexture2D(&sharedTextureDesc, nullptr, &sharedTexture));
-        DX_CHECK(sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void **)&sharedTextureResource));
+        DX_CHECK(sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void**)&sharedTextureResource));
         DX_CHECK(sharedTextureResource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &sharedTextureHandle));
 
         D3D11_VIEWPORT viewport;
@@ -164,9 +170,9 @@ public:
             glfwPollEvents();
 
             vkcompute.render();
-            
-            IDXGIKeyedMutex *km;
-            DX_CHECK(sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&km));
+
+            IDXGIKeyedMutex* km;
+            DX_CHECK(sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));
             DX_CHECK(km->AcquireSync(0, INFINITE));
             deviceContex->CopyResource(backBuffer.Get(), sharedTexture.Get());
             DX_CHECK(km->ReleaseSync(0));

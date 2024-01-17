@@ -1,13 +1,15 @@
 #pragma once
 
-#include <iostream>
 #include <assert.h>
+#include <iostream>
 #include <lodepng.h>
 #include <shaderc/shaderc.hpp>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
 #include <winnt.h>
+
+#include "common.hpp"
 
 const int WORKGROUP_SIZE = 32;
 
@@ -26,8 +28,9 @@ const bool enableValidationLayers = true;
         }                                                                                 \
     }
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
@@ -35,8 +38,9 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
         func(instance, debugMessenger, pAllocator);
     }
@@ -65,13 +69,13 @@ private:
     std::vector<const char*> enabledLayers;
 
 public:
-    void init(HANDLE sharedTextureHandle, int w, int h)
+    void init(HANDLE sharedTextureHandle, int w, int h, RequestHighPerformanceDevice requestHightPerformanceDevice)
     {
         width = w;
         height = h;
         createInstance();
         setupDebugMessenger();
-        findPhysicalDevice();
+        findPhysicalDevice(requestHightPerformanceDevice);
         createDevice();
         createDescriptorSetLayout();
         createComputePipeline();
@@ -80,7 +84,8 @@ public:
         createDescriptorSet();
     }
 
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+    {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -88,8 +93,10 @@ public:
         createInfo.pfnUserCallback = debugCallback;
     }
 
-    void setupDebugMessenger() {
-        if (!enableValidationLayers) return;
+    void setupDebugMessenger()
+    {
+        if (!enableValidationLayers)
+            return;
 
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
@@ -99,7 +106,8 @@ public:
         }
     }
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    {
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
@@ -120,9 +128,8 @@ public:
         createInfo.flags = 0;
         createInfo.pApplicationInfo = &applicationInfo;
 
-
         std::vector<const char*> enabledExtensions;
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo {};
         if (enableValidationLayers) {
             uint32_t layerCount;
             VK_CHECK_RESULT(vkEnumerateInstanceLayerProperties(&layerCount, nullptr));
@@ -162,11 +169,9 @@ public:
 
             if (!foundDebugUtilsExtension) {
                 throw std::runtime_error("Extension VK_EXT_DEBUG_UTILS_EXTENSION_NAME not supported\n");
-            }
-            else if (!foundExternalMemoryExtension) {
+            } else if (!foundExternalMemoryExtension) {
                 throw std::runtime_error("Extension VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME not supported\n");
-            }
-            else if (!foundExternalSemaphoreExtension) {
+            } else if (!foundExternalSemaphoreExtension) {
                 throw std::runtime_error("Extension VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME not supported\n");
             }
 
@@ -174,9 +179,8 @@ public:
             enabledExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
             enabledExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
             populateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-        }
-        else {
+            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+        } else {
             createInfo.pNext = nullptr;
         }
 
@@ -187,7 +191,7 @@ public:
         VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
     }
 
-    void findPhysicalDevice()
+    void findPhysicalDevice(RequestHighPerformanceDevice requestHightPerformanceDevice)
     {
         uint32_t deviceCount;
         VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
@@ -197,36 +201,34 @@ public:
         std::vector<VkPhysicalDevice> devices(deviceCount);
         VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
 
-
-        std::cout << "[vkcompute.hpp] " << "All Physical devices:" << std::endl;
+        std::cout << "[vkcompute.hpp] "
+                  << "All Physical devices:" << std::endl;
         int maxScore = -1;
         VkPhysicalDevice wantedDevice = nullptr;
         VkPhysicalDeviceProperties wantedDeviceProps;
         for (VkPhysicalDevice d : devices) {
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(d, &props);
-            std::cout << "[vkcompute.hpp] " << "\t--" << props.deviceName;
-            
+            std::cout << "[vkcompute.hpp] "
+                      << "\t--" << props.deviceName;
+
             int score = 0;
             switch (props.deviceType) {
-            case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                {
-                    score += 1;
-                    std::cout << ", deviceType = CPU";
-                    break;
-                }
-            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                {
-                    score += 20;
-                    std::cout << ", deviceType = DGPU";
-                    break;
-                }
-            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                {
-                    score += 10;
-                    std::cout << ", deviceType = IGPU";
-                    break;
-                }
+            case VK_PHYSICAL_DEVICE_TYPE_CPU: {
+                score += 1;
+                std::cout << ", deviceType = CPU";
+                break;
+            }
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: {
+                score += requestHightPerformanceDevice.forVk ? 20 : 10;
+                std::cout << ", deviceType = DGPU";
+                break;
+            }
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: {
+                score += requestHightPerformanceDevice.forVk ? 10 : 20;
+                std::cout << ", deviceType = IGPU";
+                break;
+            }
             }
 
             std::cout << std::endl;
@@ -239,10 +241,10 @@ public:
         }
 
         physicalDevice = wantedDevice;
-        std::cout << "[vkcompute.hpp] " 
-            << "Selected Device (with score = " << maxScore << "): "
-            << wantedDeviceProps.deviceName 
-            << std::endl;
+        std::cout << "[vkcompute.hpp] "
+                  << "Selected Device (with score = " << maxScore << "): "
+                  << wantedDeviceProps.deviceName
+                  << std::endl;
     }
 
     uint32_t getComputeQueueFamilyIndex()
@@ -396,7 +398,7 @@ public:
 
         vkCmdPipelineBarrier(
             singleTimeCommandBuffer,
-            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0,
             0, nullptr,
