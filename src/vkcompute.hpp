@@ -19,13 +19,13 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-#define VK_CHECK_RESULT(f)                                                                \
-    {                                                                                     \
-        VkResult res = (f);                                                               \
-        if (res != VK_SUCCESS) {                                                          \
+#define VK_CHECK_RESULT(f)                                                                                \
+    {                                                                                                     \
+        VkResult res = (f);                                                                               \
+        if (res != VK_SUCCESS) {                                                                          \
             printf("[vkcompute.hpp] Fatal : VkResult is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            assert(res == VK_SUCCESS);                                                    \
-        }                                                                                 \
+            assert(res == VK_SUCCESS);                                                                    \
+        }                                                                                                 \
     }
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
@@ -209,7 +209,8 @@ public:
         for (VkPhysicalDevice d : devices) {
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(d, &props);
-            std::cout << "[vkcompute.hpp] " << "\t" << deviceId << ". " << props.deviceName;
+            std::cout << "[vkcompute.hpp] "
+                      << "\t" << deviceId << ". " << props.deviceName;
 
             switch (props.deviceType) {
             case VK_PHYSICAL_DEVICE_TYPE_CPU: {

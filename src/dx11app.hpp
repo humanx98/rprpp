@@ -17,15 +17,15 @@
 
 using Microsoft::WRL::ComPtr;
 
-#define DX_CHECK(f)                                                                      \
-    {                                                                                    \
-        HRESULT res = (f);                                                               \
-        if (!SUCCEEDED(res)) {                                                           \
+#define DX_CHECK(f)                                                                                    \
+    {                                                                                                  \
+        HRESULT res = (f);                                                                             \
+        if (!SUCCEEDED(res)) {                                                                         \
             printf("[dx11app.hpp] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            _com_error err(res);                                                         \
+            _com_error err(res);                                                                       \
             printf("[dx11app.hpp] messsage : %s\n", err.ErrorMessage());                               \
-            assert(false);                                                               \
-        }                                                                                \
+            assert(false);                                                                             \
+        }                                                                                              \
     }
 
 class Dx11App {
@@ -94,11 +94,12 @@ public:
         int adapterCount = 0;
         for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
             adapterCount++;
-            
+
             DXGI_ADAPTER_DESC desc;
             tmpAdapter->GetDesc(&desc);
 
-            std::wcout << "[dx11app.hpp] " << "\t" << adapterIndex << ". " << desc.Description << std::endl;
+            std::wcout << "[dx11app.hpp] "
+                       << "\t" << adapterIndex << ". " << desc.Description << std::endl;
 
             if (adapterIndex == gpuIndices.dx11) {
                 adapter = tmpAdapter;
@@ -110,7 +111,8 @@ public:
             throw std::runtime_error("[dx11app.hpp] could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
         }
 
-        std::wcout << "[dx11app.hpp] " << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
+        std::wcout << "[dx11app.hpp] "
+                   << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
     }
 
     void intiDx11()
