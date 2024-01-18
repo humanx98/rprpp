@@ -526,19 +526,18 @@ public:
     void createComputePipeline()
     {
         std::string computeShaderGlsl = R"(#version 450
-#define WIDTH 1600
-#define HEIGHT 1000
 #define WORKGROUP_SIZE 32
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
-layout (binding = 0, rgba8) uniform image2D outputBuffer;
+layout (set = 0, binding = 0, rgba8) uniform image2D outputBuffer;
 
 void main() {
-  if(gl_GlobalInvocationID.x >= WIDTH || gl_GlobalInvocationID.y >= HEIGHT)
+  ivec2 size = imageSize(outputBuffer);
+  if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y)
     return;
 
-  float x = float(gl_GlobalInvocationID.x) / float(WIDTH);
-  float y = float(gl_GlobalInvocationID.y) / float(HEIGHT);
+  float x = float(gl_GlobalInvocationID.x) / float(size.x);
+  float y = float(gl_GlobalInvocationID.y) / float(size.y);
   
   imageStore(outputBuffer, ivec2(gl_GlobalInvocationID.xy), vec4(x, y, 0.0f, 1.0f));
 })";
