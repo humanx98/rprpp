@@ -1,6 +1,6 @@
 #pragma once
 
-struct RequestHighPerformanceDevice {
-    bool forDx11 = true;
-    bool forVk = true;
+struct GpuIndices {
+    int dx11 = 0;
+    int vk = 0;
 };

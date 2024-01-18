@@ -23,7 +23,7 @@ const bool enableValidationLayers = true;
     {                                                                                     \
         VkResult res = (f);                                                               \
         if (res != VK_SUCCESS) {                                                          \
-            printf("Fatal : VkResult is %d in %s at line %d\n", res, __FILE__, __LINE__); \
+            printf("[vkcompute.hpp] Fatal : VkResult is %d in %s at line %d\n", res, __FILE__, __LINE__); \
             assert(res == VK_SUCCESS);                                                    \
         }                                                                                 \
     }
@@ -69,13 +69,13 @@ private:
     std::vector<const char*> enabledLayers;
 
 public:
-    void init(HANDLE sharedTextureHandle, int w, int h, RequestHighPerformanceDevice requestHightPerformanceDevice)
+    void init(HANDLE sharedTextureHandle, int w, int h, GpuIndices gpuIndices)
     {
         width = w;
         height = h;
         createInstance();
         setupDebugMessenger();
-        findPhysicalDevice(requestHightPerformanceDevice);
+        findPhysicalDevice(gpuIndices);
         createDevice();
         createDescriptorSetLayout();
         createComputePipeline();
@@ -102,7 +102,7 @@ public:
         populateDebugMessengerCreateInfo(createInfo);
 
         if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug messenger!");
+            throw std::runtime_error("[vkcompute.hpp] failed to set up debug messenger!");
         }
     }
 
@@ -145,7 +145,7 @@ public:
             }
 
             if (!foundLayer) {
-                throw std::runtime_error("Layer VK_LAYER_KHRONOS_validation not supported\n");
+                throw std::runtime_error("[vkcompute.hpp] Layer VK_LAYER_KHRONOS_validation not supported\n");
             }
             enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
 
@@ -168,11 +168,11 @@ public:
             }
 
             if (!foundDebugUtilsExtension) {
-                throw std::runtime_error("Extension VK_EXT_DEBUG_UTILS_EXTENSION_NAME not supported\n");
+                throw std::runtime_error("[vkcompute.hpp] Extension VK_EXT_DEBUG_UTILS_EXTENSION_NAME not supported\n");
             } else if (!foundExternalMemoryExtension) {
-                throw std::runtime_error("Extension VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME not supported\n");
+                throw std::runtime_error("[vkcompute.hpp] Extension VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME not supported\n");
             } else if (!foundExternalSemaphoreExtension) {
-                throw std::runtime_error("Extension VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME not supported\n");
+                throw std::runtime_error("[vkcompute.hpp] Extension VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME not supported\n");
             }
 
             enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -191,58 +191,56 @@ public:
         VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
     }
 
-    void findPhysicalDevice(RequestHighPerformanceDevice requestHightPerformanceDevice)
+    void findPhysicalDevice(GpuIndices gpuIndices)
     {
         uint32_t deviceCount;
         VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
         if (deviceCount == 0) {
-            throw std::runtime_error("could not find a device with vulkan support");
+            throw std::runtime_error("[vkcompute.hpp] could not find a device with vulkan support");
         }
         std::vector<VkPhysicalDevice> devices(deviceCount);
         VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
 
         std::cout << "[vkcompute.hpp] "
                   << "All Physical devices:" << std::endl;
-        int maxScore = -1;
         VkPhysicalDevice wantedDevice = nullptr;
         VkPhysicalDeviceProperties wantedDeviceProps;
+        int deviceId = 0;
         for (VkPhysicalDevice d : devices) {
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(d, &props);
-            std::cout << "[vkcompute.hpp] "
-                      << "\t--" << props.deviceName;
+            std::cout << "[vkcompute.hpp] " << "\t" << deviceId << ". " << props.deviceName;
 
-            int score = 0;
             switch (props.deviceType) {
             case VK_PHYSICAL_DEVICE_TYPE_CPU: {
-                score += 1;
                 std::cout << ", deviceType = CPU";
                 break;
             }
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: {
-                score += requestHightPerformanceDevice.forVk ? 20 : 10;
                 std::cout << ", deviceType = DGPU";
                 break;
             }
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: {
-                score += requestHightPerformanceDevice.forVk ? 10 : 20;
                 std::cout << ", deviceType = IGPU";
                 break;
             }
             }
-
             std::cout << std::endl;
 
-            if (score > maxScore) {
+            if (gpuIndices.vk == deviceId) {
                 wantedDevice = d;
                 wantedDeviceProps = props;
-                maxScore = score;
             }
+            deviceId++;
+        }
+
+        if (deviceCount <= gpuIndices.vk) {
+            throw std::runtime_error("[vkcompute.hpp] could not find a VkPhysicalDevice, gpuIndices.vk is out of range");
         }
 
         physicalDevice = wantedDevice;
         std::cout << "[vkcompute.hpp] "
-                  << "Selected Device (with score = " << maxScore << "): "
+                  << "Selected Device: "
                   << wantedDeviceProps.deviceName
                   << std::endl;
     }
@@ -262,7 +260,7 @@ public:
         }
 
         if (i == queueFamilies.size()) {
-            throw std::runtime_error("could not find a queue family that supports operations");
+            throw std::runtime_error("[vkcompute.hpp] could not find a queue family that supports operations");
         }
 
         return i;
@@ -293,13 +291,13 @@ public:
         }
 
         if (!foundExternalMemoryExtension) {
-            throw std::runtime_error("Extension VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME not supported\n");
+            throw std::runtime_error("[vkcompute.hpp] Extension VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME not supported\n");
         } else if (!foundExternalSemaphoreExtension) {
-            throw std::runtime_error("Extension VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME not supported\n");
+            throw std::runtime_error("[vkcompute.hpp] Extension VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME not supported\n");
         } else if (!foundExternalMemoryWin32Extension) {
-            throw std::runtime_error("Extension VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME not supported\n");
+            throw std::runtime_error("[vkcompute.hpp] Extension VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME not supported\n");
         } else if (!foundExternalSemaphoreWin32Extension) {
-            throw std::runtime_error("Extension VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME not supported\n");
+            throw std::runtime_error("[vkcompute.hpp] Extension VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME not supported\n");
         }
 
         enabledExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);

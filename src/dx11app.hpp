@@ -21,9 +21,9 @@ using Microsoft::WRL::ComPtr;
     {                                                                                    \
         HRESULT res = (f);                                                               \
         if (!SUCCEEDED(res)) {                                                           \
-            printf("Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
+            printf("[dx11app.hpp] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
             _com_error err(res);                                                         \
-            printf("messsage : %s\n", err.ErrorMessage());                               \
+            printf("[dx11app.hpp] messsage : %s\n", err.ErrorMessage());                               \
             assert(false);                                                               \
         }                                                                                \
     }
@@ -32,7 +32,7 @@ class Dx11App {
 private:
     int width;
     int height;
-    RequestHighPerformanceDevice requestHighPerformanceDevice;
+    GpuIndices gpuIndices;
     GLFWwindow* window = nullptr;
     HWND hWnd = nullptr;
     ComPtr<IDXGIAdapter1> adapter;
@@ -47,10 +47,10 @@ private:
     VkCompute vkcompute;
 
 public:
-    Dx11App(int w, int h, RequestHighPerformanceDevice rhpd)
+    Dx11App(int w, int h, GpuIndices gi)
         : width(w)
         , height(h)
-        , requestHighPerformanceDevice(rhpd)
+        , gpuIndices(gi)
     {
     }
 
@@ -66,7 +66,7 @@ public:
         initWindow();
         findAdapter();
         intiDx11();
-        vkcompute.init(sharedTextureHandle, width, height, requestHighPerformanceDevice);
+        vkcompute.init(sharedTextureHandle, width, height, gpuIndices);
         mainLoop();
     }
 
@@ -87,30 +87,30 @@ public:
         DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
 
         std::cout << "[dx11app.hpp] "
-                  << "All Physical devices:" << std::endl;
-        DXGI_GPU_PREFERENCE gpuPreference = requestHighPerformanceDevice.forDx11 ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+                  << "All Adapters:" << std::endl;
 
         ComPtr<IDXGIAdapter1> tmpAdapter;
-        DXGI_ADAPTER_DESC1 selectedAdapterDesc;
-        for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, gpuPreference, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
-            DXGI_ADAPTER_DESC1 desc;
-            tmpAdapter->GetDesc1(&desc);
+        DXGI_ADAPTER_DESC selectedAdapterDesc;
+        int adapterCount = 0;
+        for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
+            adapterCount++;
+            
+            DXGI_ADAPTER_DESC desc;
+            tmpAdapter->GetDesc(&desc);
 
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-                continue;
-            }
+            std::wcout << "[dx11app.hpp] " << "\t" << adapterIndex << ". " << desc.Description << std::endl;
 
-            std::wcout << "[dx11app.hpp] "
-                       << "\t--" << desc.Description << std::endl;
-            if (adapterIndex == 0) {
-                // select first gpu
+            if (adapterIndex == gpuIndices.dx11) {
                 adapter = tmpAdapter;
                 selectedAdapterDesc = desc;
             }
         }
 
-        std::wcout << "[dx11app.hpp] "
-                   << "Selected Device: " << selectedAdapterDesc.Description << std::endl;
+        if (adapterCount <= gpuIndices.dx11) {
+            throw std::runtime_error("[dx11app.hpp] could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
+        }
+
+        std::wcout << "[dx11app.hpp] " << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
     }
 
     void intiDx11()
