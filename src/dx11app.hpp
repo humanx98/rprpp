@@ -12,8 +12,8 @@
 #include <comdef.h>
 #include <wrl/client.h>
 
+#include "HybridProRenderer.hpp"
 #include "common.hpp"
-#include "vkcompute.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -33,6 +33,7 @@ private:
     int width;
     int height;
     GpuIndices gpuIndices;
+    Paths paths;
     GLFWwindow* window = nullptr;
     HWND hWnd = nullptr;
     ComPtr<IDXGIAdapter1> adapter;
@@ -44,19 +45,19 @@ private:
     ComPtr<ID3D11Texture2D> sharedTexture;
     ComPtr<IDXGIResource1> sharedTextureResource;
     HANDLE sharedTextureHandle = nullptr;
-    VkCompute vkcompute;
+    std::unique_ptr<HybridProRenderer> hybridproRenderer;
 
 public:
-    Dx11App(int w, int h, GpuIndices gi)
+    Dx11App(int w, int h, Paths p, GpuIndices gi)
         : width(w)
         , height(h)
+        , paths(p)
         , gpuIndices(gi)
     {
     }
 
     ~Dx11App()
     {
-        vkcompute.cleanup();
         glfwDestroyWindow(window);
         glfwTerminate();
     }
@@ -66,7 +67,7 @@ public:
         initWindow();
         findAdapter();
         intiDx11();
-        vkcompute.init(sharedTextureHandle, width, height, gpuIndices);
+        hybridproRenderer = std::make_unique<HybridProRenderer>(paths, sharedTextureHandle, width, height, gpuIndices);
         mainLoop();
     }
 
@@ -171,7 +172,7 @@ public:
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
 
-            vkcompute.render();
+            hybridproRenderer->render(1);
 
             IDXGIKeyedMutex* km;
             DX_CHECK(sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));

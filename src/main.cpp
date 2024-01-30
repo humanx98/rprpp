@@ -1,11 +1,25 @@
-#include "dx11app.hpp"
+#include "Dx11App.hpp"
+#include "HybridProRenderer.hpp"
 #include <iostream>
+
+#define WIDTH 1000
+#define HEIGHT 500
+
+#include <vulkan/vulkan_raii.hpp>
 
 int main(int argc, const char* argv[])
 {
+    GpuIndices gpus = { .dx11 = 0, .vk = 0 };
     std::cout << "VkDx11Interop App started..." << std::endl;
+    std::filesystem::path exeDirPath = std::filesystem::path(argv[0]).parent_path();
+    Paths paths = {
+        .hybridproDll = exeDirPath / "HybridPro.dll",
+        .hybridproCacheDir = exeDirPath / "hybridpro_cache",
+        .assetsDir = exeDirPath,
+        .postprocessingGlsl = exeDirPath / "post_processing.comp"
+    };
 
-    Dx11App app(1000, 1000, GpuIndices { .dx11 = 0, .vk = 0 });
+    Dx11App app(WIDTH, HEIGHT, paths, gpus);
     try {
         app.run();
     } catch (const std::runtime_error& e) {
