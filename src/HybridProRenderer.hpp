@@ -37,8 +37,8 @@ private:
 public:
     HybridProRenderer(const Paths& paths,
         HANDLE sharedTextureHandle,
-        rpr_uint w,
-        rpr_uint h,
+        rpr_uint width,
+        rpr_uint height,
         GpuIndices gpuIndices);
     HybridProRenderer(const HybridProRenderer&&) = delete;
     HybridProRenderer(const HybridProRenderer&) = delete;
