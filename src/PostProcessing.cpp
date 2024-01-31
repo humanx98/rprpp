@@ -58,6 +58,7 @@ PostProcessing::PostProcessing(const Paths& paths,
     createOutputDx11Texture(sharedDx11TextureHandle);
     createDescriptorSet();
     createComputePipeline();
+    recordComputeCommandBuffer();
 }
 
 void PostProcessing::createInstance()
@@ -218,8 +219,10 @@ void PostProcessing::createCommandBuffer()
     vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_queueFamilyIndex);
     m_commandPool = vk::raii::CommandPool(m_device.value(), cmdPoolInfo);
 
-    vk::CommandBufferAllocateInfo allocInfo(*m_commandPool.value(), vk::CommandBufferLevel::ePrimary, 1);
-    m_commandBuffer = std::move(vk::raii::CommandBuffers(m_device.value(), allocInfo).front());
+    vk::CommandBufferAllocateInfo allocInfo(*m_commandPool.value(), vk::CommandBufferLevel::ePrimary, 2);
+    vk::raii::CommandBuffers commandBuffers(m_device.value(), allocInfo);
+    m_secondaryCommandBuffer = std::move(commandBuffers[0]);
+    m_computeCommandBuffer = std::move(commandBuffers[1]);
 }
 
 void PostProcessing::createShaderModule(const Paths& paths)
@@ -387,17 +390,17 @@ void PostProcessing::transitionImageLayout(const vk::raii::Image& image,
     vk::PipelineStageFlags srcStage,
     vk::PipelineStageFlags dstStage)
 {
-    m_commandBuffer.value().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    m_commandBuffer.value().pipelineBarrier(srcStage,
+    m_secondaryCommandBuffer.value().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    m_secondaryCommandBuffer.value().pipelineBarrier(srcStage,
         dstStage,
         {},
         nullptr,
         nullptr,
         imageMemoryBarrier);
 
-    m_commandBuffer.value().end();
+    m_secondaryCommandBuffer.value().end();
 
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffer.value());
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer.value());
     m_queue.value().submit(submitInfo);
     m_queue.value().waitIdle();
 }
@@ -439,6 +442,19 @@ void PostProcessing::createComputePipeline()
     m_computePipeline = m_device.value().createComputePipeline(nullptr, pipelineInfo);
 }
 
+void PostProcessing::recordComputeCommandBuffer()
+{
+    m_computeCommandBuffer.value().begin({});
+    m_computeCommandBuffer.value().bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
+    m_computeCommandBuffer.value().bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+        *m_pipelineLayout.value(),
+        0,
+        *m_descriptorSet.value(),
+        nullptr);
+    m_computeCommandBuffer.value().dispatch((uint32_t)ceil(m_width / float(WorkgroupSize)), (uint32_t)ceil(m_height / float(WorkgroupSize)), 1);
+    m_computeCommandBuffer.value().end();
+}
+
 void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
 {
     // copy rpr aov to vk staging buffer
@@ -459,18 +475,18 @@ void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
         vk::PipelineStageFlagBits::eComputeShader,
         vk::PipelineStageFlagBits::eTransfer);
     {
-        m_commandBuffer.value().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+        m_secondaryCommandBuffer.value().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
 
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_width, m_height, 1 });
-        m_commandBuffer.value().copyBufferToImage(*m_stagingAovBuffer.value().buffer,
+        m_secondaryCommandBuffer.value().copyBufferToImage(*m_stagingAovBuffer.value().buffer,
             *image.image,
             vk::ImageLayout::eTransferDstOptimal,
             region);
 
-        m_commandBuffer.value().end();
+        m_secondaryCommandBuffer.value().end();
 
-        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffer.value());
+        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer.value());
         m_queue.value().submit(submitInfo);
         m_queue.value().waitIdle();
     }
@@ -485,19 +501,9 @@ void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
         vk::PipelineStageFlagBits::eComputeShader);
 }
 
-void PostProcessing::apply()
+void PostProcessing::run()
 {
-    m_commandBuffer.value().begin({});
-    m_commandBuffer.value().bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
-    m_commandBuffer.value().bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-        *m_pipelineLayout.value(),
-        0,
-        *m_descriptorSet.value(),
-        nullptr);
-    m_commandBuffer.value().dispatch((uint32_t)ceil(m_width / float(WorkgroupSize)), (uint32_t)ceil(m_height / float(WorkgroupSize)), 1);
-    m_commandBuffer.value().end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffer.value());
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_computeCommandBuffer.value());
     m_queue.value().submit(submitInfo);
     m_queue.value().waitIdle();
 }

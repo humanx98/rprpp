@@ -44,7 +44,8 @@ private:
     std::optional<vk::raii::Queue> m_queue;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
     std::optional<vk::raii::CommandPool> m_commandPool;
-    std::optional<vk::raii::CommandBuffer> m_commandBuffer;
+    std::optional<vk::raii::CommandBuffer> m_secondaryCommandBuffer;
+    std::optional<vk::raii::CommandBuffer> m_computeCommandBuffer;
     std::optional<BindedBuffer> m_stagingAovBuffer;
     std::optional<BindedImage> m_outputDx11Texture;
     std::optional<Aovs> m_aovs;
@@ -63,6 +64,7 @@ private:
     void createAovs();
     void createOutputDx11Texture(HANDLE sharedDx11TextureHandle);
     void createComputePipeline();
+    void recordComputeCommandBuffer();
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     BindedBuffer createBuffer(vk::DeviceSize size,
         vk::BufferUsageFlags usage,
@@ -91,7 +93,7 @@ public:
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
-    void apply();
+    void run();
 
     inline VkPhysicalDevice getVkPhysicalDevice() const noexcept
     {

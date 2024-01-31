@@ -281,7 +281,7 @@ void HybridProRenderer::render(rpr_uint iterations)
     m_postProcessing->updateAovReflectionCatcher(m_aovs[RPR_AOV_REFLECTION_CATCHER]);
     m_postProcessing->updateAovMattePass(m_aovs[RPR_AOV_MATTE_PASS]);
     m_postProcessing->updateAovBackground(m_aovs[RPR_AOV_BACKGROUND]);
-    m_postProcessing->apply();
+    m_postProcessing->run();
 }
 
 void HybridProRenderer::saveResultTo(const char* path, rpr_aov aov)

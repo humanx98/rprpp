@@ -167,18 +167,10 @@ public:
         deviceContex->RSSetViewports(1, &viewport);
     }
 
-    double clockToMilliseconds(clock_t ticks)
-    {
-        // units/(units/time) => time (seconds) * 1000 = milliseconds
-        return (ticks / (double)CLOCKS_PER_SEC) * 1000.0;
-    }
-
     void mainLoop()
     {
         clock_t deltaTime = 0;
         unsigned int frames = 0;
-        double frameRate = 30;
-        double averageFrameTimeMilliseconds = 33.333;
         while (!glfwWindowShouldClose(window)) {
             const rpr_uint renderedIterations = 1;
             clock_t beginFrame = clock();
@@ -196,13 +188,16 @@ public:
             clock_t endFrame = clock();
             deltaTime += endFrame - beginFrame;
             frames += renderedIterations;
-            double deltaTimeInMilliseconds = clockToMilliseconds(deltaTime);
-            if (deltaTimeInMilliseconds > 1000.0) { // every second
-                frameRate = (double)frames * 0.5 + frameRate * 0.5; // more stable
+            double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
+            if (deltaTimeInSeconds > 1.0) { // every second
+                std::cout << "Iterations per second = " 
+                    << frames 
+                    << ", Time per iteration = " 
+                    << deltaTimeInSeconds * 1000.0 / frames
+                    << "ms" 
+                    << std::endl;
                 frames = 0;
                 deltaTime -= CLOCKS_PER_SEC;
-                averageFrameTimeMilliseconds = deltaTimeInMilliseconds / (frameRate == 0 ? 0.001 : frameRate);
-                std::cout << "Iterations per second = " << frameRate << ", Time per iteration = " << averageFrameTimeMilliseconds << "ms" << std::endl;
             }
         }
     }
