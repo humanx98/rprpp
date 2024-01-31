@@ -22,23 +22,6 @@ vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
         &debugUtilsMessengerCallback };
 }
 
-vk::ImageMemoryBarrier makeImageMemoryBarrier(const vk::raii::Image& image, vk::AccessFlags srcAccess,
-    vk::AccessFlags dstAccess,
-    vk::ImageLayout oldLayout,
-    vk::ImageLayout newLayout)
-{
-    vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
-    vk::ImageMemoryBarrier imageMemoryBarrier(srcAccess,
-        dstAccess,
-        oldLayout,
-        newLayout,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
-        *image,
-        subresourceRange);
-    return imageMemoryBarrier;
-}
-
 PostProcessing::PostProcessing(const Paths& paths,
     HANDLE sharedDx11TextureHandle,
     bool enableValidationLayers,
@@ -299,17 +282,20 @@ BindedImage PostProcessing::createImage(uint32_t width,
         {},
         { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }));
 
-    vk::ImageMemoryBarrier imageMemoryBarrier = makeImageMemoryBarrier(image,
-        vk::AccessFlagBits::eNone,
+    BindedImage bindedImage = {
+        .image = std::move(image),
+        .memory = std::move(memory),
+        .view = std::move(view),
+        .access = vk::AccessFlagBits::eNone,
+        .layout = vk::ImageLayout::eUndefined,
+        .stage = vk::PipelineStageFlagBits::eTopOfPipe
+    };
+    transitionImageLayout(bindedImage,
         vk::AccessFlagBits::eShaderRead,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eGeneral);
-    transitionImageLayout(image,
-        imageMemoryBarrier,
-        vk::PipelineStageFlagBits::eTopOfPipe,
+        vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader);
 
-    return { std::move(image), std::move(memory), std::move(view) };
+    return bindedImage;
 }
 
 void PostProcessing::createAovs()
@@ -372,26 +358,37 @@ void PostProcessing::createOutputDx11Texture(HANDLE sharedDx11TextureHandle)
         {},
         { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
     vk::raii::ImageView view(m_device.value(), viewInfo);
-
-    vk::ImageMemoryBarrier imageMemoryBarrier = makeImageMemoryBarrier(image,
-        vk::AccessFlagBits::eNone,
+    m_outputDx11Texture = {
+        .image = std::move(image),
+        .memory = std::move(memory),
+        .view = std::move(view),
+        .access = vk::AccessFlagBits::eNone,
+        .layout = vk::ImageLayout::eUndefined,
+        .stage = vk::PipelineStageFlagBits::eTopOfPipe
+    };
+    transitionImageLayout(m_outputDx11Texture.value(),
         vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eGeneral);
-    transitionImageLayout(image,
-        imageMemoryBarrier,
-        vk::PipelineStageFlagBits::eTopOfPipe,
+        vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader);
-    m_outputDx11Texture = { std::move(image), std::move(memory), std::move(view) };
 }
 
-void PostProcessing::transitionImageLayout(const vk::raii::Image& image,
-    vk::ImageMemoryBarrier imageMemoryBarrier,
-    vk::PipelineStageFlags srcStage,
+void PostProcessing::transitionImageLayout(BindedImage& image,
+    vk::AccessFlags dstAccess,
+    vk::ImageLayout dstLayout,
     vk::PipelineStageFlags dstStage)
 {
+    vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
+    vk::ImageMemoryBarrier imageMemoryBarrier(image.access,
+        dstAccess,
+        image.layout,
+        dstLayout,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        *image.image,
+        subresourceRange);
+
     m_secondaryCommandBuffer.value().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    m_secondaryCommandBuffer.value().pipelineBarrier(srcStage,
+    m_secondaryCommandBuffer.value().pipelineBarrier(image.stage,
         dstStage,
         {},
         nullptr,
@@ -403,6 +400,10 @@ void PostProcessing::transitionImageLayout(const vk::raii::Image& image,
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer.value());
     m_queue.value().submit(submitInfo);
     m_queue.value().waitIdle();
+
+    image.access = dstAccess;
+    image.layout = dstLayout;
+    image.stage = dstStage;
 }
 
 void PostProcessing::createDescriptorSet()
@@ -455,7 +456,7 @@ void PostProcessing::recordComputeCommandBuffer()
     m_computeCommandBuffer.value().end();
 }
 
-void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
+void PostProcessing::updateAov(BindedImage& image, rpr_framebuffer rprfb)
 {
     // copy rpr aov to vk staging buffer
     size_t size;
@@ -465,14 +466,9 @@ void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
     m_stagingAovBuffer.value().memory.unmapMemory();
 
     // aov image transitions
-    vk::ImageMemoryBarrier imageMemoryBarrier = makeImageMemoryBarrier(image.image,
-        vk::AccessFlagBits::eShaderRead,
+    transitionImageLayout(image,
         vk::AccessFlagBits::eTransferWrite,
-        vk::ImageLayout::eGeneral,
-        vk::ImageLayout::eTransferDstOptimal);
-    transitionImageLayout(image.image,
-        imageMemoryBarrier,
-        vk::PipelineStageFlagBits::eComputeShader,
+        vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
         m_secondaryCommandBuffer.value().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
@@ -490,14 +486,9 @@ void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
         m_queue.value().submit(submitInfo);
         m_queue.value().waitIdle();
     }
-    imageMemoryBarrier = makeImageMemoryBarrier(image.image,
-        vk::AccessFlagBits::eTransferWrite,
+    transitionImageLayout(image,
         vk::AccessFlagBits::eShaderRead,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::ImageLayout::eGeneral);
-    transitionImageLayout(image.image,
-        imageMemoryBarrier,
-        vk::PipelineStageFlagBits::eTransfer,
+        vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader);
 }
 

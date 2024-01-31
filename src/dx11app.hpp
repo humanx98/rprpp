@@ -190,12 +190,12 @@ public:
             frames += renderedIterations;
             double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
             if (deltaTimeInSeconds > 1.0) { // every second
-                std::cout << "Iterations per second = " 
-                    << frames 
-                    << ", Time per iteration = " 
-                    << deltaTimeInSeconds * 1000.0 / frames
-                    << "ms" 
-                    << std::endl;
+                std::cout << "Iterations per second = "
+                          << frames
+                          << ", Time per iteration = "
+                          << deltaTimeInSeconds * 1000.0 / frames
+                          << "ms"
+                          << std::endl;
                 frames = 0;
                 deltaTime -= CLOCKS_PER_SEC;
             }

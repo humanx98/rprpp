@@ -18,6 +18,9 @@ struct BindedImage {
     vk::raii::Image image;
     vk::raii::DeviceMemory memory;
     vk::raii::ImageView view;
+    vk::AccessFlags access;
+    vk::ImageLayout layout;
+    vk::PipelineStageFlags stage;
 };
 
 struct Aovs {
@@ -76,11 +79,11 @@ private:
         vk::ImageUsageFlags usage,
         vk::MemoryPropertyFlags properties);
 
-    void transitionImageLayout(const vk::raii::Image& image,
-        vk::ImageMemoryBarrier imageMemoryBarrier,
-        vk::PipelineStageFlags srcStage,
+    void transitionImageLayout(BindedImage& image,
+        vk::AccessFlags dstAccess,
+        vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
-    void updateAov(const BindedImage& image, rpr_framebuffer rprfb);
+    void updateAov(BindedImage& image, rpr_framebuffer rprfb);
 
 public:
     PostProcessing(const Paths& paths,
