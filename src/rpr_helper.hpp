@@ -115,7 +115,7 @@ void CheckNoLeak(rpr_context context)
     }
 }
 
-rpr_shape ImportOBJ(const std::string& file, rpr_scene scene, rpr_context ctx)
+rpr_shape ImportOBJ(const std::string& file, rpr_context ctx)
 {
     rpr_int status = RPR_SUCCESS;
 
@@ -207,8 +207,6 @@ rpr_shape ImportOBJ(const std::string& file, rpr_scene scene, rpr_context ctx)
         (rpr_int const*)&face_normal[0], sizeof(rpr_int),
         (rpr_int const*)&face_texture[0], sizeof(rpr_int),
         (rpr_int const*)&face[0], face.size(), &mesh));
-
-    RPR_CHECK(rprSceneAttachShape(scene, mesh));
 
     return mesh;
 }

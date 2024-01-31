@@ -2,10 +2,8 @@
 #include "HybridProRenderer.hpp"
 #include <iostream>
 
-#define WIDTH 1000
-#define HEIGHT 500
-
-#include <vulkan/vulkan_raii.hpp>
+#define WIDTH 1600
+#define HEIGHT 1000
 
 int main(int argc, const char* argv[])
 {

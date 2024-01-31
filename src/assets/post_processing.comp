@@ -3,14 +3,55 @@
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
 layout (set = 0, binding = 0, rgba8) uniform image2D outputBuffer;
+layout (set = 0, binding = 1, rgba32f) uniform image2D aovColor;
+layout (set = 0, binding = 2, rgba32f) uniform image2D aovOpacity;
+layout (set = 0, binding = 3, rgba32f) uniform image2D aovShadowCatcher;
+layout (set = 0, binding = 4, rgba32f) uniform image2D aovReflectionCatcher;
+layout (set = 0, binding = 5, rgba32f) uniform image2D aovMattePass;
+layout (set = 0, binding = 6, rgba32f) uniform image2D aovBackground;
+
+vec4 clamp4(vec4 val, float minVal, float maxVal)
+{
+    return vec4(
+        clamp(val.x, minVal, maxVal),
+        clamp(val.y, minVal, maxVal),
+        clamp(val.z, minVal, maxVal),
+        clamp(val.w, minVal, maxVal)
+    );
+}
 
 void main() {
     ivec2 size = imageSize(outputBuffer);
     if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y)
-    return;
+        return;
 
-    float x = float(gl_GlobalInvocationID.x) / float(size.x);
-    float y = float(gl_GlobalInvocationID.y) / float(size.y);
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    float gamma = 2.2f;
+    float shadowIntensity = 1.0f;
 
-    imageStore(outputBuffer, ivec2(gl_GlobalInvocationID.xy), vec4(x, y, 0.0f, 1.0f));
+    vec4 color = imageLoad(aovColor, xy);
+    float opacity = imageLoad(aovOpacity, xy).x;
+    float shadow = imageLoad(aovShadowCatcher, xy).x;
+    float reflection = imageLoad(aovReflectionCatcher, xy).x;
+    vec4 mattePass = imageLoad(aovMattePass, xy);
+    vec4 background = imageLoad(aovBackground, xy);
+
+    vec4 colorSubMatte = clamp4(color - mattePass, 0.0f, 1.0f);
+    mattePass = background * (1.0f - min(opacity + reflection, 1.0f)) + mattePass;
+    color.xyz = mattePass.xyz * (1.0f - shadow) + colorSubMatte.xyz;
+    color.w = opacity + shadow;
+    color = clamp4(color, 0.0f, 1.0f);
+
+    color = vec4(
+        pow(color.x, 1.0f / gamma), 
+        pow(color.y, 1.0f / gamma),
+        pow(color.z, 1.0f / gamma), 
+        pow(color.w, 1.0f / gamma)
+    );
+
+    // float x = float(gl_GlobalInvocationID.x) / float(size.x);
+    // float y = float(gl_GlobalInvocationID.y) / float(size.y);
+    // color = vec4(x, y, 0.0f, 1.0f);
+
+    imageStore(outputBuffer, xy, color);
 }

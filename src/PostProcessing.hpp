@@ -58,7 +58,7 @@ private:
     void createDevice();
     void createCommandBuffer();
     void createShaderModule(const Paths& paths);
-    void createDescriptorSets();
+    void createDescriptorSet();
     void createAovs();
     void createOutputDx11Texture(HANDLE sharedDx11TextureHandle);
     void createComputePipeline();
@@ -73,7 +73,11 @@ private:
         vk::ImageUsageFlags usage,
         vk::MemoryPropertyFlags properties);
 
-    void transitionImageLayout(const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+    void transitionImageLayout(const vk::raii::Image& image,
+        vk::ImageMemoryBarrier imageMemoryBarrier,
+        vk::PipelineStageFlags srcStage,
+        vk::PipelineStageFlags dstStage);
+    void updateAov(const BindedImage& image, const std::vector<uint8_t>& aovbuff);
 
 public:
     PostProcessing(const Paths& paths,
@@ -82,9 +86,11 @@ public:
         unsigned int width,
         unsigned int height,
         GpuIndices gpuIndices);
-    PostProcessing(const PostProcessing&&) = delete;
-    PostProcessing(const PostProcessing&) = delete;
+    PostProcessing(PostProcessing&&) = default;
+    PostProcessing& operator=(PostProcessing&&) = default;
+    PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
+    void apply();
 
     inline VkPhysicalDevice getVkPhysicalDevice() const noexcept
     {
@@ -96,11 +102,33 @@ public:
         return static_cast<VkDevice>(**m_device);
     }
 
-    void updateAovColor(const std::vector<uint8_t>& aovbuff);
-    void updateAovOpacity(const std::vector<uint8_t>& aovbuff);
-    void updateAovShadowCatcher(const std::vector<uint8_t>& aovbuff);
-    void updateAovReflectionCatcher(const std::vector<uint8_t>& aovbuff);
-    void updateAovMattePass(const std::vector<uint8_t>& aovbuff);
-    void updateAovBackground(const std::vector<uint8_t>& aovbuff);
-    void apply();
+    inline void updateAovColor(const std::vector<uint8_t>& aovbuff)
+    {
+        updateAov(m_aovs.value().color, aovbuff);
+    }
+
+    inline void updateAovOpacity(const std::vector<uint8_t>& aovbuff)
+    {
+        updateAov(m_aovs.value().opacity, aovbuff);
+    }
+
+    inline void updateAovShadowCatcher(const std::vector<uint8_t>& aovbuff)
+    {
+        updateAov(m_aovs.value().shadowCatcher, aovbuff);
+    }
+
+    inline void updateAovReflectionCatcher(const std::vector<uint8_t>& aovbuff)
+    {
+        updateAov(m_aovs.value().reflectionCatcher, aovbuff);
+    }
+
+    inline void updateAovMattePass(const std::vector<uint8_t>& aovbuff)
+    {
+        updateAov(m_aovs.value().mattePass, aovbuff);
+    }
+
+    inline void updateAovBackground(const std::vector<uint8_t>& aovbuff)
+    {
+        updateAov(m_aovs.value().background, aovbuff);
+    }
 };
