@@ -261,18 +261,13 @@ const std::vector<uint8_t>& HybridProRenderer::readAovBuff(rpr_aov aovKey)
     size_t size;
     RPR_CHECK(rprFrameBufferGetInfo(aov, RPR_FRAMEBUFFER_DATA, 0, nullptr, &size));
 
-    if (!m_tmpAovs.contains(aovKey)) {
-        m_tmpAovs[aovKey] = {};
-    }
-
-    auto& tmpAov = m_tmpAovs[aovKey];
-    if (tmpAov.size() != size) {
-        tmpAov.resize(size);
+    if (m_tmpAovBuff.size() != size) {
+        m_tmpAovBuff.resize(size);
     }
 
     uint8_t* buff = nullptr;
-    RPR_CHECK(rprFrameBufferGetInfo(aov, RPR_FRAMEBUFFER_DATA, size, tmpAov.data(), nullptr));
-    return tmpAov;
+    RPR_CHECK(rprFrameBufferGetInfo(aov, RPR_FRAMEBUFFER_DATA, size, m_tmpAovBuff.data(), nullptr));
+    return m_tmpAovBuff;
 }
 
 void HybridProRenderer::render(rpr_uint iterations)
@@ -280,12 +275,12 @@ void HybridProRenderer::render(rpr_uint iterations)
     RPR_CHECK(rprContextSetParameterByKey1u(m_context, RPR_CONTEXT_ITERATIONS, iterations));
     RPR_CHECK(rprContextRender(m_context));
 
-    m_postProcessing->updateAovColor(readAovBuff(RPR_AOV_COLOR));
-    m_postProcessing->updateAovOpacity(readAovBuff(RPR_AOV_OPACITY));
-    m_postProcessing->updateAovShadowCatcher(readAovBuff(RPR_AOV_SHADOW_CATCHER));
-    m_postProcessing->updateAovReflectionCatcher(readAovBuff(RPR_AOV_REFLECTION_CATCHER));
-    m_postProcessing->updateAovMattePass(readAovBuff(RPR_AOV_MATTE_PASS));
-    m_postProcessing->updateAovBackground(readAovBuff(RPR_AOV_BACKGROUND));
+    m_postProcessing->updateAovColor(m_aovs[RPR_AOV_COLOR]);
+    m_postProcessing->updateAovOpacity(m_aovs[RPR_AOV_OPACITY]);
+    m_postProcessing->updateAovShadowCatcher(m_aovs[RPR_AOV_SHADOW_CATCHER]);
+    m_postProcessing->updateAovReflectionCatcher(m_aovs[RPR_AOV_REFLECTION_CATCHER]);
+    m_postProcessing->updateAovMattePass(m_aovs[RPR_AOV_MATTE_PASS]);
+    m_postProcessing->updateAovBackground(m_aovs[RPR_AOV_BACKGROUND]);
     m_postProcessing->apply();
 }
 

@@ -30,7 +30,7 @@ private:
     rpr_image m_iblimage = nullptr;
     rpr_light m_light = nullptr;
     std::map<rpr_aov, rpr_framebuffer> m_aovs;
-    std::map<rpr_aov, std::vector<uint8_t>> m_tmpAovs;
+    std::vector<uint8_t> m_tmpAovBuff;
 
     const std::vector<uint8_t>& readAovBuff(rpr_aov aov);
 

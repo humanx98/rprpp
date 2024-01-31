@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include <RadeonProRender.h>
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
@@ -77,7 +78,7 @@ private:
         vk::ImageMemoryBarrier imageMemoryBarrier,
         vk::PipelineStageFlags srcStage,
         vk::PipelineStageFlags dstStage);
-    void updateAov(const BindedImage& image, const std::vector<uint8_t>& aovbuff);
+    void updateAov(const BindedImage& image, rpr_framebuffer rprfb);
 
 public:
     PostProcessing(const Paths& paths,
@@ -102,33 +103,33 @@ public:
         return static_cast<VkDevice>(**m_device);
     }
 
-    inline void updateAovColor(const std::vector<uint8_t>& aovbuff)
+    inline void updateAovColor(rpr_framebuffer fb)
     {
-        updateAov(m_aovs.value().color, aovbuff);
+        updateAov(m_aovs.value().color, fb);
     }
 
-    inline void updateAovOpacity(const std::vector<uint8_t>& aovbuff)
+    inline void updateAovOpacity(rpr_framebuffer fb)
     {
-        updateAov(m_aovs.value().opacity, aovbuff);
+        updateAov(m_aovs.value().opacity, fb);
     }
 
-    inline void updateAovShadowCatcher(const std::vector<uint8_t>& aovbuff)
+    inline void updateAovShadowCatcher(rpr_framebuffer fb)
     {
-        updateAov(m_aovs.value().shadowCatcher, aovbuff);
+        updateAov(m_aovs.value().shadowCatcher, fb);
     }
 
-    inline void updateAovReflectionCatcher(const std::vector<uint8_t>& aovbuff)
+    inline void updateAovReflectionCatcher(rpr_framebuffer fb)
     {
-        updateAov(m_aovs.value().reflectionCatcher, aovbuff);
+        updateAov(m_aovs.value().reflectionCatcher, fb);
     }
 
-    inline void updateAovMattePass(const std::vector<uint8_t>& aovbuff)
+    inline void updateAovMattePass(rpr_framebuffer fb)
     {
-        updateAov(m_aovs.value().mattePass, aovbuff);
+        updateAov(m_aovs.value().mattePass, fb);
     }
 
-    inline void updateAovBackground(const std::vector<uint8_t>& aovbuff)
+    inline void updateAovBackground(rpr_framebuffer fb)
     {
-        updateAov(m_aovs.value().background, aovbuff);
+        updateAov(m_aovs.value().background, fb);
     }
 };

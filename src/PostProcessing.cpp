@@ -1,6 +1,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 
 #include "PostProcessing.hpp"
+#include "rpr_helper.hpp"
 #include "vk_helper.hpp"
 #include <fstream>
 #include <iostream>
@@ -438,12 +439,16 @@ void PostProcessing::createComputePipeline()
     m_computePipeline = m_device.value().createComputePipeline(nullptr, pipelineInfo);
 }
 
-void PostProcessing::updateAov(const BindedImage& image, const std::vector<uint8_t>& aovbuff)
+void PostProcessing::updateAov(const BindedImage& image, rpr_framebuffer rprfb)
 {
-    void* data = m_stagingAovBuffer.value().memory.mapMemory(0, aovbuff.size(), {});
-    std::memcpy(data, aovbuff.data(), aovbuff.size());
+    // copy rpr aov to vk staging buffer
+    size_t size;
+    RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, 0, nullptr, &size));
+    void* data = m_stagingAovBuffer.value().memory.mapMemory(0, size, {});
+    RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, size, data, nullptr));
     m_stagingAovBuffer.value().memory.unmapMemory();
 
+    // aov image transitions
     vk::ImageMemoryBarrier imageMemoryBarrier = makeImageMemoryBarrier(image.image,
         vk::AccessFlagBits::eShaderRead,
         vk::AccessFlagBits::eTransferWrite,

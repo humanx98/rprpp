@@ -49,9 +49,5 @@ void main() {
         pow(color.w, 1.0f / gamma)
     );
 
-    // float x = float(gl_GlobalInvocationID.x) / float(size.x);
-    // float y = float(gl_GlobalInvocationID.y) / float(size.y);
-    // color = vec4(x, y, 0.0f, 1.0f);
-
     imageStore(outputBuffer, xy, color);
 }

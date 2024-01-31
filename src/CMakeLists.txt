@@ -51,6 +51,7 @@ set(HEADERS
 set(SOURCES 
     HybridProRenderer.cpp
     PostProcessing.cpp
+    rpr_helper.cpp
 )
 add_executable (vkdx11_interop ${SOURCES} ${HEADERS} main.cpp)
 
