@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PostProcessing.hpp"
 #include "common.hpp"
 #include <RadeonProRender.h>
 #include <filesystem>
@@ -9,16 +8,10 @@
 #include <vector>
 #include <windows.h>
 
-struct FrameSemaphores {
-    VkFence fence;
-    VkSemaphore ready;
-    VkSemaphore release;
-};
-
 class HybridProRenderer {
 private:
-    std::optional<PostProcessing> m_postProcessing;
-    std::vector<FrameSemaphores> m_semaphores;
+    uint32_t m_width;
+    uint32_t m_height;
     rpr_context m_context = nullptr;
     rpr_material_system m_matsys = nullptr;
     rpr_material_node m_teapotMaterial = nullptr;
@@ -36,15 +29,20 @@ private:
 
 public:
     HybridProRenderer(const Paths& paths,
-        HANDLE sharedTextureHandle,
-        rpr_uint width,
-        rpr_uint height,
+        uint32_t width,
+        uint32_t height,
         GpuIndices gpuIndices);
     HybridProRenderer(const HybridProRenderer&&) = delete;
     HybridProRenderer(const HybridProRenderer&) = delete;
     HybridProRenderer& operator=(const HybridProRenderer&) = delete;
     ~HybridProRenderer();
 
-    void render(rpr_uint iterations);
+    void resize(uint32_t width, uint32_t height);
+    void render(uint32_t iterations);
     void saveResultTo(const char* path, rpr_aov aov);
+
+    inline rpr_framebuffer getAov(rpr_aov aov)
+    {
+        return m_aovs[aov];
+    }
 };

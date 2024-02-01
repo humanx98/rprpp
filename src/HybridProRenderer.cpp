@@ -6,16 +6,14 @@
 inline constexpr int FramesInFlight = 3;
 
 HybridProRenderer::HybridProRenderer(const Paths& paths,
-    HANDLE sharedTextureHandle,
-    rpr_uint width,
-    rpr_uint height,
+    uint32_t width,
+    uint32_t height,
     GpuIndices gpuIndices)
 {
     std::cout << "[HybridProRenderer] HybridProRenderer()" << std::endl;
 
     std::vector<rpr_context_properties> properties;
-    rpr_creation_flags creation_flags = RPR_CREATION_FLAGS_ENABLE_GPU0;
-    m_postProcessing = std::move(PostProcessing(paths, sharedTextureHandle, true, width, height, gpuIndices));
+    rpr_creation_flags creation_flags = intToRprCreationFlag(gpuIndices.vk);
 
     // std::vector<VkSemaphore> releaseSemaphores;
     // releaseSemaphores.reserve(FramesInFlight);
@@ -84,9 +82,6 @@ HybridProRenderer::HybridProRenderer(const Paths& paths,
             0.0f, 0.0f, 0.0f, // at
             0.0f, 1.0f, 0.0f // up
             ));
-        const float sensorHeight = 24.0f;
-        float aspectRatio = (float)width / height;
-        RPR_CHECK(rprCameraSetSensorSize(m_camera, sensorHeight * aspectRatio, sensorHeight));
     }
 
     // teapot material
@@ -197,36 +192,12 @@ HybridProRenderer::HybridProRenderer(const Paths& paths,
         RPR_CHECK(rprSceneSetEnvironmentLight(m_scene, m_light));
     }
 
-    // aovs
-    {
-        std::set<rpr_aov> aovs = {
-            RPR_AOV_COLOR,
-            RPR_AOV_OPACITY,
-            RPR_AOV_SHADOW_CATCHER,
-            RPR_AOV_REFLECTION_CATCHER,
-            RPR_AOV_MATTE_PASS,
-            RPR_AOV_BACKGROUND,
-        };
-        const rpr_framebuffer_desc desc = { width, height };
-        const rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
-        for (auto aov : aovs) {
-            rpr_framebuffer fb;
-            RPR_CHECK(rprContextCreateFrameBuffer(m_context, fmt, &desc, &fb));
-            RPR_CHECK(rprContextSetAOV(m_context, aov, fb));
-            m_aovs[aov] = fb;
-        }
-    }
+    resize(width, height);
 }
 
 HybridProRenderer::~HybridProRenderer()
 {
     std::cout << "[HybridProRenderer] ~HybridProRenderer()" << std::endl;
-    for (auto& s : m_semaphores) {
-        vkDestroySemaphore(m_postProcessing->getVkDevice(), s.ready, nullptr);
-        vkDestroySemaphore(m_postProcessing->getVkDevice(), s.release, nullptr);
-        vkDestroyFence(m_postProcessing->getVkDevice(), s.fence, nullptr);
-    }
-
     RPR_CHECK(rprSceneDetachLight(m_scene, m_light));
     RPR_CHECK(rprSceneDetachShape(m_scene, m_teapot));
     for (auto& aov : m_aovs) {
@@ -270,18 +241,44 @@ const std::vector<uint8_t>& HybridProRenderer::readAovBuff(rpr_aov aovKey)
     return m_tmpAovBuff;
 }
 
-void HybridProRenderer::render(rpr_uint iterations)
+void HybridProRenderer::resize(uint32_t width, uint32_t height)
+{
+    if (m_width != width || m_height != height) {
+        for (auto& aov : m_aovs) {
+            RPR_CHECK(rprObjectDelete(aov.second));
+        }
+
+        std::set<rpr_aov> aovs = {
+            RPR_AOV_COLOR,
+            RPR_AOV_OPACITY,
+            RPR_AOV_SHADOW_CATCHER,
+            RPR_AOV_REFLECTION_CATCHER,
+            RPR_AOV_MATTE_PASS,
+            RPR_AOV_BACKGROUND,
+        };
+
+        const rpr_framebuffer_desc desc = { width, height };
+        const rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
+        for (auto aov : aovs) {
+            rpr_framebuffer fb;
+            RPR_CHECK(rprContextCreateFrameBuffer(m_context, fmt, &desc, &fb));
+            RPR_CHECK(rprContextSetAOV(m_context, aov, fb));
+            m_aovs[aov] = fb;
+        }
+
+        const float sensorHeight = 24.0f;
+        float aspectRatio = (float)width / height;
+        RPR_CHECK(rprCameraSetSensorSize(m_camera, sensorHeight * aspectRatio, sensorHeight));
+
+        m_width = width;
+        m_height = height;
+    }
+}
+
+void HybridProRenderer::render(uint32_t iterations)
 {
     RPR_CHECK(rprContextSetParameterByKey1u(m_context, RPR_CONTEXT_ITERATIONS, iterations));
     RPR_CHECK(rprContextRender(m_context));
-
-    m_postProcessing->updateAovColor(m_aovs[RPR_AOV_COLOR]);
-    m_postProcessing->updateAovOpacity(m_aovs[RPR_AOV_OPACITY]);
-    m_postProcessing->updateAovShadowCatcher(m_aovs[RPR_AOV_SHADOW_CATCHER]);
-    m_postProcessing->updateAovReflectionCatcher(m_aovs[RPR_AOV_REFLECTION_CATCHER]);
-    m_postProcessing->updateAovMattePass(m_aovs[RPR_AOV_MATTE_PASS]);
-    m_postProcessing->updateAovBackground(m_aovs[RPR_AOV_BACKGROUND]);
-    m_postProcessing->run();
 }
 
 void HybridProRenderer::saveResultTo(const char* path, rpr_aov aov)

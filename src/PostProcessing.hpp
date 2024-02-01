@@ -18,6 +18,8 @@ struct BindedImage {
     vk::raii::Image image;
     vk::raii::DeviceMemory memory;
     vk::raii::ImageView view;
+    uint32_t width;
+    uint32_t height;
     vk::AccessFlags access;
     vk::ImageLayout layout;
     vk::PipelineStageFlags stage;
@@ -35,8 +37,8 @@ struct Aovs {
 class PostProcessing {
 private:
     bool m_enableValidationLayers = false;
-    unsigned int m_width = 0;
-    unsigned int m_height = 0;
+    uint32_t m_width = 0;
+    uint32_t m_height = 0;
     uint32_t m_queueFamilyIndex = 0;
     std::vector<const char*> m_enabledLayers;
     vk::raii::Context m_context;
@@ -64,10 +66,10 @@ private:
     void createCommandBuffer();
     void createShaderModule(const Paths& paths);
     void createDescriptorSet();
-    void createAovs();
-    void createOutputDx11Texture(HANDLE sharedDx11TextureHandle);
+    void createAovs(uint32_t width, uint32_t height);
+    void createOutputDx11Texture(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height);
     void createComputePipeline();
-    void recordComputeCommandBuffer();
+    void recordComputeCommandBuffer(uint32_t width, uint32_t height);
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
     BindedBuffer createBuffer(vk::DeviceSize size,
         vk::BufferUsageFlags usage,
@@ -96,6 +98,7 @@ public:
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
+    void resize(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height);
     void run();
 
     inline VkPhysicalDevice getVkPhysicalDevice() const noexcept

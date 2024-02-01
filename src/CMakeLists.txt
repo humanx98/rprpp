@@ -29,6 +29,7 @@ if(NOT Vulkan_SHADERC_DLL)
 endif()
 
 set(HEADERS
+    common.hpp
     Dx11App.hpp
     rpr_helper.hpp
     vk_helper.hpp
@@ -37,6 +38,7 @@ set(HEADERS
 )
 
 set(SOURCES 
+    Dx11App.cpp
     HybridProRenderer.cpp
     PostProcessing.cpp
     rpr_helper.cpp

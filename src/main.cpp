@@ -2,8 +2,8 @@
 #include "HybridProRenderer.hpp"
 #include <iostream>
 
-#define WIDTH 1600
-#define HEIGHT 1000
+#define WIDTH 1200
+#define HEIGHT 700
 
 int main(int argc, const char* argv[])
 {

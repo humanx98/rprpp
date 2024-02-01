@@ -13,6 +13,7 @@
 #include <wrl/client.h>
 
 #include "HybridProRenderer.hpp"
+#include "PostProcessing.hpp"
 #include "common.hpp"
 
 using Microsoft::WRL::ComPtr;
@@ -30,175 +31,32 @@ using Microsoft::WRL::ComPtr;
 
 class Dx11App {
 private:
-    int width;
-    int height;
-    GpuIndices gpuIndices;
-    Paths paths;
-    GLFWwindow* window = nullptr;
-    HWND hWnd = nullptr;
-    ComPtr<IDXGIAdapter1> adapter;
-    ComPtr<ID3D11Device> device;
-    ComPtr<ID3D11Resource> backBuffer;
-    ComPtr<IDXGISwapChain> swapChain;
-    ComPtr<ID3D11DeviceContext> deviceContex;
-    ComPtr<ID3D11RenderTargetView> renderTargetView;
-    ComPtr<ID3D11Texture2D> sharedTexture;
-    ComPtr<IDXGIResource1> sharedTextureResource;
-    HANDLE sharedTextureHandle = nullptr;
-    std::unique_ptr<HybridProRenderer> hybridproRenderer;
+    int m_width;
+    int m_height;
+    GpuIndices m_gpuIndices;
+    Paths m_paths;
+    GLFWwindow* m_window = nullptr;
+    HWND m_hWnd = nullptr;
+    ComPtr<IDXGIAdapter1> m_adapter;
+    ComPtr<ID3D11Device> m_device;
+    ComPtr<ID3D11Resource> m_backBuffer;
+    ComPtr<IDXGISwapChain> m_swapChain;
+    ComPtr<ID3D11DeviceContext> m_deviceContex;
+    ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+    ComPtr<ID3D11Texture2D> m_sharedTexture;
+    ComPtr<IDXGIResource1> m_sharedTextureResource;
+    HANDLE m_sharedTextureHandle = nullptr;
+    std::optional<PostProcessing> m_postProcessing;
+    std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
 
 public:
-    Dx11App(int w, int h, Paths p, GpuIndices gi)
-        : width(w)
-        , height(h)
-        , paths(p)
-        , gpuIndices(gi)
-    {
-    }
-
-    ~Dx11App()
-    {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-    }
-
-    void run()
-    {
-        initWindow();
-        findAdapter();
-        intiDx11();
-        hybridproRenderer = std::make_unique<HybridProRenderer>(paths, sharedTextureHandle, width, height, gpuIndices);
-        mainLoop();
-    }
-
-    void initWindow()
-    {
-        glfwInit();
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-        window = glfwCreateWindow(width, height, "VkDx11 Interop", nullptr, nullptr);
-        hWnd = glfwGetWin32Window(window);
-    }
-
-    void findAdapter()
-    {
-        ComPtr<IDXGIFactory4> factory;
-        DX_CHECK(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
-        ComPtr<IDXGIFactory6> factory6;
-        DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
-
-        std::cout << "[dx11app.hpp] "
-                  << "All Adapters:" << std::endl;
-
-        ComPtr<IDXGIAdapter1> tmpAdapter;
-        DXGI_ADAPTER_DESC selectedAdapterDesc;
-        int adapterCount = 0;
-        for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
-            adapterCount++;
-
-            DXGI_ADAPTER_DESC desc;
-            tmpAdapter->GetDesc(&desc);
-
-            std::wcout << "[dx11app.hpp] "
-                       << "\t" << adapterIndex << ". " << desc.Description << std::endl;
-
-            if (adapterIndex == gpuIndices.dx11) {
-                adapter = tmpAdapter;
-                selectedAdapterDesc = desc;
-            }
-        }
-
-        if (adapterCount <= gpuIndices.dx11) {
-            throw std::runtime_error("[dx11app.hpp] could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
-        }
-
-        std::wcout << "[dx11app.hpp] "
-                   << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
-    }
-
-    void intiDx11()
-    {
-        auto format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        DXGI_SWAP_CHAIN_DESC scd = {};
-        ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
-        scd.BufferDesc.Width = width;
-        scd.BufferDesc.Height = height;
-        scd.BufferDesc.Format = format;
-        scd.SampleDesc.Count = 1;
-        scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        scd.BufferCount = 1;
-        scd.OutputWindow = hWnd;
-        scd.Windowed = TRUE;
-        auto featureLevel = D3D_FEATURE_LEVEL_11_1;
-        DX_CHECK(D3D11CreateDeviceAndSwapChain(
-            adapter.Get(),
-            D3D_DRIVER_TYPE_UNKNOWN,
-            nullptr,
-            0,
-            &featureLevel,
-            1,
-            D3D11_SDK_VERSION,
-            &scd,
-            &swapChain,
-            &device,
-            nullptr,
-            &deviceContex));
-        DX_CHECK(swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
-        DX_CHECK(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView));
-        deviceContex->OMSetRenderTargets(1, &renderTargetView, nullptr);
-
-        D3D11_TEXTURE2D_DESC sharedTextureDesc = {};
-        sharedTextureDesc.Width = width;
-        sharedTextureDesc.Height = height;
-        sharedTextureDesc.MipLevels = 1;
-        sharedTextureDesc.ArraySize = 1;
-        sharedTextureDesc.SampleDesc = { 1, 0 };
-        sharedTextureDesc.Format = format;
-        sharedTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
-        DX_CHECK(device->CreateTexture2D(&sharedTextureDesc, nullptr, &sharedTexture));
-        DX_CHECK(sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void**)&sharedTextureResource));
-        DX_CHECK(sharedTextureResource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &sharedTextureHandle));
-
-        D3D11_VIEWPORT viewport;
-        ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
-
-        viewport.Width = width;
-        viewport.Height = height;
-        deviceContex->RSSetViewports(1, &viewport);
-    }
-
-    void mainLoop()
-    {
-        clock_t deltaTime = 0;
-        unsigned int frames = 0;
-        while (!glfwWindowShouldClose(window)) {
-            const rpr_uint renderedIterations = 1;
-            clock_t beginFrame = clock();
-            {
-                glfwPollEvents();
-                hybridproRenderer->render(renderedIterations);
-
-                IDXGIKeyedMutex* km;
-                DX_CHECK(sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));
-                DX_CHECK(km->AcquireSync(0, INFINITE));
-                deviceContex->CopyResource(backBuffer.Get(), sharedTexture.Get());
-                DX_CHECK(km->ReleaseSync(0));
-                DX_CHECK(swapChain->Present(1, 0));
-            }
-            clock_t endFrame = clock();
-            deltaTime += endFrame - beginFrame;
-            frames += renderedIterations;
-            double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
-            if (deltaTimeInSeconds > 1.0) { // every second
-                std::cout << "Iterations per second = "
-                          << frames
-                          << ", Time per iteration = "
-                          << deltaTimeInSeconds * 1000.0 / frames
-                          << "ms"
-                          << std::endl;
-                frames = 0;
-                deltaTime -= CLOCKS_PER_SEC;
-            }
-        }
-    }
+    Dx11App(int width, int height, Paths paths, GpuIndices gpuIndices);
+    ~Dx11App();
+    void run();
+    void initWindow();
+    void findAdapter();
+    void intiDx11();
+    void resize(int width, int height);
+    static void onResize(GLFWwindow* window, int width, int height);
+    void mainLoop();
 };
