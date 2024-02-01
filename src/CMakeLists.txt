@@ -8,9 +8,6 @@ macro(_copy_file_to_target target thefile)
     )
 endmacro()
 
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-
 FetchContent_Declare(glfw 
     GIT_REPOSITORY https://github.com/glfw/glfw
     GIT_TAG 3.3.9
@@ -31,15 +28,6 @@ if(NOT Vulkan_SHADERC_DLL)
     message(FATAL_ERROR "Windows platform requires VulkanSDK with shaderc_shared.lib/dll (since SDK 1.2.135.0)")
 endif()
 
-FetchContent_Declare(rprsdk 
-    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderSDK.git
-    GIT_TAG v3.1.4
-    GIT_SUBMODULES ""
-    GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
-)
-FetchContent_MakeAvailable(rprsdk)
-
 set(HEADERS
     Dx11App.hpp
     rpr_helper.hpp
@@ -56,20 +44,20 @@ set(SOURCES
 add_executable (vkdx11_interop ${SOURCES} ${HEADERS} main.cpp)
 
 _copy_file_to_target(vkdx11_interop "${Vulkan_SHADERC_DLL}")
-_copy_file_to_target(vkdx11_interop "${rprsdk_SOURCE_DIR}/RadeonProRender/binWin64/HybridPro.dll")
-_copy_file_to_target(vkdx11_interop "${rprsdk_SOURCE_DIR}/RadeonProRender/binWin64/RadeonProRender64.dll")
+_copy_file_to_target(vkdx11_interop "${RPRSDK}/binWin64/HybridPro.dll")
+_copy_file_to_target(vkdx11_interop "${RPRSDK}/binWin64/RadeonProRender64.dll")
 _copy_file_to_target(vkdx11_interop ${CMAKE_CURRENT_SOURCE_DIR}/assets/teapot.obj)
 _copy_file_to_target(vkdx11_interop ${CMAKE_CURRENT_SOURCE_DIR}/assets/envLightImage.exr)
 _copy_file_to_target(vkdx11_interop ${CMAKE_CURRENT_SOURCE_DIR}/assets/post_processing.comp)
 
 target_include_directories(vkdx11_interop 
     PRIVATE ${Vulkan_INCLUDE_DIR}
-    PRIVATE ${rprsdk_SOURCE_DIR}/RadeonProRender/inc
+    PRIVATE "${RPRSDK}/inc"
 )
 
 target_link_libraries(vkdx11_interop 
     glfw
     ${Vulkan_LIBRARY}
     ${Vulkan_SHADERC_LIB}
-    ${rprsdk_SOURCE_DIR}/RadeonProRender/libWin64/RadeonProRender64.lib
+    ${RPRSDK}/libWin64/RadeonProRender64.lib
 )
