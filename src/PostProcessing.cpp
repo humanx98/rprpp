@@ -34,7 +34,8 @@ PostProcessing::PostProcessing(const Paths& paths,
     findPhysicalDevice(gpuIndices);
     createDevice();
     createShaderModule(paths);
-    createCommandBuffer();
+    createCommandBuffers();
+    createUbo();
     resize(sharedDx11TextureHandle, width, height);
 }
 
@@ -159,8 +160,8 @@ void PostProcessing::createDevice()
         { VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, false },
         { VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, false },
         { VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, false },
-        { VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME, false },
-        { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false },
+        { VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME, false }, //  for hybridpro
+        { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false }, // for hybridpro
     };
     for (auto& prop : m_physicalDevice->enumerateDeviceExtensionProperties()) {
         auto it = foundExtensions.find(prop.extensionName);
@@ -181,17 +182,17 @@ void PostProcessing::createDevice()
     vk::DeviceQueueCreateInfo deviceQueueCreateInfo({}, m_queueFamilyIndex, 1, &queuePriority);
 
     vk::PhysicalDeviceFeatures deviceFeatures;
-    deviceFeatures.samplerAnisotropy = true;
+    deviceFeatures.samplerAnisotropy = true; // for hybridpro
 
     vk::PhysicalDeviceVulkan12Features features12;
-    features12.bufferDeviceAddress = true;
-    features12.samplerFilterMinmax = true;
+    features12.bufferDeviceAddress = true; // for hybridpro
+    features12.samplerFilterMinmax = true; // for hybridpro
     vk::DeviceCreateInfo deviceCreateInfo({}, deviceQueueCreateInfo, m_enabledLayers, enabledExtensions, &deviceFeatures, &features12);
     m_device = m_physicalDevice->createDevice(deviceCreateInfo);
     m_queue = m_device->getQueue(m_queueFamilyIndex, 0);
 }
 
-void PostProcessing::createCommandBuffer()
+void PostProcessing::createCommandBuffers()
 {
     vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_queueFamilyIndex);
     m_commandPool = vk::raii::CommandPool(m_device.value(), cmdPoolInfo);
@@ -220,6 +221,17 @@ void PostProcessing::createShaderModule(const Paths& paths)
     }
     vk::ShaderModuleCreateInfo shaderModuleInfo({}, std::distance(spv.cbegin(), spv.cend()) * sizeof(uint32_t), spv.cbegin());
     m_shaderModule = vk::raii::ShaderModule(m_device.value(), shaderModuleInfo);
+}
+
+void PostProcessing::createUbo()
+{
+    m_uboDirty = true;
+    m_stagingUboBuffer = createBuffer(sizeof(UniformBufferObject),
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    m_uboBuffer = createBuffer(sizeof(UniformBufferObject),
+        vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
 }
 
 uint32_t PostProcessing::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
@@ -408,17 +420,21 @@ void PostProcessing::createDescriptorSet()
 {
     vk::helper::DescriptorBuilder builder;
     std::vector<vk::DescriptorImageInfo> descriptorImageInfos = {
-        vk::DescriptorImageInfo(nullptr, *m_outputDx11Texture->view, vk::ImageLayout::eGeneral),
-        vk::DescriptorImageInfo(nullptr, *m_aovs->color.view, vk::ImageLayout::eGeneral),
-        vk::DescriptorImageInfo(nullptr, *m_aovs->opacity.view, vk::ImageLayout::eGeneral),
-        vk::DescriptorImageInfo(nullptr, *m_aovs->shadowCatcher.view, vk::ImageLayout::eGeneral),
-        vk::DescriptorImageInfo(nullptr, *m_aovs->reflectionCatcher.view, vk::ImageLayout::eGeneral),
-        vk::DescriptorImageInfo(nullptr, *m_aovs->mattePass.view, vk::ImageLayout::eGeneral),
-        vk::DescriptorImageInfo(nullptr, *m_aovs->background.view, vk::ImageLayout::eGeneral),
+        vk::DescriptorImageInfo(nullptr, *m_outputDx11Texture->view, vk::ImageLayout::eGeneral), // binding 0
+        vk::DescriptorImageInfo(nullptr, *m_aovs->color.view, vk::ImageLayout::eGeneral), // binding 1
+        vk::DescriptorImageInfo(nullptr, *m_aovs->opacity.view, vk::ImageLayout::eGeneral), // binding 2
+        vk::DescriptorImageInfo(nullptr, *m_aovs->shadowCatcher.view, vk::ImageLayout::eGeneral), // binding 3
+        vk::DescriptorImageInfo(nullptr, *m_aovs->reflectionCatcher.view, vk::ImageLayout::eGeneral), // binding 4
+        vk::DescriptorImageInfo(nullptr, *m_aovs->mattePass.view, vk::ImageLayout::eGeneral), // binding 5
+        vk::DescriptorImageInfo(nullptr, *m_aovs->background.view, vk::ImageLayout::eGeneral), // binding 6
     };
+
     for (auto& dii : descriptorImageInfos) {
         builder.bindStorageImage(&dii);
     }
+
+    vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer->buffer, 0, sizeof(UniformBufferObject)); // binding 7
+    builder.bindUniformBuffer(&uboDescriptoInfo);
 
     auto poolSizes = builder.poolSizes();
     m_descriptorSetLayout = m_device->createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings));
@@ -490,6 +506,21 @@ void PostProcessing::updateAov(BindedImage& image, rpr_framebuffer rprfb)
         vk::PipelineStageFlagBits::eComputeShader);
 }
 
+void PostProcessing::updateUbo()
+{
+    void* data = m_stagingUboBuffer->memory.mapMemory(0, sizeof(UniformBufferObject), {});
+    std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
+    m_stagingUboBuffer->memory.unmapMemory();
+
+    m_secondaryCommandBuffer->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    m_secondaryCommandBuffer->copyBuffer(*m_stagingUboBuffer->buffer, *m_uboBuffer->buffer, vk::BufferCopy(0, 0, sizeof(UniformBufferObject)));
+    m_secondaryCommandBuffer->end();
+
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer.value());
+    m_queue->submit(submitInfo);
+    m_queue->waitIdle();
+}
+
 void PostProcessing::resize(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height)
 {
     if (m_width != width || m_height != height) {
@@ -513,6 +544,11 @@ void PostProcessing::resize(HANDLE sharedDx11TextureHandle, uint32_t width, uint
 
 void PostProcessing::run()
 {
+    if (m_uboDirty) {
+        updateUbo();
+        m_uboDirty = false;
+    }
+
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_computeCommandBuffer.value());
     m_queue->submit(submitInfo);
     m_queue->waitIdle();

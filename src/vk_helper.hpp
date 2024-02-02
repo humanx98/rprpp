@@ -25,22 +25,44 @@ public:
         return poolSizes;
     }
 
-    void bindStorageImage(vk::DescriptorImageInfo* dii)
+    void bindStorageImage(vk::DescriptorImageInfo* imageInfo)
     {
-        uint32_t binding = static_cast<uint32_t>(bindings.size());
+        uint32_t bindingIndex = static_cast<uint32_t>(bindings.size());
         vk::DescriptorType type = vk::DescriptorType::eStorageImage;
-        vk::DescriptorSetLayoutBinding bind;
-        bind.binding = binding;
-        bind.descriptorType = type;
-        bind.descriptorCount = 1;
-        bind.stageFlags = vk::ShaderStageFlagBits::eCompute;
-        bindings.push_back(bind);
+        vk::DescriptorSetLayoutBinding binding;
+        binding.binding = bindingIndex;
+        binding.descriptorType = type;
+        binding.descriptorCount = 1;
+        binding.stageFlags = vk::ShaderStageFlagBits::eCompute;
+        bindings.push_back(binding);
 
         vk::WriteDescriptorSet write;
-        write.dstBinding = binding;
+        write.dstBinding = bindingIndex;
         write.descriptorCount = 1;
         write.descriptorType = type;
-        write.pImageInfo = dii;
+        write.pImageInfo = imageInfo;
+        writes.push_back(write);
+
+        ++m_poolSizes[type];
+    }
+
+    void bindUniformBuffer(vk::DescriptorBufferInfo* bufferInfo)
+    {
+        uint32_t bindingIndex = static_cast<uint32_t>(bindings.size());
+        vk::DescriptorType type = vk::DescriptorType::eUniformBuffer;
+        vk::DescriptorSetLayoutBinding binding;
+        binding.binding = bindingIndex;
+        binding.descriptorCount = 1;
+        binding.descriptorType = type;
+        binding.pImmutableSamplers = nullptr;
+        binding.stageFlags = vk::ShaderStageFlagBits::eCompute;
+        bindings.push_back(binding);
+
+        vk::WriteDescriptorSet write;
+        write.dstBinding = bindingIndex;
+        write.descriptorCount = 1;
+        write.descriptorType = type;
+        write.pBufferInfo = bufferInfo;
         writes.push_back(write);
 
         ++m_poolSizes[type];

@@ -2,6 +2,27 @@
 #define WORKGROUP_SIZE 32
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
+struct ToneMapping {
+    vec4 whitepoint;
+    float vignetting;
+    float crushBlacks;
+    float burnHighlights;
+    float saturation;
+    float cm2Factor;
+    float filmIso;
+    float cameraShutter;
+    float fNumber;
+    // int enabled; TODO: probably we won't need this field
+};
+
+struct Bloom
+{
+    float radius;
+    float brightnessScale;
+    float threshold;
+    int enabled;
+};
+
 layout (set = 0, binding = 0, rgba8) uniform image2D outputBuffer;
 layout (set = 0, binding = 1, rgba32f) uniform image2D aovColor;
 layout (set = 0, binding = 2, rgba32f) uniform image2D aovOpacity;
@@ -9,6 +30,13 @@ layout (set = 0, binding = 3, rgba32f) uniform image2D aovShadowCatcher;
 layout (set = 0, binding = 4, rgba32f) uniform image2D aovReflectionCatcher;
 layout (set = 0, binding = 5, rgba32f) uniform image2D aovMattePass;
 layout (set = 0, binding = 6, rgba32f) uniform image2D aovBackground;
+layout (set = 0, binding = 7) uniform UBO 
+{
+	ToneMapping toneMapping;
+    Bloom bloom;
+    float invGamma;
+} ubo;
+
 
 vec4 clamp4(vec4 val, float minVal, float maxVal)
 {
@@ -43,10 +71,10 @@ void main() {
     color = clamp4(color, 0.0f, 1.0f);
 
     color = vec4(
-        pow(color.x, 1.0f / gamma), 
-        pow(color.y, 1.0f / gamma),
-        pow(color.z, 1.0f / gamma), 
-        pow(color.w, 1.0f / gamma)
+        pow(color.x, ubo.invGamma), 
+        pow(color.y, ubo.invGamma),
+        pow(color.z, ubo.invGamma), 
+        color.w
     );
 
     imageStore(outputBuffer, xy, color);

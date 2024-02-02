@@ -34,12 +34,40 @@ struct Aovs {
     BindedImage background;
 };
 
+struct ToneMapping {
+    float whitepoint[4];
+    float vignetting;
+    float crushBlacks;
+    float burnHighlights;
+    float saturation;
+    float cm2Factor;
+    float filmIso;
+    float cameraShutter;
+    float fNumber;
+    // int enabled; TODO: probably we won't need this field
+};
+
+struct Bloom {
+    float radius;
+    float brightnessScale;
+    float threshold;
+    int enabled = 0;
+};
+
+struct UniformBufferObject {
+    ToneMapping toneMapping;
+    Bloom bloom;
+    float invGamma = 1.0f / 2.2f;
+};
+
 class PostProcessing {
 private:
     bool m_enableValidationLayers = false;
     uint32_t m_width = 0;
     uint32_t m_height = 0;
     uint32_t m_queueFamilyIndex = 0;
+    bool m_uboDirty = true;
+    UniformBufferObject m_ubo;
     std::vector<const char*> m_enabledLayers;
     vk::raii::Context m_context;
     std::optional<vk::raii::Instance> m_instance;
@@ -51,6 +79,8 @@ private:
     std::optional<vk::raii::CommandPool> m_commandPool;
     std::optional<vk::raii::CommandBuffer> m_secondaryCommandBuffer;
     std::optional<vk::raii::CommandBuffer> m_computeCommandBuffer;
+    std::optional<BindedBuffer> m_stagingUboBuffer;
+    std::optional<BindedBuffer> m_uboBuffer;
     std::optional<BindedBuffer> m_stagingAovBuffer;
     std::optional<BindedImage> m_outputDx11Texture;
     std::optional<Aovs> m_aovs;
@@ -63,9 +93,10 @@ private:
     void findPhysicalDevice(GpuIndices gpuIndices);
     uint32_t getComputeQueueFamilyIndex();
     void createDevice();
-    void createCommandBuffer();
+    void createCommandBuffers();
     void createShaderModule(const Paths& paths);
     void createDescriptorSet();
+    void createUbo();
     void createAovs(uint32_t width, uint32_t height);
     void createOutputDx11Texture(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height);
     void createComputePipeline();
@@ -86,6 +117,7 @@ private:
         vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
     void updateAov(BindedImage& image, rpr_framebuffer rprfb);
+    void updateUbo();
 
 public:
     PostProcessing(const Paths& paths,
