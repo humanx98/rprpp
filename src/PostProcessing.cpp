@@ -29,8 +29,7 @@ PostProcessing::PostProcessing(const Paths& paths,
     uint32_t height,
     GpuIndices gpuIndices)
 {
-    m_enableValidationLayers = enableValidationLayers;
-    createInstance();
+    createInstance(enableValidationLayers);
     findPhysicalDevice(gpuIndices);
     createDevice();
     createShaderModule(paths);
@@ -39,7 +38,7 @@ PostProcessing::PostProcessing(const Paths& paths,
     resize(sharedDx11TextureHandle, width, height);
 }
 
-void PostProcessing::createInstance()
+void PostProcessing::createInstance(bool enableValidationLayers)
 {
     std::vector<const char*> enabledExtensions;
     std::map<const char*, bool, cmp_str> foundExtensions = {
@@ -48,7 +47,7 @@ void PostProcessing::createInstance()
         { VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME, false },
     };
     std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
-    if (m_enableValidationLayers) {
+    if (enableValidationLayers) {
         bool foundValidationLayer = false;
         for (auto& prop : m_context.enumerateInstanceLayerProperties()) {
             if (strcmp("VK_LAYER_KHRONOS_validation", prop.layerName) == 0) {
@@ -88,7 +87,7 @@ void PostProcessing::createInstance()
         debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
     m_instance = vk::raii::Instance(m_context, instanceCreateInfo);
 
-    if (m_enableValidationLayers) {
+    if (enableValidationLayers) {
         m_debugUtilMessenger = m_instance->createDebugUtilsMessengerEXT(makeDebugUtilsMessengerCreateInfoEXT());
     }
 }

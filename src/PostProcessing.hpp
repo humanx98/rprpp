@@ -68,7 +68,6 @@ struct UniformBufferObject {
 
 class PostProcessing {
 private:
-    bool m_enableValidationLayers = false;
     uint32_t m_width = 0;
     uint32_t m_height = 0;
     uint32_t m_queueFamilyIndex = 0;
@@ -95,7 +94,7 @@ private:
     std::optional<vk::raii::DescriptorSet> m_descriptorSet;
     std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
     std::optional<vk::raii::Pipeline> m_computePipeline;
-    void createInstance();
+    void createInstance(bool enableValidationLayers);
     void findPhysicalDevice(GpuIndices gpuIndices);
     uint32_t getComputeQueueFamilyIndex();
     void createDevice();
