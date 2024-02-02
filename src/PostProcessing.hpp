@@ -34,17 +34,22 @@ struct Aovs {
     BindedImage background;
 };
 
-struct ToneMapping {
-    float whitepoint[4];
-    float vignetting;
-    float crushBlacks;
-    float burnHighlights;
-    float saturation;
-    float cm2Factor;
-    float filmIso;
-    float cameraShutter;
-    float fNumber;
-    // int enabled; TODO: probably we won't need this field
+struct ToneMap {
+    float whitepoint[3] = { 1.0f, 1.0f, 1.0f };
+    float vignetting = 0.0f;
+    float crushBlacks = 0.0f;
+    float burnHighlights = 1.0f;
+    float saturation = 1.0f;
+    float cm2Factor = 1.0f;
+    float filmIso = 100.0f;
+    float cameraShutter = 8.0f;
+    float fNumber = 2.0f;
+    float focalLength = 1.0f;
+    float aperture = 0.024f; // hardcoded in swviz
+    // paddings, needed to make a correct memory allignment
+    float _padding0; // int enabled; TODO: probably we won't need this field
+    float _padding1;
+    float _padding2;
 };
 
 struct Bloom {
@@ -55,9 +60,10 @@ struct Bloom {
 };
 
 struct UniformBufferObject {
-    ToneMapping toneMapping;
+    ToneMap tonemap;
     Bloom bloom;
-    float invGamma = 1.0f / 2.2f;
+    float shadowIntensity = 1.0f;
+    float invGamma = 1.0f;
 };
 
 class PostProcessing {
@@ -171,5 +177,109 @@ public:
     inline void updateAovBackground(rpr_framebuffer fb)
     {
         updateAov(m_aovs.value().background, fb);
+    }
+
+    inline void setGamma(float gamma)
+    {
+        m_ubo.invGamma = 1.0f / (gamma > 0.00001f ? gamma : 1.0f);
+        m_uboDirty = true;
+    }
+
+    inline void setShadowIntensity(float shadowIntensity)
+    {
+        m_ubo.shadowIntensity = shadowIntensity;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapWhitepoint(float x, float y, float z)
+    {
+        m_ubo.tonemap.whitepoint[0] = x;
+        m_ubo.tonemap.whitepoint[1] = y;
+        m_ubo.tonemap.whitepoint[2] = z;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapWhitepoint(float vignetting)
+    {
+        m_ubo.tonemap.vignetting = vignetting;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapCrushBlacks(float crushBlacks)
+    {
+        m_ubo.tonemap.crushBlacks = crushBlacks;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapBurnHighlights(float burnHighlights)
+    {
+        m_ubo.tonemap.burnHighlights = burnHighlights;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapSaturation(float saturation)
+    {
+        m_ubo.tonemap.saturation = saturation;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapCm2Factor(float cm2Factor)
+    {
+        m_ubo.tonemap.cm2Factor = cm2Factor;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapFilmIso(float filmIso)
+    {
+        m_ubo.tonemap.filmIso = filmIso;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapCameraShutter(float cameraShutter)
+    {
+        m_ubo.tonemap.cameraShutter = cameraShutter;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapFNumber(float fNumber)
+    {
+        m_ubo.tonemap.fNumber = fNumber;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapFocalLength(float focalLength)
+    {
+        m_ubo.tonemap.focalLength = focalLength;
+        m_uboDirty = true;
+    }
+
+    inline void setToneMapAperture(float aperture)
+    {
+        m_ubo.tonemap.aperture = aperture;
+        m_uboDirty = true;
+    }
+
+    inline void setBloomRadius(float radius)
+    {
+        m_ubo.bloom.radius = radius;
+        m_uboDirty = true;
+    }
+
+    inline void setBloomBrightnessScale(float brightnessScale)
+    {
+        m_ubo.bloom.brightnessScale = brightnessScale;
+        m_uboDirty = true;
+    }
+
+    inline void setBloomThreshold(float threshold)
+    {
+        m_ubo.bloom.threshold = threshold;
+        m_uboDirty = true;
+    }
+
+    inline void setBloomEnabled(bool enabled)
+    {
+        m_ubo.bloom.enabled = enabled ? 1 : 0;
+        m_uboDirty = true;
     }
 };

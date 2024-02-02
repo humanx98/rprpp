@@ -40,6 +40,7 @@ public:
     void resize(uint32_t width, uint32_t height);
     void render(uint32_t iterations);
     void saveResultTo(const char* path, rpr_aov aov);
+    float getFocalLength();
 
     inline rpr_framebuffer getAov(rpr_aov aov)
     {

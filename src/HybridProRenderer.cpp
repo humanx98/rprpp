@@ -281,6 +281,13 @@ void HybridProRenderer::render(uint32_t iterations)
     RPR_CHECK(rprContextRender(m_context));
 }
 
+float HybridProRenderer::getFocalLength()
+{
+    float focalLength;
+    RPR_CHECK(rprCameraGetInfo(m_camera, RPR_CAMERA_FOCAL_LENGTH, sizeof(focalLength), &focalLength, nullptr));
+    return focalLength;
+}
+
 void HybridProRenderer::saveResultTo(const char* path, rpr_aov aov)
 {
     RPR_CHECK(rprFrameBufferSaveToFile(m_aovs[aov], path));

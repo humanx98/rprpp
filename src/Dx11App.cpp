@@ -142,6 +142,8 @@ void Dx11App::resize(int width, int height)
         } else {
             m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_paths, width, height, m_gpuIndices);
         }
+        float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
+        m_postProcessing->setToneMapFocalLength(focalLength);
         m_width = width;
         m_height = height;
     }

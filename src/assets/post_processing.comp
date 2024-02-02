@@ -2,8 +2,8 @@
 #define WORKGROUP_SIZE 32
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
-struct ToneMapping {
-    vec4 whitepoint;
+struct ToneMap {
+    vec3 whitepoint;
     float vignetting;
     float crushBlacks;
     float burnHighlights;
@@ -12,7 +12,12 @@ struct ToneMapping {
     float filmIso;
     float cameraShutter;
     float fNumber;
-    // int enabled; TODO: probably we won't need this field
+    float focalLength;
+    float aperture;
+    // paddings, needed to make a correct memory allignment
+    float _padding0; // int enabled; TODO: probably we won't need this field
+    float _padding1;
+    float _padding2;
 };
 
 struct Bloom
@@ -32,8 +37,9 @@ layout (set = 0, binding = 5, rgba32f) uniform image2D aovMattePass;
 layout (set = 0, binding = 6, rgba32f) uniform image2D aovBackground;
 layout (set = 0, binding = 7) uniform UBO 
 {
-	ToneMapping toneMapping;
+	ToneMap tonemap;
     Bloom bloom;
+    float shadowIntensity;
     float invGamma;
 } ubo;
 
@@ -48,18 +54,11 @@ vec4 clamp4(vec4 val, float minVal, float maxVal)
     );
 }
 
-void main() {
-    ivec2 size = imageSize(outputBuffer);
-    if(gl_GlobalInvocationID.x >= size.x || gl_GlobalInvocationID.y >= size.y)
-        return;
-
-    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
-    float gamma = 2.2f;
-    float shadowIntensity = 1.0f;
-
+vec4 compose(ivec2 xy)
+{
     vec4 color = imageLoad(aovColor, xy);
     float opacity = imageLoad(aovOpacity, xy).x;
-    float shadow = imageLoad(aovShadowCatcher, xy).x;
+    float shadow = min(ubo.shadowIntensity * imageLoad(aovShadowCatcher, xy).x, 1.0f);
     float reflection = imageLoad(aovReflectionCatcher, xy).x;
     vec4 mattePass = imageLoad(aovMattePass, xy);
     vec4 background = imageLoad(aovBackground, xy);
@@ -68,8 +67,78 @@ void main() {
     mattePass = background * (1.0f - min(opacity + reflection, 1.0f)) + mattePass;
     color.xyz = mattePass.xyz * (1.0f - shadow) + colorSubMatte.xyz;
     color.w = opacity + shadow;
-    color = clamp4(color, 0.0f, 1.0f);
 
+    return clamp4(color, 0.0f, 1.0f);
+}
+
+float CIE_luminance_RGB(vec3 rgb) { return rgb.x * 0.176204f + rgb.y * 0.812985f + rgb.z * 0.0108109f; } // linear CIE RGB
+float weighted_luminance_RGB(vec3 rgb, vec3 w) { return rgb.x * w.x + rgb.y * w.y + rgb.z * w.z; }
+float lerp(float a, float b, float t) { return a + t * (b - a); }
+
+vec4 tonemap(vec4 color, ivec2 pos, ivec2 resolution)
+{
+    float invAspectRatio = 1.0f / (float(resolution.x) / float(resolution.y));
+    vec2 invResolution = 1.0f / vec2(resolution);
+    float vignetting_div2 = ubo.tonemap.vignetting * 0.5f;
+
+    vec3 cm2DivWhitepoint = vec3(
+        ubo.tonemap.whitepoint.r > 0.0f ? 1.0f / ubo.tonemap.whitepoint.r : 1.0f, 
+        ubo.tonemap.whitepoint.g > 0.0f ? 1.0f / ubo.tonemap.whitepoint.g : 1.0f, 
+        ubo.tonemap.whitepoint.b > 0.0f ? 1.0f / ubo.tonemap.whitepoint.b : 1.0f
+    );
+
+    cm2DivWhitepoint *= ubo.tonemap.filmIso > 0.0f
+        ? (18.0 / (106.0 * 15.4)) * (ubo.tonemap.cm2Factor * ubo.tonemap.filmIso) / (ubo.tonemap.cameraShutter * ubo.tonemap.fNumber * ubo.tonemap.fNumber) 
+        : ubo.tonemap.cm2Factor;
+    
+    cm2DivWhitepoint /= CIE_luminance_RGB(cm2DivWhitepoint);
+
+    if (vignetting_div2 != 0.0f) {
+        float f0 =  pos.x * invResolution.x - 0.5f;
+        float f1 = (pos.y * invResolution.y - 0.5f) * invAspectRatio;
+        float f2 = ubo.tonemap.focalLength * ubo.tonemap.focalLength;
+        color.xyz *= pow(
+            f2 / (ubo.tonemap.aperture * ubo.tonemap.aperture * (f0 * f0 + f1 * f1) + f2), 
+            vignetting_div2
+        );
+    }
+
+    color.xyz *= cm2DivWhitepoint;
+
+    float burnHighlights = max(ubo.tonemap.burnHighlights, 0.0001f); //1=no scaling,0=reinhard simple tonemapping //!! magic to avoid problems with inverse
+    vec3 luminanceWeight = vec3(0.176204f, 0.812985f, 0.0108109f);
+    float rgbl = weighted_luminance_RGB(color.xyz, luminanceWeight);
+    color.x *= (rgbl * burnHighlights + 1.0f) / (rgbl + 1.0f);
+    color.y *= (rgbl * burnHighlights + 1.0f) / (rgbl + 1.0f);
+    color.z *= (rgbl * burnHighlights + 1.0f) / (rgbl + 1.0f);
+
+    float wl = weighted_luminance_RGB(color.xyz, luminanceWeight);
+    color.x = lerp(wl, color.x, ubo.tonemap.saturation);
+    color.y = lerp(wl, color.y, ubo.tonemap.saturation);
+    color.z = lerp(wl, color.z, ubo.tonemap.saturation);
+
+    float crushBlacks = ubo.tonemap.crushBlacks + ubo.tonemap.crushBlacks + 1.0f; //1=no scaling,0=dark stuff gets even darker
+    if (crushBlacks > 1.0f) {
+        float intens = weighted_luminance_RGB(color.xyz, luminanceWeight);
+        if (intens < 1.0f) {
+            float sqrt_intens = sqrt(intens);
+            color.x = lerp(pow(color.x, crushBlacks), color.x, sqrt_intens);
+            color.y = lerp(pow(color.y, crushBlacks), color.y, sqrt_intens);
+            color.z = lerp(pow(color.z, crushBlacks), color.z, sqrt_intens);
+        }
+    }
+    
+    return color;
+}
+
+void main() {
+    ivec2 resolution = imageSize(outputBuffer);
+    if(gl_GlobalInvocationID.x >= resolution.x || gl_GlobalInvocationID.y >= resolution.y)
+        return;
+
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    vec4 color = compose(xy);
+    color = tonemap(color, xy, resolution);
     color = vec4(
         pow(color.x, ubo.invGamma), 
         pow(color.y, ubo.invGamma),
