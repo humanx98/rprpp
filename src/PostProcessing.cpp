@@ -1,8 +1,9 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 
+#include "common.hpp"
 #include "PostProcessing.hpp"
-#include "rpr_helper.hpp"
 #include "vk_helper.hpp"
+#include "rpr_helper.hpp"
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -22,17 +23,17 @@ vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
         &debugUtilsMessengerCallback };
 }
 
-PostProcessing::PostProcessing(const Paths& paths,
-    HANDLE sharedDx11TextureHandle,
+PostProcessing::PostProcessing(HANDLE sharedDx11TextureHandle,
     bool enableValidationLayers,
     uint32_t width,
     uint32_t height,
-    GpuIndices gpuIndices)
+    uint32_t deviceId,
+    const std::filesystem::path& shaderPath)
 {
     createInstance(enableValidationLayers);
-    findPhysicalDevice(gpuIndices);
+    findPhysicalDevice(deviceId);
     createDevice();
-    createShaderModule(paths);
+    createShaderModule(shaderPath);
     createCommandBuffers();
     createUbo();
     resize(sharedDx11TextureHandle, width, height);
@@ -92,7 +93,7 @@ void PostProcessing::createInstance(bool enableValidationLayers)
     }
 }
 
-void PostProcessing::findPhysicalDevice(GpuIndices gpuIndices)
+void PostProcessing::findPhysicalDevice(uint32_t deviceId)
 {
     vk::raii::PhysicalDevices physicalDevices(m_instance.value());
     if (physicalDevices.empty()) {
@@ -121,7 +122,7 @@ void PostProcessing::findPhysicalDevice(GpuIndices gpuIndices)
         }
         std::cout << std::endl;
 
-        if (gpuIndices.vk == i) {
+        if (deviceId == i) {
             m_physicalDevice = std::move(physicalDevices[i]);
         }
     }
@@ -202,9 +203,9 @@ void PostProcessing::createCommandBuffers()
     m_computeCommandBuffer = std::move(commandBuffers[1]);
 }
 
-void PostProcessing::createShaderModule(const Paths& paths)
+void PostProcessing::createShaderModule(const std::filesystem::path& shaderPath)
 {
-    std::ifstream fglsl(paths.postprocessingGlsl);
+    std::ifstream fglsl(shaderPath);
     std::string computeShaderGlsl((std::istreambuf_iterator<char>(fglsl)), std::istreambuf_iterator<char>());
 
     shaderc::Compiler compiler;
@@ -522,6 +523,10 @@ void PostProcessing::updateUbo()
 
 void PostProcessing::resize(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height)
 {
+    if (sharedDx11TextureHandle == nullptr) {
+        return;
+    }
+
     if (m_width != width || m_height != height) {
         m_computePipeline.reset();
         m_pipelineLayout.reset();

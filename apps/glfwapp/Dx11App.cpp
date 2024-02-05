@@ -135,7 +135,7 @@ void Dx11App::resize(int width, int height)
         if (m_postProcessing.has_value()) {
             m_postProcessing->resize(m_sharedTextureHandle, width, height);
         } else {
-            m_postProcessing = std::move(PostProcessing(m_paths, m_sharedTextureHandle, true, width, height, m_gpuIndices));
+            m_postProcessing = std::move(PostProcessing(m_sharedTextureHandle, true, width, height, m_gpuIndices.vk, m_paths.postprocessingGlsl));
         }
         if (m_hybridproRenderer.get()) {
             m_hybridproRenderer->resize(width, height);

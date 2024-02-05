@@ -1,1 +1,1 @@
-./build/src/Debug/vkdx11_interop.exe
+./build/apps/glfwapp/Debug/glfwapp.exe

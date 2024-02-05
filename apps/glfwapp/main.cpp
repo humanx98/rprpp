@@ -8,7 +8,7 @@
 int main(int argc, const char* argv[])
 {
     GpuIndices gpus = { .dx11 = 0, .vk = 0 };
-    std::cout << "VkDx11Interop App started..." << std::endl;
+    std::cout << "GlfwApp started..." << std::endl;
     std::filesystem::path exeDirPath = std::filesystem::path(argv[0]).parent_path();
     Paths paths = {
         .hybridproDll = exeDirPath / "HybridPro.dll",
@@ -24,6 +24,6 @@ int main(int argc, const char* argv[])
         printf("%s\n", e.what());
         return EXIT_FAILURE;
     }
-    std::cout << "VkDx11Interop App finished..." << std::endl;
+    std::cout << "GlfwApp finished..." << std::endl;
     return 0;
 }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28.1)
 #   Allow GIT_SUBMODULES empty to mean no submodules
 cmake_policy(SET CMP0097 NEW)
-project(vkdx11interop LANGUAGES CXX)
+project(rprpp LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,16 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
+
+set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+
+find_package(Vulkan REQUIRED)
+get_filename_component(Vulkan_LIBRARY_DIR ${Vulkan_LIBRARY} DIRECTORY)
+find_file(Vulkan_SHADERC_LIB NAMES shaderc_shared.lib HINTS ${Vulkan_LIBRARY_DIR})
+find_file(Vulkan_SHADERC_DLL NAMES shaderc_shared.dll HINTS ${Vulkan_LIBRARY_DIR}/../Bin)
+if(NOT Vulkan_SHADERC_DLL)
+    message(FATAL_ERROR "Windows platform requires VulkanSDK with shaderc_shared.lib/dll (since SDK 1.2.135.0)")
+endif()
 
 # Fetching rprsdk takes about 5min
 # 
@@ -20,8 +30,8 @@ set(FETCHCONTENT_QUIET FALSE)
 #     GIT_PROGRESS TRUE
 # )
 # FetchContent_MakeAvailable(rprsdk)
-# set(RPRSDK ${rprsdk_SOURCE_DIR}/RadeonProRender) 
-set(RPRSDK ${CMAKE_CURRENT_SOURCE_DIR}/libs/RadeonProRender)
-
+# set(RPRSDK_DIR ${rprsdk_SOURCE_DIR}/RadeonProRender) 
+set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
 
 add_subdirectory(src)
+add_subdirectory(apps)

@@ -13,7 +13,7 @@
 #include <wrl/client.h>
 
 #include "HybridProRenderer.hpp"
-#include "PostProcessing.hpp"
+#include <PostProcessing.hpp>
 #include "common.hpp"
 
 using Microsoft::WRL::ComPtr;
