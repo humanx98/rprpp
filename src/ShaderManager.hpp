@@ -1,11 +1,11 @@
 #pragma once
 
+#include "vk.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <shaderc/shaderc.hpp>
-#include <vulkan/vulkan_raii.hpp>
 
 namespace rprpp {
 

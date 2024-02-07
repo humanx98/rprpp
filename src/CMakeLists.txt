@@ -2,6 +2,7 @@ set(HEADERS
     common.hpp
     rpr_helper.hpp
     vk_helper.hpp
+    vk.hpp
     DescriptorBuilder.hpp
     ShaderManager.hpp
     PostProcessing.hpp

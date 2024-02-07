@@ -1,9 +1,9 @@
 #pragma once
 
+#include "vk.hpp"
 #include <map>
 #include <optional>
 #include <vector>
-#include <vulkan/vulkan_raii.hpp>
 
 namespace rprpp {
 

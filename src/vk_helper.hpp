@@ -1,8 +1,7 @@
 #pragma once
 
-#define VK_USE_PLATFORM_WIN32_KHR
+#include "vk.hpp"
 #include <optional>
-#include <vulkan/vulkan_raii.hpp>
 #include <windows.h>
 
 namespace vk::helper {

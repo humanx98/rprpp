@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan_raii.hpp>
+#include "vk.hpp"
 
 namespace rprpp {
 enum class ImageFormat {

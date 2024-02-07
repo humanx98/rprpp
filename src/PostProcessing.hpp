@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <optional>
 #include <vector>
-#include <vulkan/vulkan_raii.hpp>
 
 namespace rprpp {
 
