@@ -34,7 +34,7 @@ PostProcessing PostProcessing::create(bool enableValidationLayers, uint32_t devi
     vk::CommandBufferAllocateInfo allocInfo(*commandPool, vk::CommandBufferLevel::ePrimary, 2);
     vk::raii::CommandBuffers commandBuffers(dctx.device, allocInfo);
 
-    vk::helper::Buffer uboBuffer = vk::helper::createBuffer(dctx, 
+    vk::helper::Buffer uboBuffer = vk::helper::createBuffer(dctx,
         sizeof(UniformBufferObject),
         vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal);
@@ -59,7 +59,7 @@ void PostProcessing::createShaderModule(ImageFormat outputFormat)
 void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle)
 {
     size_t stagingBufferSize = std::max(sizeof(UniformBufferObject), width * height * NumComponents * sizeof(float));
-    m_stagingBuffer = vk::helper::createBuffer(m_dctx, 
+    m_stagingBuffer = vk::helper::createBuffer(m_dctx,
         stagingBufferSize,
         vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -83,16 +83,16 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
     transitionImageLayout(m_aovs->mattePass, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
     transitionImageLayout(m_aovs->background, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
 
-    m_outputImage = vk::helper::createImage(m_dctx, 
+    m_outputImage = vk::helper::createImage(m_dctx,
         width,
         height,
         to_vk_format(outputFormat),
         vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage,
         sharedDx11TextureHandle);
 
-    transitionImageLayout(m_outputImage.value(), 
-        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, 
-        vk::ImageLayout::eGeneral, 
+    transitionImageLayout(m_outputImage.value(),
+        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+        vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader);
 }
 

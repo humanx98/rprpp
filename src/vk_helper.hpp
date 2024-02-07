@@ -1,8 +1,8 @@
 #pragma once
 
 #define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan_raii.hpp>
 #include <optional>
+#include <vulkan/vulkan_raii.hpp>
 #include <windows.h>
 
 namespace vk::helper {
@@ -35,7 +35,7 @@ struct Image {
 
 DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId);
 
-Image createImage(const DeviceContext& dctx, 
+Image createImage(const DeviceContext& dctx,
     uint32_t width,
     uint32_t height,
     vk::Format format,

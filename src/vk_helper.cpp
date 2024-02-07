@@ -1,7 +1,7 @@
 #include "vk_helper.hpp"
 #include "common.hpp"
-#include <map>
 #include <iostream>
+#include <map>
 
 namespace vk::helper {
 
@@ -115,8 +115,8 @@ vk::raii::PhysicalDevice findPhysicalDevice(const vk::raii::Instance& instance, 
     return physicalDevice.value();
 }
 
-vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice, 
-    const std::vector<const char*>& enabledLayers, 
+vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
+    const std::vector<const char*>& enabledLayers,
     const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
 {
     std::vector<const char*> enabledExtensions;
@@ -167,7 +167,7 @@ DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId
     auto queueFamilies = physicalDevice.getQueueFamilyProperties();
     uint32_t queueFamilyIndex = 0;
     for (; queueFamilyIndex < queueFamilies.size(); ++queueFamilyIndex) {
-        if (queueFamilies[queueFamilyIndex].queueCount > 0 
+        if (queueFamilies[queueFamilyIndex].queueCount > 0
             && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eCompute)
             && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eTransfer)) {
             break;
@@ -179,12 +179,12 @@ DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId
     }
 
     float queuePriority = 1.0f;
-    vk::raii::Device device = createDevice(physicalDevice, 
-        enabledLayers, 
+    vk::raii::Device device = createDevice(physicalDevice,
+        enabledLayers,
         { vk::DeviceQueueCreateInfo({}, queueFamilyIndex, 1, &queuePriority) });
     vk::raii::Queue queue = device.getQueue(queueFamilyIndex, 0);
 
-    return {  
+    return {
         std::move(context),
         std::move(instance),
         std::move(debugUtilMessenger),
@@ -207,8 +207,8 @@ uint32_t findMemoryType(const vk::raii::PhysicalDevice physicalDevice, uint32_t 
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx, 
-    const vk::raii::Image& image, 
+vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx,
+    const vk::raii::Image& image,
     HANDLE sharedDx11TextureHandle)
 {
     if (sharedDx11TextureHandle != nullptr) {
