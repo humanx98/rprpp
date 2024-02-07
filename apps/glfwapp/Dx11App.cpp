@@ -1,5 +1,17 @@
 #include "Dx11App.hpp"
 
+#define FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+
+inline rprpp::ImageFormat to_rprppformat(DXGI_FORMAT format)
+{
+    switch (format) {
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+        return rprpp::ImageFormat::eR8G8B8A8Unorm;
+    default:
+        throw std::runtime_error("unsupported image format");
+    }
+}
+
 Dx11App::Dx11App(int width, int height, Paths paths, GpuIndices gpuIndices)
     : m_width(width)
     , m_height(height)
@@ -16,6 +28,12 @@ Dx11App::~Dx11App()
 
 void Dx11App::run()
 {
+    m_postProcessing = std::move(rprpp::PostProcessing(true, m_gpuIndices.vk, m_paths.postprocessingGlsl));
+    m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_width, m_height,
+        m_gpuIndices.vk,
+        m_paths.hybridproDll,
+        m_paths.hybridproCacheDir,
+        m_paths.assetsDir);
     initWindow();
     findAdapter();
     intiDx11();
@@ -75,7 +93,7 @@ void Dx11App::intiDx11()
     ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
     scd.BufferDesc.Width = 0; // use window width
     scd.BufferDesc.Height = 0; // use window height
-    scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    scd.BufferDesc.Format = FORMAT;
     scd.SampleDesc.Count = 1;
     scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     scd.BufferCount = 1;
@@ -100,7 +118,7 @@ void Dx11App::intiDx11()
 
 void Dx11App::resize(int width, int height)
 {
-    if (m_width != width || m_height != height || m_sharedTextureHandle == nullptr) {
+    if (m_width != width || m_height != height || m_backBuffer.Get() == nullptr) {
         m_deviceContex->OMSetRenderTargets(0, nullptr, nullptr);
         m_sharedTextureHandle = nullptr;
         m_sharedTextureResource.Reset();
@@ -119,7 +137,7 @@ void Dx11App::resize(int width, int height)
         sharedTextureDesc.MipLevels = 1;
         sharedTextureDesc.ArraySize = 1;
         sharedTextureDesc.SampleDesc = { 1, 0 };
-        sharedTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        sharedTextureDesc.Format = FORMAT;
         sharedTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
         DX_CHECK(m_device->CreateTexture2D(&sharedTextureDesc, nullptr, &m_sharedTexture));
         DX_CHECK(m_sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void**)&m_sharedTextureResource));
@@ -132,16 +150,8 @@ void Dx11App::resize(int width, int height)
         viewport.Height = height;
         m_deviceContex->RSSetViewports(1, &viewport);
 
-        if (m_postProcessing.has_value()) {
-            m_postProcessing->resize(m_sharedTextureHandle, width, height);
-        } else {
-            m_postProcessing = std::move(PostProcessing(m_sharedTextureHandle, true, width, height, m_gpuIndices.vk, m_paths.postprocessingGlsl));
-        }
-        if (m_hybridproRenderer.get()) {
-            m_hybridproRenderer->resize(width, height);
-        } else {
-            m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_paths, width, height, m_gpuIndices);
-        }
+        m_postProcessing->resize(width, height, to_rprppformat(FORMAT), m_sharedTextureHandle);
+        m_hybridproRenderer->resize(width, height);
         float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
         m_postProcessing->setToneMapFocalLength(focalLength);
         m_width = width;

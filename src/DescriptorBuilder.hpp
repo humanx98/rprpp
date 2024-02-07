@@ -5,7 +5,7 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace vk::helper {
+namespace rprpp {
 
 class DescriptorBuilder {
 private:

@@ -12,9 +12,8 @@
 #include <comdef.h>
 #include <wrl/client.h>
 
-#include "HybridProRenderer.hpp"
+#include "../common/HybridProRenderer.hpp"
 #include <PostProcessing.hpp>
-#include "common.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -28,6 +27,18 @@ using Microsoft::WRL::ComPtr;
             assert(false);                                                                             \
         }                                                                                              \
     }
+
+struct GpuIndices {
+    int dx11 = 0;
+    int vk = 0;
+};
+
+struct Paths {
+    std::filesystem::path hybridproDll;
+    std::filesystem::path hybridproCacheDir;
+    std::filesystem::path assetsDir;
+    std::filesystem::path postprocessingGlsl;
+};
 
 class Dx11App {
 private:
@@ -46,7 +57,7 @@ private:
     ComPtr<ID3D11Texture2D> m_sharedTexture;
     ComPtr<IDXGIResource1> m_sharedTextureResource;
     HANDLE m_sharedTextureHandle = nullptr;
-    std::optional<PostProcessing> m_postProcessing;
+    std::optional<rprpp::PostProcessing> m_postProcessing;
     std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
 
 public:

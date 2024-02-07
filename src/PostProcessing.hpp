@@ -1,13 +1,18 @@
 #pragma once
 
-#include <filesystem>
+#include "ImageFormat.hpp"
+#include "ShaderManager.hpp"
 #include <RadeonProRender.h>
+#include <filesystem>
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include <windows.h>
 
+namespace rprpp {
+
 const int WorkgroupSize = 32;
+const int NumComponents = 4;
 
 struct BindedBuffer {
     vk::raii::Buffer buffer;
@@ -68,12 +73,16 @@ struct UniformBufferObject {
 
 class PostProcessing {
 private:
+    HANDLE m_sharedDx11TextureHandle = nullptr;
     uint32_t m_width = 0;
     uint32_t m_height = 0;
+    ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
     uint32_t m_queueFamilyIndex = 0;
     bool m_uboDirty = true;
     UniformBufferObject m_ubo;
     std::vector<const char*> m_enabledLayers;
+    std::filesystem::path m_shaderPath;
+    ShaderManager m_shaderManager;
     vk::raii::Context m_context;
     std::optional<vk::raii::Instance> m_instance;
     std::optional<vk::raii::DebugUtilsMessengerEXT> m_debugUtilMessenger;
@@ -84,10 +93,9 @@ private:
     std::optional<vk::raii::CommandPool> m_commandPool;
     std::optional<vk::raii::CommandBuffer> m_secondaryCommandBuffer;
     std::optional<vk::raii::CommandBuffer> m_computeCommandBuffer;
-    std::optional<BindedBuffer> m_stagingUboBuffer;
+    std::optional<BindedBuffer> m_stagingBuffer;
     std::optional<BindedBuffer> m_uboBuffer;
-    std::optional<BindedBuffer> m_stagingAovBuffer;
-    std::optional<BindedImage> m_outputDx11Texture;
+    std::optional<BindedImage> m_outputImage;
     std::optional<Aovs> m_aovs;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
     std::optional<vk::raii::DescriptorPool> m_descriptorPool;
@@ -99,11 +107,10 @@ private:
     uint32_t getComputeQueueFamilyIndex();
     void createDevice();
     void createCommandBuffers();
-    void createShaderModule(const std::filesystem::path& shaderPath);
+    void createShaderModule(ImageFormat outputFormat);
     void createDescriptorSet();
     void createUbo();
-    void createAovs(uint32_t width, uint32_t height);
-    void createOutputDx11Texture(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height);
+    void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle);
     void createComputePipeline();
     void recordComputeCommandBuffer(uint32_t width, uint32_t height);
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
@@ -111,11 +118,13 @@ private:
         vk::BufferUsageFlags usage,
         vk::MemoryPropertyFlags properties);
 
+    vk::raii::DeviceMemory allocateImageMemory(const vk::raii::Image& image, HANDLE sharedDx11TextureHandle = nullptr);
     BindedImage createImage(uint32_t width,
         uint32_t height,
         vk::Format format,
         vk::ImageUsageFlags usage,
-        vk::MemoryPropertyFlags properties);
+        vk::AccessFlags access,
+        HANDLE sharedDx11TextureHandle = nullptr);
 
     void transitionImageLayout(BindedImage& image,
         vk::AccessFlags dstAccess,
@@ -125,24 +134,15 @@ private:
     void updateUbo();
 
 public:
-    PostProcessing(HANDLE sharedDx11TextureHandle,
-        bool enableValidationLayers,
-        uint32_t width,
-        uint32_t height,
+    PostProcessing(bool enableValidationLayers,
         uint32_t deviceId,
         const std::filesystem::path& shaderPath);
-    // PostProcessing(bool enableValidationLayers,
-    //     uint32_t width,
-    //     uint32_t height,
-    //     uint32_t deviceId,
-    //     const std::filesystem::path& shaderPath) : PostProcessing(nullptr, enableValidationLayers, width, height, deviceId, shaderPath)
-    // {
-    // }
     PostProcessing(PostProcessing&&) = default;
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
-    void resize(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height);
+    void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE sharedDx11TextureHandle = nullptr);
+    void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run();
 
     inline VkPhysicalDevice getVkPhysicalDevice() const noexcept
@@ -289,3 +289,5 @@ public:
         m_uboDirty = true;
     }
 };
+
+}

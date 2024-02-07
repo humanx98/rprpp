@@ -1,5 +1,4 @@
 #include "Dx11App.hpp"
-#include "HybridProRenderer.hpp"
 #include <iostream>
 
 #define WIDTH 1200

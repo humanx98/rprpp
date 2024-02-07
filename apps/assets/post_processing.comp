@@ -1,5 +1,7 @@
 #version 450
-#define WORKGROUP_SIZE 32
+// these defs are provided by shaderc lib
+// #define WORKGROUP_SIZE 32
+// #define OUTPUT_FORMAT rgba8 provided by shaderc lib
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
 struct ToneMap {
@@ -28,13 +30,13 @@ struct Bloom
     int enabled;
 };
 
-layout (set = 0, binding = 0, rgba8) uniform image2D outputBuffer;
-layout (set = 0, binding = 1, rgba32f) uniform image2D aovColor;
-layout (set = 0, binding = 2, rgba32f) uniform image2D aovOpacity;
-layout (set = 0, binding = 3, rgba32f) uniform image2D aovShadowCatcher;
-layout (set = 0, binding = 4, rgba32f) uniform image2D aovReflectionCatcher;
-layout (set = 0, binding = 5, rgba32f) uniform image2D aovMattePass;
-layout (set = 0, binding = 6, rgba32f) uniform image2D aovBackground;
+layout (set = 0, binding = 0, OUTPUT_FORMAT) uniform image2D outputBuffer;
+layout (set = 0, binding = 1, rgba32f) uniform readonly image2D aovColor;
+layout (set = 0, binding = 2, rgba32f) uniform readonly image2D aovOpacity;
+layout (set = 0, binding = 3, rgba32f) uniform readonly image2D aovShadowCatcher;
+layout (set = 0, binding = 4, rgba32f) uniform readonly image2D aovReflectionCatcher;
+layout (set = 0, binding = 5, rgba32f) uniform readonly image2D aovMattePass;
+layout (set = 0, binding = 6, rgba32f) uniform readonly image2D aovBackground;
 layout (set = 0, binding = 7) uniform UBO 
 {
 	ToneMap tonemap;

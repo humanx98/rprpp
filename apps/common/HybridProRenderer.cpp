@@ -5,15 +5,17 @@
 
 inline constexpr int FramesInFlight = 3;
 
-HybridProRenderer::HybridProRenderer(const Paths& paths,
-    uint32_t width,
-    uint32_t height,
-    GpuIndices gpuIndices)
+HybridProRenderer::HybridProRenderer(uint32_t width,
+        uint32_t height,
+        int deviceId,
+        const std::filesystem::path& hybridproDll,
+        const std::filesystem::path& hybridproCacheDir,
+        const std::filesystem::path& assetsDir)
 {
     std::cout << "[HybridProRenderer] HybridProRenderer()" << std::endl;
 
     std::vector<rpr_context_properties> properties;
-    rpr_creation_flags creation_flags = intToRprCreationFlag(gpuIndices.vk);
+    rpr_creation_flags creation_flags = intToRprCreationFlag(deviceId);
 
     // std::vector<VkSemaphore> releaseSemaphores;
     // releaseSemaphores.reserve(FramesInFlight);
@@ -51,7 +53,7 @@ HybridProRenderer::HybridProRenderer(const Paths& paths,
 
     properties.push_back(0);
 
-    rpr_int pluginId = rprRegisterPlugin(paths.hybridproDll.string().c_str());
+    rpr_int pluginId = rprRegisterPlugin(hybridproDll.string().c_str());
     rpr_int plugins[] = { pluginId };
     RPR_CHECK(rprCreateContext(
         RPR_API_VERSION,
@@ -59,7 +61,7 @@ HybridProRenderer::HybridProRenderer(const Paths& paths,
         sizeof(plugins) / sizeof(plugins[0]),
         creation_flags,
         properties.data(),
-        paths.hybridproCacheDir.string().c_str(),
+        hybridproCacheDir.string().c_str(),
         &m_context));
     RPR_CHECK(rprContextSetActivePlugin(m_context, plugins[0]));
     RPR_CHECK(rprContextSetParameterByKey1u(m_context, RPR_CONTEXT_Y_FLIP, RPR_TRUE));
@@ -93,7 +95,7 @@ HybridProRenderer::HybridProRenderer(const Paths& paths,
 
     // teapot
     {
-        auto teapotShapePath = paths.assetsDir / "teapot.obj";
+        auto teapotShapePath = assetsDir / "teapot.obj";
         m_teapot = ImportOBJ(teapotShapePath.string(), m_context);
         RPR_CHECK(rprSceneAttachShape(m_scene, m_teapot));
         RPR_CHECK(rprShapeSetMaterial(m_teapot, m_teapotMaterial));
@@ -172,7 +174,7 @@ HybridProRenderer::HybridProRenderer(const Paths& paths,
 
     // ibl image
     {
-        auto iblPath = paths.assetsDir / "envLightImage.exr";
+        auto iblPath = assetsDir / "envLightImage.exr";
         RPR_CHECK(rprContextCreateImageFromFile(m_context, iblPath.string().c_str(), &m_iblimage));
         RPR_CHECK(rprObjectSetName(m_iblimage, "iblimage"));
     }

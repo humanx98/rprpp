@@ -1,13 +1,16 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 
-#include "common.hpp"
 #include "PostProcessing.hpp"
-#include "vk_helper.hpp"
+#include "DescriptorBuilder.hpp"
+#include "common.hpp"
 #include "rpr_helper.hpp"
-#include <fstream>
+#undef min
+#undef max
+#include <algorithm>
 #include <iostream>
 #include <map>
-#include <shaderc/shaderc.hpp>
+
+namespace rprpp {
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
@@ -23,20 +26,17 @@ vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
         &debugUtilsMessengerCallback };
 }
 
-PostProcessing::PostProcessing(HANDLE sharedDx11TextureHandle,
+PostProcessing::PostProcessing(
     bool enableValidationLayers,
-    uint32_t width,
-    uint32_t height,
     uint32_t deviceId,
     const std::filesystem::path& shaderPath)
 {
+    m_shaderPath = shaderPath;
     createInstance(enableValidationLayers);
     findPhysicalDevice(deviceId);
     createDevice();
-    createShaderModule(shaderPath);
     createCommandBuffers();
     createUbo();
-    resize(sharedDx11TextureHandle, width, height);
 }
 
 void PostProcessing::createInstance(bool enableValidationLayers)
@@ -203,32 +203,18 @@ void PostProcessing::createCommandBuffers()
     m_computeCommandBuffer = std::move(commandBuffers[1]);
 }
 
-void PostProcessing::createShaderModule(const std::filesystem::path& shaderPath)
+void PostProcessing::createShaderModule(ImageFormat outputFormat)
 {
-    std::ifstream fglsl(shaderPath);
-    std::string computeShaderGlsl((std::istreambuf_iterator<char>(fglsl)), std::istreambuf_iterator<char>());
-
-    shaderc::Compiler compiler;
-    shaderc::CompileOptions options;
-    options.SetOptimizationLevel(shaderc_optimization_level_performance);
-    shaderc::SpvCompilationResult spv = compiler.CompileGlslToSpv(
-        computeShaderGlsl,
-        shaderc_glsl_compute_shader,
-        "shader",
-        options);
-    if (spv.GetCompilationStatus() != shaderc_compilation_status_success) {
-        std::cerr << spv.GetErrorMessage();
-    }
-    vk::ShaderModuleCreateInfo shaderModuleInfo({}, std::distance(spv.cbegin(), spv.cend()) * sizeof(uint32_t), spv.cbegin());
-    m_shaderModule = vk::raii::ShaderModule(m_device.value(), shaderModuleInfo);
+    std::map<std::string, std::string> macroDefinitions = {
+        { "OUTPUT_FORMAT", to_glslformat(outputFormat) },
+        { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
+    };
+    m_shaderModule = m_shaderManager.get(m_device.value(), macroDefinitions, m_shaderPath);
 }
 
 void PostProcessing::createUbo()
 {
     m_uboDirty = true;
-    m_stagingUboBuffer = createBuffer(sizeof(UniformBufferObject),
-        vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     m_uboBuffer = createBuffer(sizeof(UniformBufferObject),
         vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal);
@@ -259,13 +245,42 @@ BindedBuffer PostProcessing::createBuffer(vk::DeviceSize size, vk::BufferUsageFl
     return { std::move(buffer), std::move(memory) };
 }
 
+vk::raii::DeviceMemory PostProcessing::allocateImageMemory(const vk::raii::Image& image, HANDLE sharedDx11TextureHandle)
+{
+    if (sharedDx11TextureHandle != nullptr) {
+        vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
+        vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
+        vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
+        (*m_device.value()).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
+        vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
+        vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
+            sharedDx11TextureHandle,
+            nullptr,
+            &memoryDedicatedAllocateInfo);
+        vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
+            findMemoryType(memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
+            &importMemoryInfo);
+        return m_device->allocateMemory(memoryAllocateInfo);
+    } else {
+        vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
+        uint32_t memoryType = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        return m_device->allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
+    }
+}
+
 BindedImage PostProcessing::createImage(uint32_t width,
     uint32_t height,
     vk::Format format,
     vk::ImageUsageFlags usage,
-    vk::MemoryPropertyFlags properties)
+    vk::AccessFlags access,
+    HANDLE sharedDx11TextureHandle)
 {
-    auto image = m_device->createImage(vk::ImageCreateInfo({},
+    std::optional<vk::ExternalMemoryImageCreateInfo> externalMemoryInfo;
+    if (sharedDx11TextureHandle != nullptr) {
+        externalMemoryInfo = vk::ExternalMemoryImageCreateInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture);
+    }
+
+    vk::ImageCreateInfo imageInfo({},
         vk::ImageType::e2D,
         format,
         { width, height, 1 },
@@ -273,20 +288,23 @@ BindedImage PostProcessing::createImage(uint32_t width,
         1,
         vk::SampleCountFlagBits::e1,
         vk::ImageTiling::eOptimal,
-        usage));
+        usage,
+        vk::SharingMode::eExclusive,
+        nullptr,
+        vk::ImageLayout::eUndefined,
+        externalMemoryInfo.has_value() ? &externalMemoryInfo.value() : nullptr);
+    vk::raii::Image image(m_device.value(), imageInfo);
 
-    vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-    uint32_t memoryType = findMemoryType(memRequirements.memoryTypeBits, properties);
-    auto memory = m_device->allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-
+    auto memory = allocateImageMemory(image, sharedDx11TextureHandle);
     image.bindMemory(*memory, 0);
 
-    auto view = m_device->createImageView(vk::ImageViewCreateInfo({},
+    vk::ImageViewCreateInfo viewInfo({},
         *image,
         vk::ImageViewType::e2D,
         format,
         {},
-        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }));
+        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
+    vk::raii::ImageView view(m_device.value(), viewInfo);
 
     BindedImage bindedImage = {
         .image = std::move(image),
@@ -299,87 +317,38 @@ BindedImage PostProcessing::createImage(uint32_t width,
         .stage = vk::PipelineStageFlagBits::eTopOfPipe
     };
     transitionImageLayout(bindedImage,
-        vk::AccessFlagBits::eShaderRead,
+        access,
         vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader);
 
     return bindedImage;
 }
 
-void PostProcessing::createAovs(uint32_t width, uint32_t height)
+void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle)
 {
-    m_stagingAovBuffer = createBuffer(width * height * 4 * sizeof(float),
-        vk::BufferUsageFlagBits::eTransferSrc,
+    size_t stagingBufferSize = std::max(sizeof(UniformBufferObject), width * height * NumComponents * sizeof(float));
+    m_stagingBuffer = createBuffer(stagingBufferSize,
+        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
     vk::Format aovFormat = vk::Format::eR32G32B32A32Sfloat;
     vk::ImageUsageFlags aovUsage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
+    vk::AccessFlags aovAccess = vk::AccessFlagBits::eShaderRead;
     m_aovs = {
-        .color = createImage(width, height, aovFormat, aovUsage, vk::MemoryPropertyFlagBits::eDeviceLocal),
-        .opacity = createImage(width, height, aovFormat, aovUsage, vk::MemoryPropertyFlagBits::eDeviceLocal),
-        .shadowCatcher = createImage(width, height, aovFormat, aovUsage, vk::MemoryPropertyFlagBits::eDeviceLocal),
-        .reflectionCatcher = createImage(width, height, aovFormat, aovUsage, vk::MemoryPropertyFlagBits::eDeviceLocal),
-        .mattePass = createImage(width, height, aovFormat, aovUsage, vk::MemoryPropertyFlagBits::eDeviceLocal),
-        .background = createImage(width, height, aovFormat, aovUsage, vk::MemoryPropertyFlagBits::eDeviceLocal),
+        .color = createImage(width, height, aovFormat, aovUsage, aovAccess),
+        .opacity = createImage(width, height, aovFormat, aovUsage, aovAccess),
+        .shadowCatcher = createImage(width, height, aovFormat, aovUsage, aovAccess),
+        .reflectionCatcher = createImage(width, height, aovFormat, aovUsage, aovAccess),
+        .mattePass = createImage(width, height, aovFormat, aovUsage, aovAccess),
+        .background = createImage(width, height, aovFormat, aovUsage, aovAccess),
     };
-}
 
-void PostProcessing::createOutputDx11Texture(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height)
-{
-    vk::Format format = vk::Format::eR8G8B8A8Unorm;
-    vk::ExternalMemoryImageCreateInfo externalMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture);
-    vk::ImageCreateInfo imageInfo({},
-        vk::ImageType::e2D,
-        format,
-        { width, height, 1 },
-        1,
-        1,
-        vk::SampleCountFlagBits::e1,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eStorage,
-        vk::SharingMode::eExclusive,
-        nullptr,
-        vk::ImageLayout::eUndefined,
-        &externalMemoryInfo);
-    vk::raii::Image image(m_device.value(), imageInfo);
-
-    vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
-    vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
-    vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
-    (*m_device.value()).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
-    vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
-    vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
-        sharedDx11TextureHandle,
-        nullptr,
-        &memoryDedicatedAllocateInfo);
-    vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
-        findMemoryType(memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
-        &importMemoryInfo);
-    vk::raii::DeviceMemory memory = m_device->allocateMemory(memoryAllocateInfo);
-
-    image.bindMemory(*memory, 0);
-
-    vk::ImageViewCreateInfo viewInfo({},
-        *image,
-        vk::ImageViewType::e2D,
-        format,
-        {},
-        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-    vk::raii::ImageView view(m_device.value(), viewInfo);
-    m_outputDx11Texture = {
-        .image = std::move(image),
-        .memory = std::move(memory),
-        .view = std::move(view),
-        .width = width,
-        .height = height,
-        .access = vk::AccessFlagBits::eNone,
-        .layout = vk::ImageLayout::eUndefined,
-        .stage = vk::PipelineStageFlagBits::eTopOfPipe
-    };
-    transitionImageLayout(m_outputDx11Texture.value(),
-        vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
-        vk::ImageLayout::eGeneral,
-        vk::PipelineStageFlagBits::eComputeShader);
+    m_outputImage = createImage(width,
+        height,
+        to_vk_format(outputFormat),
+        vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage,
+        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+        sharedDx11TextureHandle);
 }
 
 void PostProcessing::transitionImageLayout(BindedImage& image,
@@ -418,9 +387,9 @@ void PostProcessing::transitionImageLayout(BindedImage& image,
 
 void PostProcessing::createDescriptorSet()
 {
-    vk::helper::DescriptorBuilder builder;
+    DescriptorBuilder builder;
     std::vector<vk::DescriptorImageInfo> descriptorImageInfos = {
-        vk::DescriptorImageInfo(nullptr, *m_outputDx11Texture->view, vk::ImageLayout::eGeneral), // binding 0
+        vk::DescriptorImageInfo(nullptr, *m_outputImage->view, vk::ImageLayout::eGeneral), // binding 0
         vk::DescriptorImageInfo(nullptr, *m_aovs->color.view, vk::ImageLayout::eGeneral), // binding 1
         vk::DescriptorImageInfo(nullptr, *m_aovs->opacity.view, vk::ImageLayout::eGeneral), // binding 2
         vk::DescriptorImageInfo(nullptr, *m_aovs->shadowCatcher.view, vk::ImageLayout::eGeneral), // binding 3
@@ -475,11 +444,14 @@ void PostProcessing::updateAov(BindedImage& image, rpr_framebuffer rprfb)
     // copy rpr aov to vk staging buffer
     size_t size;
     RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, 0, nullptr, &size));
-    void* data = m_stagingAovBuffer->memory.mapMemory(0, size, {});
+    void* data = m_stagingBuffer->memory.mapMemory(0, size, {});
     RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, size, data, nullptr));
-    m_stagingAovBuffer->memory.unmapMemory();
+    m_stagingBuffer->memory.unmapMemory();
 
-    // aov image transitions
+    // image transitions
+    vk::AccessFlags oldAccess = image.access;
+    vk::ImageLayout oldLayout = image.layout;
+    vk::PipelineStageFlags oldStage = image.stage;
     transitionImageLayout(image,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
@@ -489,7 +461,7 @@ void PostProcessing::updateAov(BindedImage& image, rpr_framebuffer rprfb)
 
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image.width, image.height, 1 });
-        m_secondaryCommandBuffer->copyBufferToImage(*m_stagingAovBuffer->buffer,
+        m_secondaryCommandBuffer->copyBufferToImage(*m_stagingBuffer->buffer,
             *image.image,
             vk::ImageLayout::eTransferDstOptimal,
             region);
@@ -501,19 +473,19 @@ void PostProcessing::updateAov(BindedImage& image, rpr_framebuffer rprfb)
         m_queue->waitIdle();
     }
     transitionImageLayout(image,
-        vk::AccessFlagBits::eShaderRead,
-        vk::ImageLayout::eGeneral,
-        vk::PipelineStageFlagBits::eComputeShader);
+        oldAccess,
+        oldLayout,
+        oldStage);
 }
 
 void PostProcessing::updateUbo()
 {
-    void* data = m_stagingUboBuffer->memory.mapMemory(0, sizeof(UniformBufferObject), {});
+    void* data = m_stagingBuffer->memory.mapMemory(0, sizeof(UniformBufferObject), {});
     std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
-    m_stagingUboBuffer->memory.unmapMemory();
+    m_stagingBuffer->memory.unmapMemory();
 
     m_secondaryCommandBuffer->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    m_secondaryCommandBuffer->copyBuffer(*m_stagingUboBuffer->buffer, *m_uboBuffer->buffer, vk::BufferCopy(0, 0, sizeof(UniformBufferObject)));
+    m_secondaryCommandBuffer->copyBuffer(*m_stagingBuffer->buffer, *m_uboBuffer->buffer, vk::BufferCopy(0, 0, sizeof(UniformBufferObject)));
     m_secondaryCommandBuffer->end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer.value());
@@ -521,39 +493,93 @@ void PostProcessing::updateUbo()
     m_queue->waitIdle();
 }
 
-void PostProcessing::resize(HANDLE sharedDx11TextureHandle, uint32_t width, uint32_t height)
+void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE sharedDx11TextureHandle)
 {
-    if (sharedDx11TextureHandle == nullptr) {
+    if (m_width == width
+        && m_height == height
+        && m_sharedDx11TextureHandle == sharedDx11TextureHandle
+        && m_outputImageFormat == format) {
         return;
     }
 
-    if (m_width != width || m_height != height) {
-        m_computePipeline.reset();
-        m_pipelineLayout.reset();
-        m_descriptorSet.reset();
-        m_descriptorPool.reset();
-        m_descriptorSetLayout.reset();
-        m_aovs.reset();
-        m_outputDx11Texture.reset();
-        m_stagingAovBuffer.reset();
-        createAovs(width, height);
-        createOutputDx11Texture(sharedDx11TextureHandle, width, height);
+    m_computePipeline.reset();
+    m_pipelineLayout.reset();
+    m_descriptorSet.reset();
+    m_descriptorPool.reset();
+    m_descriptorSetLayout.reset();
+    m_aovs.reset();
+    m_outputImage.reset();
+    m_stagingBuffer.reset();
+
+    if (m_outputImageFormat != format || !m_shaderModule.has_value()) {
+        m_shaderModule.reset();
+        createShaderModule(format);
+    }
+
+    if (width > 0 && height > 0) {
+        createImages(width, height, format, sharedDx11TextureHandle);
         createDescriptorSet();
         createComputePipeline();
         recordComputeCommandBuffer(width, height);
-        m_width = width;
-        m_height = height;
+    }
+
+    m_sharedDx11TextureHandle = sharedDx11TextureHandle;
+    m_width = width;
+    m_height = height;
+    m_outputImageFormat = format;
+}
+
+void PostProcessing::getOutput(uint8_t* dst, size_t size, size_t* retSize)
+{
+    if (retSize != nullptr) {
+        *retSize = m_width * m_height * to_pixel_size(m_outputImageFormat);
+    }
+
+    if (dst != nullptr && size > 0) {
+        vk::AccessFlags oldAccess = m_outputImage->access;
+        vk::ImageLayout oldLayout = m_outputImage->layout;
+        vk::PipelineStageFlags oldStage = m_outputImage->stage;
+        transitionImageLayout(m_outputImage.value(),
+            vk::AccessFlagBits::eTransferRead,
+            vk::ImageLayout::eTransferSrcOptimal,
+            vk::PipelineStageFlagBits::eTransfer);
+        {
+            m_secondaryCommandBuffer->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+
+            vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+            vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
+            m_secondaryCommandBuffer->copyImageToBuffer(*m_outputImage->image,
+                vk::ImageLayout::eTransferSrcOptimal,
+                *m_stagingBuffer->buffer,
+                region);
+
+            m_secondaryCommandBuffer->end();
+
+            vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer.value());
+            m_queue->submit(submitInfo);
+            m_queue->waitIdle();
+        }
+
+        transitionImageLayout(m_outputImage.value(), oldAccess, oldLayout, oldStage);
+
+        void* data = m_stagingBuffer->memory.mapMemory(0, size, {});
+        std::memcpy(dst, data, size);
+        m_stagingBuffer->memory.unmapMemory();
     }
 }
 
 void PostProcessing::run()
 {
-    if (m_uboDirty) {
-        updateUbo();
-        m_uboDirty = false;
-    }
+    if (m_computePipeline.has_value()) {
+        if (m_uboDirty) {
+            updateUbo();
+            m_uboDirty = false;
+        }
 
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_computeCommandBuffer.value());
-    m_queue->submit(submitInfo);
-    m_queue->waitIdle();
+        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_computeCommandBuffer.value());
+        m_queue->submit(submitInfo);
+        m_queue->waitIdle();
+    }
+}
+
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.hpp"
 #include <RadeonProRender.h>
 #include <filesystem>
 #include <map>
@@ -28,10 +27,12 @@ private:
     const std::vector<uint8_t>& readAovBuff(rpr_aov aov);
 
 public:
-    HybridProRenderer(const Paths& paths,
-        uint32_t width,
+    HybridProRenderer(uint32_t width,
         uint32_t height,
-        GpuIndices gpuIndices);
+        int deviceId,
+        const std::filesystem::path& hybridproDll,
+        const std::filesystem::path& hybridproCacheDir,
+        const std::filesystem::path& assetsDir);
     HybridProRenderer(const HybridProRenderer&&) = delete;
     HybridProRenderer(const HybridProRenderer&) = delete;
     HybridProRenderer& operator=(const HybridProRenderer&) = delete;
