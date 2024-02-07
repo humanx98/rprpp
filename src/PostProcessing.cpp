@@ -2,8 +2,6 @@
 #include "DescriptorBuilder.hpp"
 #include "common.hpp"
 #include "rpr_helper.hpp"
-#undef min
-#undef max
 #include <algorithm>
 #include <map>
 

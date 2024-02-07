@@ -45,3 +45,9 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+!teapot.obj
+!RadeonProRender64.lib
+!HybridPro.dll
+!Northstar64.dll
+!RadeonProRender64.dll

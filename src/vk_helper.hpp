@@ -2,7 +2,6 @@
 
 #include "vk.hpp"
 #include <optional>
-#include <windows.h>
 
 namespace vk::helper {
 
