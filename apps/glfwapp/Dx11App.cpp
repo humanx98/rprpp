@@ -28,7 +28,7 @@ Dx11App::~Dx11App()
 
 void Dx11App::run()
 {
-    m_postProcessing = std::move(rprpp::PostProcessing(true, m_gpuIndices.vk, m_paths.postprocessingGlsl));
+    m_postProcessing = rprpp::PostProcessing::create(true, m_gpuIndices.vk, m_paths.postprocessingGlsl);
     m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_width, m_height,
         m_gpuIndices.vk,
         m_paths.hybridproDll,

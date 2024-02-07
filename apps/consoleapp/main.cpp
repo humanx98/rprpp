@@ -23,8 +23,8 @@ int main(int argc, const char* argv[])
         std::filesystem::path assetsDir = exeDirPath;
         std::filesystem::path postprocessingGlsl = exeDirPath / "post_processing.comp";
 
-        rprpp::ImageFormat format = rprpp::ImageFormat::eR8G8B8A8Unorm;
-        rprpp::PostProcessing postProcessing(true, deviceId, postprocessingGlsl);
+        rprpp::ImageFormat format = rprpp::ImageFormat::eR32G32B32A32Sfloat;
+        rprpp::PostProcessing postProcessing = rprpp::PostProcessing::create(true, deviceId, postprocessingGlsl);
         postProcessing.resize(WIDTH, HEIGHT, format);
 
         HybridProRenderer renderer(WIDTH,

@@ -1,12 +1,14 @@
 set(HEADERS
     common.hpp
     rpr_helper.hpp
+    vk_helper.hpp
     DescriptorBuilder.hpp
     ShaderManager.hpp
     PostProcessing.hpp
 )
 
 set(SOURCES 
+    vk_helper.cpp
     PostProcessing.cpp
 )
 add_library(rprpp STATIC ${SOURCES} ${HEADERS})

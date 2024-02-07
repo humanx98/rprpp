@@ -2,41 +2,25 @@
 
 #include "ImageFormat.hpp"
 #include "ShaderManager.hpp"
+#include "vk_helper.hpp"
 #include <RadeonProRender.h>
 #include <filesystem>
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
-#include <windows.h>
 
 namespace rprpp {
 
 const int WorkgroupSize = 32;
 const int NumComponents = 4;
 
-struct BindedBuffer {
-    vk::raii::Buffer buffer;
-    vk::raii::DeviceMemory memory;
-};
-
-struct BindedImage {
-    vk::raii::Image image;
-    vk::raii::DeviceMemory memory;
-    vk::raii::ImageView view;
-    uint32_t width;
-    uint32_t height;
-    vk::AccessFlags access;
-    vk::ImageLayout layout;
-    vk::PipelineStageFlags stage;
-};
-
 struct Aovs {
-    BindedImage color;
-    BindedImage opacity;
-    BindedImage shadowCatcher;
-    BindedImage reflectionCatcher;
-    BindedImage mattePass;
-    BindedImage background;
+    vk::helper::Image color;
+    vk::helper::Image opacity;
+    vk::helper::Image shadowCatcher;
+    vk::helper::Image reflectionCatcher;
+    vk::helper::Image mattePass;
+    vk::helper::Image background;
 };
 
 struct ToneMap {
@@ -77,82 +61,61 @@ private:
     uint32_t m_width = 0;
     uint32_t m_height = 0;
     ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
-    uint32_t m_queueFamilyIndex = 0;
     bool m_uboDirty = true;
     UniformBufferObject m_ubo;
     std::vector<const char*> m_enabledLayers;
     std::filesystem::path m_shaderPath;
     ShaderManager m_shaderManager;
-    vk::raii::Context m_context;
-    std::optional<vk::raii::Instance> m_instance;
-    std::optional<vk::raii::DebugUtilsMessengerEXT> m_debugUtilMessenger;
-    std::optional<vk::raii::PhysicalDevice> m_physicalDevice;
-    std::optional<vk::raii::Device> m_device;
-    std::optional<vk::raii::Queue> m_queue;
+    vk::helper::DeviceContext m_dctx;
+    vk::raii::CommandPool m_commandPool;
+    vk::raii::CommandBuffer m_secondaryCommandBuffer;
+    vk::raii::CommandBuffer m_computeCommandBuffer;
+    vk::helper::Buffer m_uboBuffer;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
-    std::optional<vk::raii::CommandPool> m_commandPool;
-    std::optional<vk::raii::CommandBuffer> m_secondaryCommandBuffer;
-    std::optional<vk::raii::CommandBuffer> m_computeCommandBuffer;
-    std::optional<BindedBuffer> m_stagingBuffer;
-    std::optional<BindedBuffer> m_uboBuffer;
-    std::optional<BindedImage> m_outputImage;
+    std::optional<vk::helper::Buffer> m_stagingBuffer;
+    std::optional<vk::helper::Image> m_outputImage;
     std::optional<Aovs> m_aovs;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
     std::optional<vk::raii::DescriptorPool> m_descriptorPool;
     std::optional<vk::raii::DescriptorSet> m_descriptorSet;
     std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
     std::optional<vk::raii::Pipeline> m_computePipeline;
-    void createInstance(bool enableValidationLayers);
-    void findPhysicalDevice(uint32_t deviceId);
-    uint32_t getComputeQueueFamilyIndex();
-    void createDevice();
-    void createCommandBuffers();
     void createShaderModule(ImageFormat outputFormat);
     void createDescriptorSet();
-    void createUbo();
     void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle);
     void createComputePipeline();
     void recordComputeCommandBuffer(uint32_t width, uint32_t height);
-    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-    BindedBuffer createBuffer(vk::DeviceSize size,
-        vk::BufferUsageFlags usage,
-        vk::MemoryPropertyFlags properties);
-
-    vk::raii::DeviceMemory allocateImageMemory(const vk::raii::Image& image, HANDLE sharedDx11TextureHandle = nullptr);
-    BindedImage createImage(uint32_t width,
-        uint32_t height,
-        vk::Format format,
-        vk::ImageUsageFlags usage,
-        vk::AccessFlags access,
-        HANDLE sharedDx11TextureHandle = nullptr);
-
-    void transitionImageLayout(BindedImage& image,
+    void transitionImageLayout(vk::helper::Image& image,
         vk::AccessFlags dstAccess,
         vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
-    void updateAov(BindedImage& image, rpr_framebuffer rprfb);
+    void updateAov(vk::helper::Image& image, rpr_framebuffer rprfb);
     void updateUbo();
 
 public:
-    PostProcessing(bool enableValidationLayers,
-        uint32_t deviceId,
+    PostProcessing(vk::helper::DeviceContext dctx,
+        vk::raii::CommandPool commandPool,
+        vk::raii::CommandBuffer secondaryCommandBuffer,
+        vk::raii::CommandBuffer computeCommandBuffer,
+        vk::helper::Buffer uboBuffer,
         const std::filesystem::path& shaderPath);
     PostProcessing(PostProcessing&&) = default;
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
+    static PostProcessing create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath);
     void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE sharedDx11TextureHandle = nullptr);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run();
 
     inline VkPhysicalDevice getVkPhysicalDevice() const noexcept
     {
-        return static_cast<VkPhysicalDevice>(**m_physicalDevice);
+        return static_cast<VkPhysicalDevice>(*m_dctx.physicalDevice);
     }
 
     inline VkDevice getVkDevice() const noexcept
     {
-        return static_cast<VkDevice>(**m_device);
+        return static_cast<VkDevice>(*m_dctx.device);
     }
 
     inline void updateAovColor(rpr_framebuffer fb)
