@@ -3,14 +3,15 @@
 #include <stb_image_write.h>
 
 #include "../common/HybridProRenderer.hpp"
-#include <PostProcessing.hpp>
+#include "../common/RprPostProcessing.hpp"
 #include <filesystem>
 #include <iostream>
 
 #define WIDTH 1200
 #define HEIGHT 700
 
-void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, rprpp::ImageFormat format);
+void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, RprPpImageFormat format);
+void copyRprFbToPpStagingBuffer(HybridProRenderer& r, RprPostProcessing& pp, rpr_aov aov);
 
 int main(int argc, const char* argv[])
 {
@@ -23,8 +24,19 @@ int main(int argc, const char* argv[])
         std::filesystem::path assetsDir = exeDirPath;
         std::filesystem::path postprocessingGlsl = exeDirPath / "post_processing.comp";
 
-        rprpp::ImageFormat format = rprpp::ImageFormat::eR32G32B32A32Sfloat;
-        rprpp::PostProcessing postProcessing = rprpp::PostProcessing::create(true, deviceId, postprocessingGlsl);
+        uint32_t deviceCount;
+        RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
+        for (size_t i = 0; i < deviceCount; i++) {
+            size_t size;
+            RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, nullptr, 0, &size));
+            std::vector<char> deviceName;
+            deviceName.resize(size);
+            RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, deviceName.data(), size, nullptr));
+            std::cout << "Device id = " << i << ", name = " << std::string(deviceName.begin(), deviceName.end()) << std::endl;
+        }
+
+        RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
+        RprPostProcessing postProcessing(true, deviceId, postprocessingGlsl);
         postProcessing.resize(WIDTH, HEIGHT, format);
 
         HybridProRenderer renderer(WIDTH,
@@ -38,12 +50,18 @@ int main(int argc, const char* argv[])
         for (size_t i = 0; i <= 100; i++) {
             renderer.render(1);
             if (i == 0 || i == 100) {
-                postProcessing.updateAovColor(renderer.getAov(RPR_AOV_COLOR));
-                postProcessing.updateAovOpacity(renderer.getAov(RPR_AOV_OPACITY));
-                postProcessing.updateAovShadowCatcher(renderer.getAov(RPR_AOV_SHADOW_CATCHER));
-                postProcessing.updateAovReflectionCatcher(renderer.getAov(RPR_AOV_REFLECTION_CATCHER));
-                postProcessing.updateAovMattePass(renderer.getAov(RPR_AOV_MATTE_PASS));
-                postProcessing.updateAovBackground(renderer.getAov(RPR_AOV_BACKGROUND));
+                copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_COLOR);
+                postProcessing.copyStagingBufferToAovColor();
+                copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_OPACITY);
+                postProcessing.copyStagingBufferToAovOpacity();
+                copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_SHADOW_CATCHER);
+                postProcessing.copyStagingBufferToAovShadowCatcher();
+                copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_REFLECTION_CATCHER);
+                postProcessing.copyStagingBufferToAovReflectionCatcher();
+                copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_MATTE_PASS);
+                postProcessing.copyStagingBufferToAovMattePass();
+                copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_BACKGROUND);
+                postProcessing.copyStagingBufferToAovBackground();
                 postProcessing.run();
 
                 size_t size;
@@ -65,6 +83,15 @@ int main(int argc, const char* argv[])
     return 0;
 }
 
+void copyRprFbToPpStagingBuffer(HybridProRenderer& r, RprPostProcessing& pp, rpr_aov aov)
+{
+    size_t size;
+    r.getAov(aov, nullptr, 0u, &size);
+    void* data = pp.mapStagingBuffer(size);
+    r.getAov(aov, data, size, nullptr);
+    pp.unmapStagingBuffer();
+}
+
 inline uint8_t floatToByte(float value)
 {
     if (value >= 1.0f) {
@@ -76,16 +103,16 @@ inline uint8_t floatToByte(float value)
     return roundf(value * 255.0f);
 }
 
-void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, rprpp::ImageFormat format)
+void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, RprPpImageFormat format)
 {
     size_t numComponents = 4;
     uint8_t* dst = img;
     std::vector<uint8_t> vDst;
-    if (format != rprpp::ImageFormat::eR8G8B8A8Unorm) {
+    if (format != RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM) {
         vDst.resize(width * height * numComponents);
         dst = vDst.data();
         switch (format) {
-        case rprpp::ImageFormat::eR32G32B32A32Sfloat: {
+        case RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT: {
             float* hdrImg = (float*)img;
             for (size_t i = 0; i < width * height * numComponents; i++) {
                 dst[i] = floatToByte(hdrImg[i]);

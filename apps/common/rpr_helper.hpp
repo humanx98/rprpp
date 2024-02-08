@@ -15,6 +15,13 @@
         }                                        \
     }
 
+#define RPRPP_CHECK(x)                           \
+    {                                            \
+        if ((x) != RPRPP_SUCCESS) {              \
+            ErrorManager(x, __FILE__, __LINE__); \
+        }                                        \
+    }
+
 inline rpr_creation_flags intToRprCreationFlag(int index)
 {
     switch (index) {

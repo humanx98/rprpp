@@ -43,6 +43,7 @@ layout (set = 0, binding = 7) uniform UBO
     Bloom bloom;
     float shadowIntensity;
     float invGamma;
+    int denoiserEnabled;
 } ubo;
 
 

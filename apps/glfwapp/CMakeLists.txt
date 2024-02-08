@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(glfw)
 set(HEADERS
     ../common/rpr_helper.hpp
     ../common/HybridProRenderer.hpp
+    ../common/RprPostProcessing.hpp
     Dx11App.hpp
 )
 
@@ -21,7 +22,7 @@ set(SOURCES
     ../common/rpr_helper.cpp
     Dx11App.cpp
 )
-add_executable (glfwapp ${SOURCES} ${HEADERS} main.cpp)
+add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
 
 _copy_file_to_target(glfwapp "${Vulkan_SHADERC_DLL}")
 _copy_file_to_target(glfwapp "${RPRSDK_DIR}/binWin64/HybridPro.dll")
@@ -30,4 +31,12 @@ _copy_file_to_target(glfwapp ${CMAKE_CURRENT_SOURCE_DIR}/../assets/teapot.obj)
 _copy_file_to_target(glfwapp ${CMAKE_CURRENT_SOURCE_DIR}/../assets/envLightImage.exr)
 _copy_file_to_target(glfwapp ${CMAKE_CURRENT_SOURCE_DIR}/../assets/post_processing.comp)
 
-target_link_libraries(glfwapp glfw rprpp)
+target_include_directories(glfwapp
+    PRIVATE ${RPRSDK_DIR}/inc
+)
+
+target_link_libraries(glfwapp 
+    glfw 
+    rprpp
+    ${RPRSDK_DIR}/libWin64/RadeonProRender64.lib
+)

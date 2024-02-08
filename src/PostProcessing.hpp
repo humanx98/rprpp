@@ -3,7 +3,6 @@
 #include "ImageFormat.hpp"
 #include "ShaderManager.hpp"
 #include "vk_helper.hpp"
-#include <RadeonProRender.h>
 #include <filesystem>
 #include <optional>
 #include <vector>
@@ -52,6 +51,7 @@ struct UniformBufferObject {
     Bloom bloom;
     float shadowIntensity = 1.0f;
     float invGamma = 1.0f;
+    int denoiserEnabled = 0;
 };
 
 class PostProcessing {
@@ -88,7 +88,7 @@ private:
         vk::AccessFlags dstAccess,
         vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
-    void updateAov(vk::helper::Image& image, rpr_framebuffer rprfb);
+    void copyStagingBufferToAov(vk::helper::Image& image);
     void updateUbo();
 
 public:
@@ -102,7 +102,9 @@ public:
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
-    static PostProcessing create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath);
+    static PostProcessing* create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath);
+    void* mapStagingBuffer(size_t size);
+    void unmapStagingBuffer();
     void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE sharedDx11TextureHandle = nullptr);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run();
@@ -117,49 +119,49 @@ public:
         return static_cast<VkDevice>(*m_dctx.device);
     }
 
-    inline void updateAovColor(rpr_framebuffer fb)
+    inline void copyStagingBufferToAovColor()
     {
-        updateAov(m_aovs.value().color, fb);
+        copyStagingBufferToAov(m_aovs.value().color);
     }
 
-    inline void updateAovOpacity(rpr_framebuffer fb)
+    inline void copyStagingBufferToAovOpacity()
     {
-        updateAov(m_aovs.value().opacity, fb);
+        copyStagingBufferToAov(m_aovs.value().opacity);
     }
 
-    inline void updateAovShadowCatcher(rpr_framebuffer fb)
+    inline void copyStagingBufferToAovShadowCatcher()
     {
-        updateAov(m_aovs.value().shadowCatcher, fb);
+        copyStagingBufferToAov(m_aovs.value().shadowCatcher);
     }
 
-    inline void updateAovReflectionCatcher(rpr_framebuffer fb)
+    inline void copyStagingBufferToAovReflectionCatcher()
     {
-        updateAov(m_aovs.value().reflectionCatcher, fb);
+        copyStagingBufferToAov(m_aovs.value().reflectionCatcher);
     }
 
-    inline void updateAovMattePass(rpr_framebuffer fb)
+    inline void copyStagingBufferToAovMattePass()
     {
-        updateAov(m_aovs.value().mattePass, fb);
+        copyStagingBufferToAov(m_aovs.value().mattePass);
     }
 
-    inline void updateAovBackground(rpr_framebuffer fb)
+    inline void copyStagingBufferToAovBackground()
     {
-        updateAov(m_aovs.value().background, fb);
+        copyStagingBufferToAov(m_aovs.value().background);
     }
 
-    inline void setGamma(float gamma)
+    inline void setGamma(float gamma) noexcept
     {
         m_ubo.invGamma = 1.0f / (gamma > 0.00001f ? gamma : 1.0f);
         m_uboDirty = true;
     }
 
-    inline void setShadowIntensity(float shadowIntensity)
+    inline void setShadowIntensity(float shadowIntensity) noexcept
     {
         m_ubo.shadowIntensity = shadowIntensity;
         m_uboDirty = true;
     }
 
-    inline void setToneMapWhitepoint(float x, float y, float z)
+    inline void setToneMapWhitepoint(float x, float y, float z) noexcept
     {
         m_ubo.tonemap.whitepoint[0] = x;
         m_ubo.tonemap.whitepoint[1] = y;
@@ -167,87 +169,93 @@ public:
         m_uboDirty = true;
     }
 
-    inline void setToneMapWhitepoint(float vignetting)
+    inline void setToneMapVignetting(float vignetting) noexcept
     {
         m_ubo.tonemap.vignetting = vignetting;
         m_uboDirty = true;
     }
 
-    inline void setToneMapCrushBlacks(float crushBlacks)
+    inline void setToneMapCrushBlacks(float crushBlacks) noexcept
     {
         m_ubo.tonemap.crushBlacks = crushBlacks;
         m_uboDirty = true;
     }
 
-    inline void setToneMapBurnHighlights(float burnHighlights)
+    inline void setToneMapBurnHighlights(float burnHighlights) noexcept
     {
         m_ubo.tonemap.burnHighlights = burnHighlights;
         m_uboDirty = true;
     }
 
-    inline void setToneMapSaturation(float saturation)
+    inline void setToneMapSaturation(float saturation) noexcept
     {
         m_ubo.tonemap.saturation = saturation;
         m_uboDirty = true;
     }
 
-    inline void setToneMapCm2Factor(float cm2Factor)
+    inline void setToneMapCm2Factor(float cm2Factor) noexcept
     {
         m_ubo.tonemap.cm2Factor = cm2Factor;
         m_uboDirty = true;
     }
 
-    inline void setToneMapFilmIso(float filmIso)
+    inline void setToneMapFilmIso(float filmIso) noexcept
     {
         m_ubo.tonemap.filmIso = filmIso;
         m_uboDirty = true;
     }
 
-    inline void setToneMapCameraShutter(float cameraShutter)
+    inline void setToneMapCameraShutter(float cameraShutter) noexcept
     {
         m_ubo.tonemap.cameraShutter = cameraShutter;
         m_uboDirty = true;
     }
 
-    inline void setToneMapFNumber(float fNumber)
+    inline void setToneMapFNumber(float fNumber) noexcept
     {
         m_ubo.tonemap.fNumber = fNumber;
         m_uboDirty = true;
     }
 
-    inline void setToneMapFocalLength(float focalLength)
+    inline void setToneMapFocalLength(float focalLength) noexcept
     {
         m_ubo.tonemap.focalLength = focalLength;
         m_uboDirty = true;
     }
 
-    inline void setToneMapAperture(float aperture)
+    inline void setToneMapAperture(float aperture) noexcept
     {
         m_ubo.tonemap.aperture = aperture;
         m_uboDirty = true;
     }
 
-    inline void setBloomRadius(float radius)
+    inline void setBloomRadius(float radius) noexcept
     {
         m_ubo.bloom.radius = radius;
         m_uboDirty = true;
     }
 
-    inline void setBloomBrightnessScale(float brightnessScale)
+    inline void setBloomBrightnessScale(float brightnessScale) noexcept
     {
         m_ubo.bloom.brightnessScale = brightnessScale;
         m_uboDirty = true;
     }
 
-    inline void setBloomThreshold(float threshold)
+    inline void setBloomThreshold(float threshold) noexcept
     {
         m_ubo.bloom.threshold = threshold;
         m_uboDirty = true;
     }
 
-    inline void setBloomEnabled(bool enabled)
+    inline void setBloomEnabled(bool enabled) noexcept
     {
         m_ubo.bloom.enabled = enabled ? 1 : 0;
+        m_uboDirty = true;
+    }
+
+    inline void setDenoiserEnabled(bool enabled) noexcept
+    {
+        m_ubo.denoiserEnabled = enabled ? 1 : 0;
         m_uboDirty = true;
     }
 };

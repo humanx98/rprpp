@@ -1,4 +1,5 @@
 #include "vk_helper.hpp"
+#include "Error.hpp"
 #include "common.hpp"
 #include <iostream>
 #include <map>
@@ -40,7 +41,7 @@ std::pair<vk::raii::Instance, std::vector<const char*>> createInstance(const vk:
         }
 
         if (!foundValidationLayer) {
-            throw std::runtime_error("[PostProcessing.cpp] Layer VK_LAYER_KHRONOS_validation not supported\n");
+            throw rprpp::InternalError("Layer VK_LAYER_KHRONOS_validation not supported\n");
         }
 
         for (VkExtensionProperties& prop : context.enumerateInstanceExtensionProperties()) {
@@ -53,7 +54,7 @@ std::pair<vk::raii::Instance, std::vector<const char*>> createInstance(const vk:
 
         for (auto const& fe : foundExtensions) {
             if (!fe.second) {
-                throw std::runtime_error("[PostProcessing.cpp] Instance Extension " + std::string(fe.first) + " not supported\n");
+                throw rprpp::InternalError("Instance Extension " + std::string(fe.first) + " not supported\n");
             }
         }
 
@@ -68,51 +69,6 @@ std::pair<vk::raii::Instance, std::vector<const char*>> createInstance(const vk:
         enabledExtensions,
         debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
     return std::make_pair(vk::raii::Instance(context, instanceCreateInfo), enabledLayers);
-}
-
-vk::raii::PhysicalDevice findPhysicalDevice(const vk::raii::Instance& instance, uint32_t deviceId)
-{
-    vk::raii::PhysicalDevices physicalDevices(instance);
-    if (physicalDevices.empty()) {
-        throw std::runtime_error("[PostProcessing.cpp] could not find a device with vulkan support");
-    }
-    std::cout << "[PostProcessing.cpp] "
-              << "All Physical devices:" << std::endl;
-    std::optional<vk::raii::PhysicalDevice> physicalDevice;
-    for (size_t i = 0; i < physicalDevices.size(); i++) {
-        auto props = physicalDevices[i].getProperties();
-        std::cout << "[PostProcessing.cpp] "
-                  << "\t" << i << ". " << props.deviceName;
-
-        switch (props.deviceType) {
-        case vk::PhysicalDeviceType::eCpu: {
-            std::cout << ", deviceType = CPU";
-            break;
-        }
-        case vk::PhysicalDeviceType::eDiscreteGpu: {
-            std::cout << ", deviceType = dGPU";
-            break;
-        }
-        case vk::PhysicalDeviceType::eIntegratedGpu: {
-            std::cout << ", deviceType = iGPU";
-            break;
-        }
-        }
-        std::cout << std::endl;
-
-        if (deviceId == i) {
-            physicalDevice = std::move(physicalDevices[i]);
-        }
-    }
-
-    if (!physicalDevice.has_value()) {
-        throw std::runtime_error("[PostProcessing.cpp] could not find a VkPhysicalDevice, gpuIndices.vk is out of range");
-    }
-
-    std::cout << "[PostProcessing.cpp] "
-              << "Selected Device: " << physicalDevice->getProperties().deviceName << std::endl;
-
-    return physicalDevice.value();
 }
 
 vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
@@ -138,7 +94,7 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
 
     for (auto const& fe : foundExtensions) {
         if (!fe.second) {
-            throw std::runtime_error("[PostProcessing.cpp] Device Extension " + std::string(fe.first) + " not supported\n");
+            throw rprpp::InternalError("Device Extension " + std::string(fe.first) + " not supported\n");
         }
     }
 
@@ -149,6 +105,46 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
     features12.samplerFilterMinmax = true; // for hybridpro
     vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, enabledExtensions, &deviceFeatures, &features12);
     return physicalDevice.createDevice(deviceCreateInfo);
+}
+
+uint32_t getDeviceCount()
+{
+    vk::raii::Context context;
+    auto instanceAndValidationLayers = createInstance(context, false);
+    vk::raii::Instance instance = std::move(instanceAndValidationLayers.first);
+    vk::raii::PhysicalDevices physicalDevices(instance);
+    return physicalDevices.size();
+}
+
+void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet)
+{
+    vk::raii::Context context;
+    auto instanceAndValidationLayers = createInstance(context, false);
+    vk::raii::Instance instance = std::move(instanceAndValidationLayers.first);
+    vk::raii::PhysicalDevices physicalDevices(instance);
+
+    if (physicalDevices.size() <= deviceId) {
+        throw rprpp::InvalidDevice(deviceId);
+    }
+
+    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
+    vk::PhysicalDeviceProperties props = physicalDevice.getProperties();
+
+    switch (info) {
+    case DeviceInfo::eName: {
+        size_t len = std::strlen(props.deviceName) + 1;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && size <= len) {
+            std::strcpy((char*)data, props.deviceName);
+        }
+        break;
+    }
+    default:
+        throw rprpp::InvalidParameter("deviceInfo", "Not supported device info type");
+    }
 }
 
 DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId)
@@ -162,7 +158,11 @@ DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId
         debugUtilMessenger = instance.createDebugUtilsMessengerEXT(makeDebugUtilsMessengerCreateInfoEXT());
     }
 
-    vk::raii::PhysicalDevice physicalDevice = findPhysicalDevice(instance, deviceId);
+    vk::raii::PhysicalDevices physicalDevices(instance);
+    if (physicalDevices.size() <= deviceId) {
+        throw rprpp::InvalidDevice(deviceId);
+    }
+    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
 
     auto queueFamilies = physicalDevice.getQueueFamilyProperties();
     uint32_t queueFamilyIndex = 0;
@@ -175,7 +175,7 @@ DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId
     }
 
     if (queueFamilyIndex == queueFamilies.size()) {
-        throw std::runtime_error("[PostProcessing.cpp] could not find a queue family that supports operations");
+        throw rprpp::InternalError("Could not find a queue family that supports operations");
     }
 
     float queuePriority = 1.0f;
@@ -204,7 +204,7 @@ uint32_t findMemoryType(const vk::raii::PhysicalDevice physicalDevice, uint32_t 
         }
     }
 
-    throw std::runtime_error("failed to find suitable memory type!");
+    throw rprpp::InternalError("Failed to find suitable memory type!");
 }
 
 vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx,

@@ -294,3 +294,15 @@ void HybridProRenderer::saveResultTo(const char* path, rpr_aov aov)
 {
     RPR_CHECK(rprFrameBufferSaveToFile(m_aovs[aov], path));
 }
+
+void HybridProRenderer::getAov(rpr_aov aov, void* data, size_t size, size_t* retSize) const
+{
+    rpr_framebuffer rprfb = m_aovs.at(aov);
+    if (retSize != nullptr) {
+        RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, 0, nullptr, retSize));
+    }
+
+    if (data != nullptr && size > 0) {
+        RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, size, data, nullptr));
+    }
+}

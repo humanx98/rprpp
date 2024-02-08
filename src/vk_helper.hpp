@@ -1,9 +1,14 @@
 #pragma once
 
+#include "capi/rprpp.h"
 #include "vk.hpp"
 #include <optional>
 
 namespace vk::helper {
+
+enum class DeviceInfo {
+    eName = RPRPP_DEVICE_INFO_NAME,
+};
 
 struct DeviceContext {
     vk::raii::Context context;
@@ -30,6 +35,9 @@ struct Image {
     vk::ImageLayout layout;
     vk::PipelineStageFlags stage;
 };
+
+void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet);
+uint32_t getDeviceCount();
 
 DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId);
 

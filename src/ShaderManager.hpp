@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Error.hpp"
 #include "vk.hpp"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <shaderc/shaderc.hpp>
 
@@ -31,7 +31,7 @@ public:
             options);
 
         if (spv.GetCompilationStatus() != shaderc_compilation_status_success) {
-            std::cerr << spv.GetErrorMessage();
+            throw ShaderCompilationError("Shader compilation failed with: " + spv.GetErrorMessage());
         }
 
         vk::ShaderModuleCreateInfo shaderModuleInfo({}, std::distance(spv.cbegin(), spv.cend()) * sizeof(uint32_t), spv.cbegin());

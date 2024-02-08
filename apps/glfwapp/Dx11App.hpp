@@ -13,7 +13,7 @@
 #include <wrl/client.h>
 
 #include "../common/HybridProRenderer.hpp"
-#include <PostProcessing.hpp>
+#include "../common/RprPostProcessing.hpp"
 
 using Microsoft::WRL::ComPtr;
 
@@ -57,17 +57,18 @@ private:
     ComPtr<ID3D11Texture2D> m_sharedTexture;
     ComPtr<IDXGIResource1> m_sharedTextureResource;
     HANDLE m_sharedTextureHandle = nullptr;
-    std::optional<rprpp::PostProcessing> m_postProcessing;
+    std::unique_ptr<RprPostProcessing> m_postProcessing;
     std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
+    void initWindow();
+    void findAdapter();
+    void intiDx11();
+    void copyRprFbToPpStagingBuffer(rpr_aov aov);
+    void resize(int width, int height);
+    static void onResize(GLFWwindow* window, int width, int height);
+    void mainLoop();
 
 public:
     Dx11App(int width, int height, Paths paths, GpuIndices gpuIndices);
     ~Dx11App();
     void run();
-    void initWindow();
-    void findAdapter();
-    void intiDx11();
-    void resize(int width, int height);
-    static void onResize(GLFWwindow* window, int width, int height);
-    void mainLoop();
 };

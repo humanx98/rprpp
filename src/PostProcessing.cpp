@@ -1,7 +1,6 @@
 #include "PostProcessing.hpp"
 #include "DescriptorBuilder.hpp"
 #include "common.hpp"
-#include "rpr_helper.hpp"
 #include <algorithm>
 #include <map>
 
@@ -22,7 +21,7 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
 {
 }
 
-PostProcessing PostProcessing::create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath)
+PostProcessing* PostProcessing::create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath)
 {
     vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(enableValidationLayers, deviceId);
 
@@ -37,7 +36,7 @@ PostProcessing PostProcessing::create(bool enableValidationLayers, uint32_t devi
         vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    return PostProcessing(std::move(dctx),
+    return new PostProcessing(std::move(dctx),
         std::move(commandPool),
         std::move(commandBuffers[0]),
         std::move(commandBuffers[1]),
@@ -182,15 +181,8 @@ void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
     m_computeCommandBuffer.end();
 }
 
-void PostProcessing::updateAov(vk::helper::Image& image, rpr_framebuffer rprfb)
+void PostProcessing::copyStagingBufferToAov(vk::helper::Image& image)
 {
-    // copy rpr aov to vk staging buffer
-    size_t size;
-    RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, 0, nullptr, &size));
-    void* data = m_stagingBuffer->memory.mapMemory(0, size, {});
-    RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, size, data, nullptr));
-    m_stagingBuffer->memory.unmapMemory();
-
     // image transitions
     vk::AccessFlags oldAccess = image.access;
     vk::ImageLayout oldLayout = image.layout;
@@ -219,6 +211,16 @@ void PostProcessing::updateAov(vk::helper::Image& image, rpr_framebuffer rprfb)
         oldAccess,
         oldLayout,
         oldStage);
+}
+
+void* PostProcessing::mapStagingBuffer(size_t size)
+{
+    return m_stagingBuffer->memory.mapMemory(0, size, {});
+}
+
+void PostProcessing::unmapStagingBuffer()
+{
+    m_stagingBuffer->memory.unmapMemory();
 }
 
 void PostProcessing::updateUbo()

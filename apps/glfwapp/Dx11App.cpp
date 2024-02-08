@@ -2,11 +2,11 @@
 
 #define FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
 
-inline rprpp::ImageFormat to_rprppformat(DXGI_FORMAT format)
+inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
 {
     switch (format) {
     case DXGI_FORMAT_R8G8B8A8_UNORM:
-        return rprpp::ImageFormat::eR8G8B8A8Unorm;
+        return RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
     default:
         throw std::runtime_error("unsupported image format");
     }
@@ -28,7 +28,7 @@ Dx11App::~Dx11App()
 
 void Dx11App::run()
 {
-    m_postProcessing = rprpp::PostProcessing::create(true, m_gpuIndices.vk, m_paths.postprocessingGlsl);
+    m_postProcessing = std::make_unique<RprPostProcessing>(true, m_gpuIndices.vk, m_paths.postprocessingGlsl);
     m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_width, m_height,
         m_gpuIndices.vk,
         m_paths.hybridproDll,
@@ -165,6 +165,15 @@ void Dx11App::onResize(GLFWwindow* window, int width, int height)
     app->resize(width, height);
 }
 
+void Dx11App::copyRprFbToPpStagingBuffer(rpr_aov aov)
+{
+    size_t size;
+    m_hybridproRenderer->getAov(aov, nullptr, 0u, &size);
+    void* data = m_postProcessing->mapStagingBuffer(size);
+    m_hybridproRenderer->getAov(aov, data, size, nullptr);
+    m_postProcessing->unmapStagingBuffer();
+}
+
 void Dx11App::mainLoop()
 {
     clock_t deltaTime = 0;
@@ -175,12 +184,18 @@ void Dx11App::mainLoop()
         {
             glfwPollEvents();
             m_hybridproRenderer->render(renderedIterations);
-            m_postProcessing->updateAovColor(m_hybridproRenderer->getAov(RPR_AOV_COLOR));
-            m_postProcessing->updateAovOpacity(m_hybridproRenderer->getAov(RPR_AOV_OPACITY));
-            m_postProcessing->updateAovShadowCatcher(m_hybridproRenderer->getAov(RPR_AOV_SHADOW_CATCHER));
-            m_postProcessing->updateAovReflectionCatcher(m_hybridproRenderer->getAov(RPR_AOV_REFLECTION_CATCHER));
-            m_postProcessing->updateAovMattePass(m_hybridproRenderer->getAov(RPR_AOV_MATTE_PASS));
-            m_postProcessing->updateAovBackground(m_hybridproRenderer->getAov(RPR_AOV_BACKGROUND));
+            copyRprFbToPpStagingBuffer(RPR_AOV_COLOR);
+            m_postProcessing->copyStagingBufferToAovColor();
+            copyRprFbToPpStagingBuffer(RPR_AOV_OPACITY);
+            m_postProcessing->copyStagingBufferToAovOpacity();
+            copyRprFbToPpStagingBuffer(RPR_AOV_SHADOW_CATCHER);
+            m_postProcessing->copyStagingBufferToAovShadowCatcher();
+            copyRprFbToPpStagingBuffer(RPR_AOV_REFLECTION_CATCHER);
+            m_postProcessing->copyStagingBufferToAovReflectionCatcher();
+            copyRprFbToPpStagingBuffer(RPR_AOV_MATTE_PASS);
+            m_postProcessing->copyStagingBufferToAovMattePass();
+            copyRprFbToPpStagingBuffer(RPR_AOV_BACKGROUND);
+            m_postProcessing->copyStagingBufferToAovBackground();
             m_postProcessing->run();
 
             IDXGIKeyedMutex* km;
