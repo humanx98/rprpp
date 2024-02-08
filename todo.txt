@@ -2,4 +2,8 @@
 2. disable validation layer for release
 3. building dll
 4. profiling
-5. add bloom support
+5. bloom
+9. denoising
+6. hybridpro and post processing direct interop (without copy through RAM)
+7. tripple buffering ???
+8. project refactoring
