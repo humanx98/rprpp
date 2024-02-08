@@ -1,6 +1,6 @@
-#include "PostProcessing.hpp"
-#include "DescriptorBuilder.hpp"
-#include "common.hpp"
+#include "PostProcessing.h"
+#include "DescriptorBuilder.h"
+#include "common.h"
 #include <algorithm>
 #include <map>
 

@@ -1,12 +1,12 @@
 set(HEADERS
     capi/rprpp.h
-    common.hpp
-    vk_helper.hpp
-    vk.hpp
-    DescriptorBuilder.hpp
-    Error.hpp
-    ShaderManager.hpp
-    PostProcessing.hpp
+    common.h
+    vk_helper.h
+    vk.h
+    DescriptorBuilder.h
+    Error.h
+    ShaderManager.h
+    PostProcessing.h
 )
 
 set(SOURCES

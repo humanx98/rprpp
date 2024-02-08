@@ -1,4 +1,4 @@
-#include "Dx11App.hpp"
+#include "Dx11App.h"
 
 #define FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
 
@@ -58,7 +58,7 @@ void Dx11App::findAdapter()
     ComPtr<IDXGIFactory6> factory6;
     DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
 
-    std::cout << "[dx11app.hpp] "
+    std::cout << "[dx11app.h] "
               << "All Adapters:" << std::endl;
 
     ComPtr<IDXGIAdapter1> tmpAdapter;
@@ -70,7 +70,7 @@ void Dx11App::findAdapter()
         DXGI_ADAPTER_DESC desc;
         tmpAdapter->GetDesc(&desc);
 
-        std::wcout << "[dx11app.hpp] "
+        std::wcout << "[dx11app.h] "
                    << "\t" << adapterIndex << ". " << desc.Description << std::endl;
 
         if (adapterIndex == m_gpuIndices.dx11) {
@@ -80,10 +80,10 @@ void Dx11App::findAdapter()
     }
 
     if (adapterCount <= m_gpuIndices.dx11) {
-        throw std::runtime_error("[dx11app.hpp] could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
+        throw std::runtime_error("[dx11app.h] could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
     }
 
-    std::wcout << "[dx11app.hpp] "
+    std::wcout << "[dx11app.h] "
                << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
 }
 

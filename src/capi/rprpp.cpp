@@ -1,7 +1,7 @@
 #include "rprpp.h"
-#include "../Error.hpp"
-#include "../PostProcessing.hpp"
-#include "../vk_helper.hpp"
+#include "../Error.h"
+#include "../PostProcessing.h"
+#include "../vk_helper.h"
 #include <filesystem>
 
 RprPpError rprppGetDeviceCount(uint32_t* deviceCount)

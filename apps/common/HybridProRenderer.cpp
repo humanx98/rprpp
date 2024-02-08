@@ -1,5 +1,5 @@
-#include "HybridProRenderer.hpp"
-#include "rpr_helper.hpp"
+#include "HybridProRenderer.h"
+#include "rpr_helper.h"
 #include <RadeonProRender_VK.h>
 #include <set>
 

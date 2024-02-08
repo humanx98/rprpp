@@ -3504,7 +3504,7 @@ extern RPR_API_ENTRY rpr_status rprCompositeGetInfo(rpr_composite composite, rpr
 
     /** @brief Set a custom pointer to an RPR object ( rpr_shape, rpr_image ... )
     *          The custom pointer is not used internally by RPR. The API user only is responsible of it.
-    *          An example of usage of this pointer is the C++ wrapper ( RadeonProRender.hpp )
+    *          An example of usage of this pointer is the C++ wrapper ( RadeonProRender.h )
     *
     *  @param  node        Node to set the 'custom pointer' for
     *  @param  customPtr   Any 8 bytes value decided by the API user.

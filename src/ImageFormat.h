@@ -1,7 +1,7 @@
 #pragma once
 
 #include "capi/rprpp.h"
-#include "vk.hpp"
+#include "vk.h"
 
 namespace rprpp {
 enum class ImageFormat {

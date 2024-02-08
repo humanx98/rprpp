@@ -1,4 +1,4 @@
-#include "rpr_helper.hpp"
+#include "rpr_helper.h"
 
 void ErrorManager(int errorCode, const char* fileName, int line)
 {

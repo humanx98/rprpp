@@ -12,8 +12,8 @@
 #include <comdef.h>
 #include <wrl/client.h>
 
-#include "../common/HybridProRenderer.hpp"
-#include "../common/RprPostProcessing.hpp"
+#include "../common/HybridProRenderer.h"
+#include "../common/RprPostProcessing.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -21,9 +21,9 @@ using Microsoft::WRL::ComPtr;
     {                                                                                                  \
         HRESULT res = (f);                                                                             \
         if (!SUCCEEDED(res)) {                                                                         \
-            printf("[dx11app.hpp] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
+            printf("[dx11app.h] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
             _com_error err(res);                                                                       \
-            printf("[dx11app.hpp] messsage : %s\n", err.ErrorMessage());                               \
+            printf("[dx11app.h] messsage : %s\n", err.ErrorMessage());                               \
             assert(false);                                                                             \
         }                                                                                              \
     }

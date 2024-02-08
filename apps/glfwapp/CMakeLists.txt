@@ -11,10 +11,10 @@ set(GLFW_INSTALL OFF CACHE INTERNAL "Glfw install")
 FetchContent_MakeAvailable(glfw)
 
 set(HEADERS
-    ../common/rpr_helper.hpp
-    ../common/HybridProRenderer.hpp
-    ../common/RprPostProcessing.hpp
-    Dx11App.hpp
+    ../common/rpr_helper.h
+    ../common/HybridProRenderer.h
+    ../common/RprPostProcessing.h
+    Dx11App.h
 )
 
 set(SOURCES

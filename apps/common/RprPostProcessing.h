@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rpr_helper.hpp"
+#include "rpr_helper.h"
 #include <filesystem>
 #include <rprpp.h>
 

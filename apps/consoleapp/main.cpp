@@ -2,8 +2,8 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
-#include "../common/HybridProRenderer.hpp"
-#include "../common/RprPostProcessing.hpp"
+#include "../common/HybridProRenderer.h"
+#include "../common/RprPostProcessing.h"
 #include <filesystem>
 #include <iostream>
 

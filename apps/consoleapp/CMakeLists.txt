@@ -6,9 +6,9 @@ FetchContent_Declare(stb
 FetchContent_MakeAvailable(stb)
 
 set(HEADERS
-    ../common/rpr_helper.hpp
-    ../common/HybridProRenderer.hpp
-    ../common/RprPostProcessing.hpp
+    ../common/rpr_helper.h
+    ../common/HybridProRenderer.h
+    ../common/RprPostProcessing.h
 )
 
 set(SOURCES

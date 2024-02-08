@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Error.hpp"
-#include "vk.hpp"
+#include "Error.h"
+#include "vk.h"
 #include <filesystem>
 #include <fstream>
 #include <map>

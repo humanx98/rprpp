@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ImageFormat.hpp"
-#include "ShaderManager.hpp"
-#include "vk_helper.hpp"
+#include "ImageFormat.h"
+#include "ShaderManager.h"
+#include "vk_helper.h"
 #include <filesystem>
 #include <optional>
 #include <vector>
