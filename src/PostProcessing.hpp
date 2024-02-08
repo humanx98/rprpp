@@ -51,7 +51,6 @@ struct UniformBufferObject {
     Bloom bloom;
     float shadowIntensity = 1.0f;
     float invGamma = 1.0f;
-    int denoiserEnabled = 0;
 };
 
 class PostProcessing {
@@ -255,8 +254,6 @@ public:
 
     inline void setDenoiserEnabled(bool enabled) noexcept
     {
-        m_ubo.denoiserEnabled = enabled ? 1 : 0;
-        m_uboDirty = true;
     }
 };
 

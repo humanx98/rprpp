@@ -1,8 +1,8 @@
 #version 450
 // these defs are provided by shaderc lib
 // #define WORKGROUP_SIZE 32
-// #define OUTPUT_FORMAT rgba8 provided by shaderc lib
-layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+// #define OUTPUT_FORMAT rgba8/rgba32f provided by shaderc lib
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
 
 struct ToneMap {
     vec3 whitepoint;
@@ -43,7 +43,6 @@ layout (set = 0, binding = 7) uniform UBO
     Bloom bloom;
     float shadowIntensity;
     float invGamma;
-    int denoiserEnabled;
 } ubo;
 
 
