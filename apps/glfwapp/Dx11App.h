@@ -57,8 +57,8 @@ private:
     ComPtr<ID3D11Texture2D> m_sharedTexture;
     ComPtr<IDXGIResource1> m_sharedTextureResource;
     HANDLE m_sharedTextureHandle = nullptr;
-    std::unique_ptr<RprPostProcessing> m_postProcessing;
-    std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
+    RprPostProcessing m_postProcessing;
+    HybridProRenderer m_hybridproRenderer;
     void initWindow();
     void findAdapter();
     void intiDx11();

@@ -17,6 +17,8 @@ Dx11App::Dx11App(int width, int height, Paths paths, GpuIndices gpuIndices)
     , m_height(height)
     , m_paths(paths)
     , m_gpuIndices(gpuIndices)
+    , m_postProcessing(true, gpuIndices.vk, paths.postprocessingGlsl)
+    , m_hybridproRenderer(m_width, m_height, gpuIndices.vk, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
 {
 }
 
@@ -28,12 +30,6 @@ Dx11App::~Dx11App()
 
 void Dx11App::run()
 {
-    m_postProcessing = std::make_unique<RprPostProcessing>(true, m_gpuIndices.vk, m_paths.postprocessingGlsl);
-    m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_width, m_height,
-        m_gpuIndices.vk,
-        m_paths.hybridproDll,
-        m_paths.hybridproCacheDir,
-        m_paths.assetsDir);
     initWindow();
     findAdapter();
     intiDx11();
@@ -150,10 +146,10 @@ void Dx11App::resize(int width, int height)
         viewport.Height = height;
         m_deviceContex->RSSetViewports(1, &viewport);
 
-        m_postProcessing->resize(width, height, to_rprppformat(FORMAT), m_sharedTextureHandle);
-        m_hybridproRenderer->resize(width, height);
-        float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
-        m_postProcessing->setToneMapFocalLength(focalLength);
+        m_postProcessing.resize(width, height, to_rprppformat(FORMAT), m_sharedTextureHandle);
+        m_hybridproRenderer.resize(width, height);
+        float focalLength = m_hybridproRenderer.getFocalLength() / 1000.0f;
+        m_postProcessing.setToneMapFocalLength(focalLength);
         m_width = width;
         m_height = height;
     }
@@ -168,13 +164,13 @@ void Dx11App::onResize(GLFWwindow* window, int width, int height)
 void Dx11App::copyRprFbToPpStagingBuffer(rpr_aov aov)
 {
     size_t size;
-    m_hybridproRenderer->getAov(aov, nullptr, 0u, &size);
-    void* data = m_postProcessing->mapStagingBuffer(size);
-    m_hybridproRenderer->getAov(aov, data, size, nullptr);
-    m_postProcessing->unmapStagingBuffer();
+    m_hybridproRenderer.getAov(aov, nullptr, 0u, &size);
+    void* data = m_postProcessing.mapStagingBuffer(size);
+    m_hybridproRenderer.getAov(aov, data, size, nullptr);
+    m_postProcessing.unmapStagingBuffer();
 }
 
-void Dx11App::mainLoop()
+void Dx11App::run()
 {
     clock_t deltaTime = 0;
     unsigned int frames = 0;
@@ -183,20 +179,20 @@ void Dx11App::mainLoop()
         clock_t beginFrame = clock();
         {
             glfwPollEvents();
-            m_hybridproRenderer->render(renderedIterations);
+            m_hybridproRenderer.render(renderedIterations);
             copyRprFbToPpStagingBuffer(RPR_AOV_COLOR);
-            m_postProcessing->copyStagingBufferToAovColor();
+            m_postProcessing.copyStagingBufferToAovColor();
             copyRprFbToPpStagingBuffer(RPR_AOV_OPACITY);
-            m_postProcessing->copyStagingBufferToAovOpacity();
+            m_postProcessing.copyStagingBufferToAovOpacity();
             copyRprFbToPpStagingBuffer(RPR_AOV_SHADOW_CATCHER);
-            m_postProcessing->copyStagingBufferToAovShadowCatcher();
+            m_postProcessing.copyStagingBufferToAovShadowCatcher();
             copyRprFbToPpStagingBuffer(RPR_AOV_REFLECTION_CATCHER);
-            m_postProcessing->copyStagingBufferToAovReflectionCatcher();
+            m_postProcessing.copyStagingBufferToAovReflectionCatcher();
             copyRprFbToPpStagingBuffer(RPR_AOV_MATTE_PASS);
-            m_postProcessing->copyStagingBufferToAovMattePass();
+            m_postProcessing.copyStagingBufferToAovMattePass();
             copyRprFbToPpStagingBuffer(RPR_AOV_BACKGROUND);
-            m_postProcessing->copyStagingBufferToAovBackground();
-            m_postProcessing->run();
+            m_postProcessing.copyStagingBufferToAovBackground();
+            m_postProcessing.run();
 
             IDXGIKeyedMutex* km;
             DX_CHECK(m_sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));
