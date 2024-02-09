@@ -170,7 +170,7 @@ void Dx11App::copyRprFbToPpStagingBuffer(rpr_aov aov)
     m_postProcessing.unmapStagingBuffer();
 }
 
-void Dx11App::run()
+void Dx11App::mainLoop()
 {
     clock_t deltaTime = 0;
     unsigned int frames = 0;
