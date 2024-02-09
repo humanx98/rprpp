@@ -1,3 +1,11 @@
+find_package(Vulkan REQUIRED)
+get_filename_component(Vulkan_LIBRARY_DIR ${Vulkan_LIBRARY} DIRECTORY)
+find_file(Vulkan_SHADERC_LIB NAMES shaderc_shared.lib HINTS ${Vulkan_LIBRARY_DIR})
+find_file(Vulkan_SHADERC_DLL NAMES shaderc_shared.dll HINTS ${Vulkan_LIBRARY_DIR}/../Bin)
+if(NOT Vulkan_SHADERC_DLL)
+    message(FATAL_ERROR "Windows platform requires VulkanSDK with shaderc_shared.lib/dll (since SDK 1.2.135.0)")
+endif()
+
 file(READ shaders/post_processing.comp RPRPP_POSTPROCESSING_SHADER_FILE_CONTENT)
 string(REPLACE "\n" "\\n" RPRPP_POSTPROCESSING_SHADER "${RPRPP_POSTPROCESSING_SHADER_FILE_CONTENT}")
 
@@ -20,7 +28,10 @@ set(SOURCES
     PostProcessing.cpp
     ShaderManager.cpp
 )
-add_library(rprpp STATIC ${SOURCES} ${HEADERS})
+
+add_library(rprpp SHARED ${SOURCES} ${HEADERS})
+target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
+_copy_file_to_target(rprpp ${Vulkan_SHADERC_DLL})
 
 target_include_directories(rprpp 
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}

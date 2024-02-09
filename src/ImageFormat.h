@@ -4,6 +4,7 @@
 #include "vk.h"
 
 namespace rprpp {
+
 enum class ImageFormat {
     eR8G8B8A8Unorm = RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM,
     eR32G32B32A32Sfloat = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT,

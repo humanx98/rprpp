@@ -24,7 +24,8 @@ set(SOURCES
 )
 add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
 
-_copy_file_to_target(glfwapp ${Vulkan_SHADERC_DLL})
+_copy_file_to_target(glfwapp $<TARGET_FILE_DIR:rprpp>/rprpp.dll)
+_copy_file_to_target(glfwapp $<TARGET_FILE_DIR:rprpp>/shaderc_shared.dll)
 _copy_file_to_target(glfwapp ${RPRSDK_DIR}/binWin64/HybridPro.dll)
 _copy_file_to_target(glfwapp ${RPRSDK_DIR}/binWin64/RadeonProRender64.dll)
 _copy_file_to_target(glfwapp ${CMAKE_CURRENT_SOURCE_DIR}/../assets/teapot.obj)

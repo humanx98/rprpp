@@ -2,8 +2,10 @@
 #include "Error.h"
 #include <mutex>
 #include <rprppconfig.h>
+#include <shaderc/shaderc.hpp>
 
 namespace rprpp {
+
 vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device, const std::map<std::string, std::string>& macroDefinitions)
 {
     static std::mutex mutex;
@@ -40,4 +42,5 @@ vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device, const 
     vk::ShaderModuleCreateInfo shaderModuleInfo({}, it->second);
     return vk::raii::ShaderModule(device, shaderModuleInfo);
 }
+
 }
