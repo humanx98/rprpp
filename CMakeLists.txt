@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28.1)
+cmake_minimum_required(VERSION 3.26.1)
 #   Allow GIT_SUBMODULES empty to mean no submodules
 cmake_policy(SET CMP0097 NEW)
 project(rprpp LANGUAGES CXX VERSION 0.1)
