@@ -29,11 +29,11 @@ RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, voi
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, RprPpContext* outContext)
+RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 {
     try {
         if (outContext != nullptr) {
-            *outContext = rprpp::PostProcessing::create(enableValidationLayer == RPRPP_TRUE, deviceId);
+            *outContext = rprpp::PostProcessing::create(deviceId);
         }
     } catch (const rprpp::Error& e) {
         return e.errorCode;

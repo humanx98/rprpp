@@ -98,7 +98,7 @@ public:
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
-    static PostProcessing* create(bool enableValidationLayers, uint32_t deviceId);
+    static PostProcessing* create(uint32_t deviceId);
     void* mapStagingBuffer(size_t size);
     void unmapStagingBuffer();
     void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE sharedDx11TextureHandle = nullptr);

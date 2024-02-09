@@ -44,7 +44,7 @@ extern "C" {
 RPRPP_API RprPpError rprppGetDeviceCount(uint32_t* deviceCount);
 RPRPP_API RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet);
 
-RPRPP_API RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, RprPpContext* outContext);
+RPRPP_API RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext);
 RPRPP_API RprPpError rprppDestroyContext(RprPpContext context);
 
 RPRPP_API RprPpError rprppContextGetOutput(RprPpContext context, uint8_t* dst, size_t size, size_t* retSize);

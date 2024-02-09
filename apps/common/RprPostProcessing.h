@@ -11,9 +11,9 @@ public:
     RprPostProcessing& operator=(RprPostProcessing&&) = delete;
     RprPostProcessing(RprPostProcessing&) = delete;
     RprPostProcessing& operator=(const RprPostProcessing&) = delete;
-    RprPostProcessing(bool enableValidationLayer, uint32_t deviceId)
+    RprPostProcessing(uint32_t deviceId)
     {
-        RPRPP_CHECK(rprppCreateContext(enableValidationLayer ? RPRPP_TRUE : RPRPP_FALSE, deviceId, &m_context));
+        RPRPP_CHECK(rprppCreateContext(deviceId, &m_context));
     }
 
     RprPostProcessing(RprPostProcessing&& other)

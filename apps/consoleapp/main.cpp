@@ -35,7 +35,7 @@ int main(int argc, const char* argv[])
         }
 
         RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
-        RprPostProcessing postProcessing(true, deviceId);
+        RprPostProcessing postProcessing(deviceId);
         postProcessing.resize(WIDTH, HEIGHT, format);
 
         HybridProRenderer renderer(WIDTH,

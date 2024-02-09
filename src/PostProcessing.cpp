@@ -19,8 +19,13 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
 {
 }
 
-PostProcessing* PostProcessing::create(bool enableValidationLayers, uint32_t deviceId)
+PostProcessing* PostProcessing::create(uint32_t deviceId)
 {
+#if NDEBUG
+    bool enableValidationLayers = false;
+#else
+    bool enableValidationLayers = true;
+#endif
     vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(enableValidationLayers, deviceId);
 
     vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, dctx.queueFamilyIndex);
