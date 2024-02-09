@@ -1,23 +1,20 @@
 #include "rpr_helper.h"
 
-void ErrorManager(int errorCode, const char* fileName, int line)
+void ErrorManager(rpr_status errorCode, const char* fileName, int line)
 {
     std::cerr << "ERROR detected - program will stop." << std::endl;
     std::cerr << "file = " << fileName << std::endl;
     std::cerr << "line = " << line << std::endl;
-    std::cerr << "error code = " << errorCode << std::endl;
+    std::cerr << "RPR error code = " << errorCode << std::endl;
+    assert(0);
+}
 
-    if (errorCode == RPR_ERROR_SHADER_COMPILATION) {
-        std::cerr << std::endl
-                  << std::endl
-                  << "==== KERNEL ERROR ====" << std::endl;
-        std::cerr << "It's possible that some precompiled kernel files are missing." << std::endl;
-        std::cerr << "Since Northstar 3.01.00, precompiled kernels must be downloaded from a separate link and inluded in projects." << std::endl;
-        std::cerr << "Check the readme of this SDK for more information." << std::endl
-                  << std::endl
-                  << std::endl;
-    }
-
+void ErrorManager(RprPpError errorCode, const char* fileName, int line)
+{
+    std::cerr << "ERROR detected - program will stop." << std::endl;
+    std::cerr << "file = " << fileName << std::endl;
+    std::cerr << "line = " << line << std::endl;
+    std::cerr << "RPRPP error code = " << errorCode << std::endl;
     assert(0);
 }
 

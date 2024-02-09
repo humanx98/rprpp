@@ -1,0 +1,8 @@
+#ifndef __RPRPPCONFIG_H
+#define __RPRPPCONFIG_H
+
+#define rprpp_VERSION_MAJOR @rprpp_VERSION_MAJOR@
+#define rprpp_VERSION_MINOR @rprpp_VERSION_MINOR@
+#cmakedefine RPRPP_POSTPROCESSING_SHADER "@RPRPP_POSTPROCESSING_SHADER@"
+
+#endif

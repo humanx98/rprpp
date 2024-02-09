@@ -22,7 +22,6 @@ int main(int argc, const char* argv[])
         std::filesystem::path hybridproDll = exeDirPath / "HybridPro.dll";
         std::filesystem::path hybridproCacheDir = exeDirPath / "hybridpro_cache";
         std::filesystem::path assetsDir = exeDirPath;
-        std::filesystem::path postprocessingGlsl = exeDirPath / "post_processing.comp";
 
         uint32_t deviceCount;
         RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
@@ -36,7 +35,7 @@ int main(int argc, const char* argv[])
         }
 
         RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
-        RprPostProcessing postProcessing(true, deviceId, postprocessingGlsl);
+        RprPostProcessing postProcessing(true, deviceId);
         postProcessing.resize(WIDTH, HEIGHT, format);
 
         HybridProRenderer renderer(WIDTH,

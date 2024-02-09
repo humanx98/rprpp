@@ -1,3 +1,8 @@
+file(READ shaders/post_processing.comp RPRPP_POSTPROCESSING_SHADER_FILE_CONTENT)
+string(REPLACE "\n" "\\n" RPRPP_POSTPROCESSING_SHADER "${RPRPP_POSTPROCESSING_SHADER_FILE_CONTENT}")
+
+configure_file(rprppconfig.h.in rprppconfig.h)
+
 set(HEADERS
     capi/rprpp.h
     common.h
@@ -5,19 +10,21 @@ set(HEADERS
     vk.h
     DescriptorBuilder.h
     Error.h
-    ShaderManager.h
     PostProcessing.h
+    ShaderManager.h
 )
 
 set(SOURCES
     capi/rprpp.cpp
     vk_helper.cpp
     PostProcessing.cpp
+    ShaderManager.cpp
 )
 add_library(rprpp STATIC ${SOURCES} ${HEADERS})
 
 target_include_directories(rprpp 
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/capi/.
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/capi
     PRIVATE ${Vulkan_INCLUDE_DIR}
 )
 

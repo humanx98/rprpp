@@ -17,15 +17,15 @@
 
 using Microsoft::WRL::ComPtr;
 
-#define DX_CHECK(f)                                                                                    \
-    {                                                                                                  \
-        HRESULT res = (f);                                                                             \
-        if (!SUCCEEDED(res)) {                                                                         \
+#define DX_CHECK(f)                                                                                  \
+    {                                                                                                \
+        HRESULT res = (f);                                                                           \
+        if (!SUCCEEDED(res)) {                                                                       \
             printf("[dx11app.h] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            _com_error err(res);                                                                       \
+            _com_error err(res);                                                                     \
             printf("[dx11app.h] messsage : %s\n", err.ErrorMessage());                               \
-            assert(false);                                                                             \
-        }                                                                                              \
+            assert(false);                                                                           \
+        }                                                                                            \
     }
 
 struct GpuIndices {
@@ -37,7 +37,6 @@ struct Paths {
     std::filesystem::path hybridproDll;
     std::filesystem::path hybridproCacheDir;
     std::filesystem::path assetsDir;
-    std::filesystem::path postprocessingGlsl;
 };
 
 class Dx11App {

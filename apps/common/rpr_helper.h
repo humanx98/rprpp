@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <fstream>
 #include <iostream>
+#include <rprpp.h>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -62,6 +63,7 @@ inline rpr_creation_flags intToRprCreationFlag(int index)
     }
 }
 
-void ErrorManager(int errorCode, const char* fileName, int line);
+void ErrorManager(rpr_status errorCode, const char* fileName, int line);
+void ErrorManager(RprPpError errorCode, const char* fileName, int line);
 void CheckNoLeak(rpr_context context);
 rpr_shape ImportOBJ(const std::string& file, rpr_context ctx);

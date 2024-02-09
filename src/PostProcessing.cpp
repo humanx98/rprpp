@@ -10,10 +10,8 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
     vk::raii::CommandPool commandPool,
     vk::raii::CommandBuffer secondaryCommandBuffer,
     vk::raii::CommandBuffer computeCommandBuffer,
-    vk::helper::Buffer uboBuffer,
-    const std::filesystem::path& shaderPath)
-    : m_shaderPath(shaderPath)
-    , m_dctx(std::move(dctx))
+    vk::helper::Buffer uboBuffer)
+    : m_dctx(std::move(dctx))
     , m_commandPool(std::move(commandPool))
     , m_secondaryCommandBuffer(std::move(secondaryCommandBuffer))
     , m_computeCommandBuffer(std::move(computeCommandBuffer))
@@ -21,7 +19,7 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
 {
 }
 
-PostProcessing* PostProcessing::create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath)
+PostProcessing* PostProcessing::create(bool enableValidationLayers, uint32_t deviceId)
 {
     vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(enableValidationLayers, deviceId);
 
@@ -40,8 +38,7 @@ PostProcessing* PostProcessing::create(bool enableValidationLayers, uint32_t dev
         std::move(commandPool),
         std::move(commandBuffers[0]),
         std::move(commandBuffers[1]),
-        std::move(uboBuffer),
-        shaderPath);
+        std::move(uboBuffer));
 }
 
 void PostProcessing::createShaderModule(ImageFormat outputFormat)
@@ -50,7 +47,7 @@ void PostProcessing::createShaderModule(ImageFormat outputFormat)
         { "OUTPUT_FORMAT", to_glslformat(outputFormat) },
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
     };
-    m_shaderModule = m_shaderManager.get(m_dctx.device, macroDefinitions, m_shaderPath);
+    m_shaderModule = m_shaderManager.get(m_dctx.device, macroDefinitions);
 }
 
 void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle)

@@ -13,8 +13,18 @@ int main(int argc, const char* argv[])
         .hybridproDll = exeDirPath / "HybridPro.dll",
         .hybridproCacheDir = exeDirPath / "hybridpro_cache",
         .assetsDir = exeDirPath,
-        .postprocessingGlsl = exeDirPath / "post_processing.comp"
     };
+
+    uint32_t deviceCount;
+    RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
+    for (size_t i = 0; i < deviceCount; i++) {
+        size_t size;
+        RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, nullptr, 0, &size));
+        std::vector<char> deviceName;
+        deviceName.resize(size);
+        RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, deviceName.data(), size, nullptr));
+        std::cout << "Device id = " << i << ", name = " << std::string(deviceName.begin(), deviceName.end()) << std::endl;
+    }
 
     Dx11App app(WIDTH, HEIGHT, paths, gpus);
     try {

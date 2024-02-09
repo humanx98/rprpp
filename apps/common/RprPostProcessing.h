@@ -1,7 +1,6 @@
 #pragma once
 
 #include "rpr_helper.h"
-#include <filesystem>
 #include <rprpp.h>
 
 class RprPostProcessing {
@@ -12,9 +11,9 @@ public:
     RprPostProcessing& operator=(RprPostProcessing&&) = delete;
     RprPostProcessing(RprPostProcessing&) = delete;
     RprPostProcessing& operator=(const RprPostProcessing&) = delete;
-    RprPostProcessing(bool enableValidationLayer, uint32_t deviceId, const std::filesystem::path& postprocessingGlsl)
+    RprPostProcessing(bool enableValidationLayer, uint32_t deviceId)
     {
-        RPRPP_CHECK(rprppCreateContext(enableValidationLayer ? RPRPP_TRUE : RPRPP_FALSE, deviceId, postprocessingGlsl.string().c_str(), &m_context));
+        RPRPP_CHECK(rprppCreateContext(enableValidationLayer ? RPRPP_TRUE : RPRPP_FALSE, deviceId, &m_context));
     }
 
     RprPostProcessing(RprPostProcessing&& other)

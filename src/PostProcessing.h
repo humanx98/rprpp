@@ -3,7 +3,6 @@
 #include "ImageFormat.h"
 #include "ShaderManager.h"
 #include "vk_helper.h"
-#include <filesystem>
 #include <optional>
 #include <vector>
 
@@ -62,7 +61,6 @@ private:
     bool m_uboDirty = true;
     UniformBufferObject m_ubo;
     std::vector<const char*> m_enabledLayers;
-    std::filesystem::path m_shaderPath;
     ShaderManager m_shaderManager;
     vk::helper::DeviceContext m_dctx;
     vk::raii::CommandPool m_commandPool;
@@ -95,13 +93,12 @@ public:
         vk::raii::CommandPool commandPool,
         vk::raii::CommandBuffer secondaryCommandBuffer,
         vk::raii::CommandBuffer computeCommandBuffer,
-        vk::helper::Buffer uboBuffer,
-        const std::filesystem::path& shaderPath);
+        vk::helper::Buffer uboBuffer);
     PostProcessing(PostProcessing&&) = default;
     PostProcessing& operator=(PostProcessing&&) = default;
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
-    static PostProcessing* create(bool enableValidationLayers, uint32_t deviceId, const std::filesystem::path& shaderPath);
+    static PostProcessing* create(bool enableValidationLayers, uint32_t deviceId);
     void* mapStagingBuffer(size_t size);
     void unmapStagingBuffer();
     void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE sharedDx11TextureHandle = nullptr);

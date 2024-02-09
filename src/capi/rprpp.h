@@ -8,10 +8,10 @@
 
 typedef enum RprPpError {
     RPRPP_SUCCESS = 0,
-    RPRPP_INTERNAL_ERROR = 1,
-    RPRPP_INVALID_DEVICE = 2,
-    RPRPP_INVALID_PARAMETER = 3,
-    RPRPP_SHADER_COMPILATION_ERROR = 4,
+    RPRPP_ERROR_INTERNAL_ERROR = 1,
+    RPRPP_ERROR_INVALID_DEVICE = 2,
+    RPRPP_ERROR_INVALID_PARAMETER = 3,
+    RPRPP_ERROR_SHADER_COMPILATION = 4,
 } RprPpError;
 
 typedef enum RprPpDeviceInfo {
@@ -30,7 +30,7 @@ typedef void* RprPpVkHandle;
 RprPpError rprppGetDeviceCount(uint32_t* deviceCount);
 RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet);
 
-RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, const char* postprocessingGlsl, RprPpContext* outContext);
+RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, RprPpContext* outContext);
 RprPpError rprppDestroyContext(RprPpContext context);
 
 RprPpError rprppContextGetOutput(RprPpContext context, uint8_t* dst, size_t size, size_t* retSize);

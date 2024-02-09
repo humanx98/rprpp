@@ -2,7 +2,6 @@
 #include "../Error.h"
 #include "../PostProcessing.h"
 #include "../vk_helper.h"
-#include <filesystem>
 
 RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
 {
@@ -13,7 +12,7 @@ RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -25,21 +24,21 @@ RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, voi
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, const char* postprocessingGlsl, RprPpContext* outContext)
+RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, RprPpContext* outContext)
 {
     try {
         if (outContext != nullptr) {
-            *outContext = rprpp::PostProcessing::create(enableValidationLayer == RPRPP_TRUE, deviceId, std::filesystem::path(postprocessingGlsl));
+            *outContext = rprpp::PostProcessing::create(enableValidationLayer == RPRPP_TRUE, deviceId);
         }
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -53,7 +52,7 @@ RprPpError rprppDestroyContext(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -68,7 +67,7 @@ RprPpError rprppContextGetOutput(RprPpContext context, uint8_t* dst, size_t size
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -83,7 +82,7 @@ RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkHandle* 
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -98,7 +97,7 @@ RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkHandle* device)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -113,7 +112,7 @@ RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t hei
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -128,7 +127,7 @@ RprPpError rprppContextRun(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -143,7 +142,7 @@ RprPpError rprppContextMapStagingBuffer(RprPpContext context, size_t size, void*
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -158,7 +157,7 @@ RprPpError rprppContextUnmapStagingBuffer(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -173,7 +172,7 @@ RprPpError rprppContextCopyStagingBufferToAovColor(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -188,7 +187,7 @@ RprPpError rprppContextCopyStagingBufferToAovOpacity(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -203,7 +202,7 @@ RprPpError rprppContextCopyStagingBufferToAovShadowCatcher(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -218,7 +217,7 @@ RprPpError rprppContextCopyStagingBufferToAovReflectionCatcher(RprPpContext cont
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -233,7 +232,7 @@ RprPpError rprppContextCopyStagingBufferToAovMattePass(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -248,7 +247,7 @@ RprPpError rprppContextCopyStagingBufferToAovBackground(RprPpContext context)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -263,7 +262,7 @@ RprPpError rprppContextSetToneMapWhitepoint(RprPpContext context, float x, float
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -278,7 +277,7 @@ RprPpError rprppContextSetToneMapVignetting(RprPpContext context, float vignetti
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -293,7 +292,7 @@ RprPpError rprppContextSetToneMapCrushBlacks(RprPpContext context, float crushBl
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -308,7 +307,7 @@ RprPpError rprppContextSetToneMapBurnHighlights(RprPpContext context, float burn
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -323,7 +322,7 @@ RprPpError rprppContextSetToneMapSaturation(RprPpContext context, float saturati
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -338,7 +337,7 @@ RprPpError rprppContextSetToneMapCm2Factor(RprPpContext context, float cm2Factor
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -353,7 +352,7 @@ RprPpError rprppContextSetToneMapFilmIso(RprPpContext context, float filmIso)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -368,7 +367,7 @@ RprPpError rprppContextSetToneMapCameraShutter(RprPpContext context, float camer
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -383,7 +382,7 @@ RprPpError rprppContextSetToneMapFNumber(RprPpContext context, float fNumber)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -398,7 +397,7 @@ RprPpError rprppContextSetToneMapFocalLength(RprPpContext context, float focalLe
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -413,7 +412,7 @@ RprPpError rprppContextSetToneMapAperture(RprPpContext context, float aperture)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -428,7 +427,7 @@ RprPpError rprppContextSetBloomRadius(RprPpContext context, float radius)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -443,7 +442,7 @@ RprPpError rprppContextSetBloomBrightnessScale(RprPpContext context, float brigh
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -458,7 +457,7 @@ RprPpError rprppContextSetBloomThreshold(RprPpContext context, float threshold)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -473,7 +472,7 @@ RprPpError rprppContextSetBloomEnabled(RprPpContext context, uint32_t enabled)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -488,7 +487,7 @@ RprPpError rprppContextSetGamma(RprPpContext context, float gamma)
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -503,7 +502,7 @@ RprPpError rprppContextSetShadowIntensity(RprPpContext context, float shadowInte
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }
@@ -518,7 +517,7 @@ RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, uint32_t enabled
     } catch (const rprpp::Error& e) {
         return e.errorCode;
     } catch (const std::exception& e) {
-        return RPRPP_INTERNAL_ERROR;
+        return RPRPP_ERROR_INTERNAL_ERROR;
     }
     return RPRPP_SUCCESS;
 }

@@ -17,7 +17,7 @@ Dx11App::Dx11App(int width, int height, Paths paths, GpuIndices gpuIndices)
     , m_height(height)
     , m_paths(paths)
     , m_gpuIndices(gpuIndices)
-    , m_postProcessing(true, gpuIndices.vk, paths.postprocessingGlsl)
+    , m_postProcessing(true, gpuIndices.vk)
     , m_hybridproRenderer(m_width, m_height, gpuIndices.vk, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
 {
 }
