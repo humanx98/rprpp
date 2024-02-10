@@ -45,8 +45,7 @@ inline auto safeCall(Function function, Params&&... params) noexcept -> std::exp
 
 RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
 {
-    //auto result = safeCall(vk::helper::getDeviceCount);
-    auto result = safeCall([] { throw rprpp::Error(2, "test"); return 0; });
+    auto result = safeCall(vk::helper::getDeviceCount);
     check(result);
     
     *deviceCount = *result;
