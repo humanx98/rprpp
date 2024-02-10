@@ -3,6 +3,10 @@ string(REPLACE "\n" "\\n" RPRPP_POSTPROCESSING_SHADER "${RPRPP_POSTPROCESSING_SH
 
 configure_file(rprppconfig.h.in rprppconfig.h)
 
+set(SHADERS
+	shaders/post_processing.comp
+)
+
 set(HEADERS
     Error.h
     common.h
@@ -20,7 +24,7 @@ set(SOURCES
     ShaderManager.cpp
 )
 
-add_library(rprpp STATIC ${SOURCES} ${HEADERS})
+add_library(rprpp STATIC ${SOURCES} ${HEADERS} ${SHADERS})
 #target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
 #_copy_file_to_target(rprpp ${Vulkan_SHADERC_DLL})
 
