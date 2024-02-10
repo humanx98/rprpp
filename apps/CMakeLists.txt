@@ -8,5 +8,7 @@ macro(_copy_file_to_target target thefile)
     )
 endmacro()
 
+add_subdirectory(common)
+
 add_subdirectory(consoleapp)
 add_subdirectory(glfwapp)

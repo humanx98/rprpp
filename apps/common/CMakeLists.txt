@@ -1,0 +1,30 @@
+FetchContent_Declare(stb 
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(stb)
+
+set(HEADERS
+	HybridProRenderer.h  
+	RprPostProcessing.h  
+	rpr_helper.h
+)
+set(SOURCES
+	HybridProRenderer.cpp  
+	rpr_helper.cpp
+)
+
+add_library(appcommon STATIC ${HEADERS} ${SOURCES})
+target_include_directories(appcommon PUBLIC
+	PUBLIC ${CMAKE_SOURCE_DIR}/apps
+	PUBLIC ${RPRSDK_DIR}/inc
+	PUBLIC ${stb_SOURCE_DIR}
+)
+
+target_link_libraries(appcommon PUBLIC 
+    rprpp
+    capi
+    ${RPRSDK_DIR}/libWin64/RadeonProRender64.lib
+ )
+

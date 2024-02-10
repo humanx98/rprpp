@@ -1,13 +1,15 @@
 set(HEADERS
 	rprpp.h
+	Error.h
 )
 
 set(SOURCES 
 	rprpp.cpp
+	Error.cpp
 )
 add_library(capi STATIC ${HEADERS} ${SOURCES})
 target_include_directories(capi 
-    PUBLIC ${CMAKE_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
     PUBLIC ${Vulkan_INCLUDE_DIR}
 )
 

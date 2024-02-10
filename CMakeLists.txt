@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.26.1)
 cmake_policy(SET CMP0097 NEW)
 project(rprpp LANGUAGES CXX VERSION 0.1)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
@@ -33,5 +33,6 @@ endif()
 # set(RPRSDK_DIR ${rprsdk_SOURCE_DIR}/RadeonProRender) 
 set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
 
+add_subdirectory(capi)
 add_subdirectory(src)
 add_subdirectory(apps)
