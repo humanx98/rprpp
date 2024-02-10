@@ -2,7 +2,6 @@
 
 #include "vk.h"
 #include <map>
-#include <shaderc/shaderc.hpp>
 
 namespace rprpp {
 

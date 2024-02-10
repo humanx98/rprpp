@@ -21,6 +21,8 @@ set(SOURCES
 )
 
 add_library(rprpp STATIC ${SOURCES} ${HEADERS})
+#target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
+#_copy_file_to_target(rprpp ${Vulkan_SHADERC_DLL})
 
 target_include_directories(rprpp 
     PUBLIC ${CMAKE_SOURCE_DIR}

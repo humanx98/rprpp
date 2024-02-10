@@ -61,11 +61,11 @@ RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, voi
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppCreateContext(uint32_t enableValidationLayer, uint32_t deviceId, RprPpContext* outContext)
+RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 {
 	assert(outContext);
 
-    auto result = safeCall(rprpp::PostProcessing::create, enableValidationLayer == RPRPP_TRUE, deviceId);
+    auto result = safeCall(rprpp::PostProcessing::create, deviceId);
     check(result);
     
     *outContext = *result;

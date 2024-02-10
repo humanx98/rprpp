@@ -1,16 +1,14 @@
 cmake_minimum_required(VERSION 3.26.1)
-#   Allow GIT_SUBMODULES empty to mean no submodules
-cmake_policy(SET CMP0097 NEW)
 project(rprpp LANGUAGES CXX VERSION 0.1)
+
+option(RPRPP_EXPORT_API "Export dll symbols" 1)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-
 set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
 
 find_package(Vulkan REQUIRED)
 get_filename_component(Vulkan_LIBRARY_DIR ${Vulkan_LIBRARY} DIRECTORY)
@@ -20,18 +18,17 @@ if(NOT Vulkan_SHADERC_DLL)
     message(FATAL_ERROR "Windows platform requires VulkanSDK with shaderc_shared.lib/dll (since SDK 1.2.135.0)")
 endif()
 
-# Fetching rprsdk takes about 5min
-# 
-# FetchContent_Declare(rprsdk 
-#     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderSDK.git
-#     GIT_TAG v3.1.4
-#     GIT_SUBMODULES ""
-#     GIT_SHALLOW TRUE
-#     GIT_PROGRESS TRUE
-# )
-# FetchContent_MakeAvailable(rprsdk)
-# set(RPRSDK_DIR ${rprsdk_SOURCE_DIR}/RadeonProRender) 
-set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
+include(FetchContent)
+
+macro(_copy_file_to_target target thefile)
+    add_custom_command(
+        TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${thefile}
+        $<TARGET_FILE_DIR:${target}>
+        VERBATIM
+    )
+endmacro()
 
 add_subdirectory(capi)
 add_subdirectory(src)

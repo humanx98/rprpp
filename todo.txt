@@ -1,9 +1,7 @@
-1. shader compilation
-2. disable validation layer for release
-3. building dll
-4. profiling
-5. bloom
-9. denoising
-6. hybridpro and post processing direct interop (without copy through RAM)
-7. tripple buffering ???
-8. project refactoring
+1. disable validation layer for release
+2. profiling
+3. bloom
+4. denoising
+5. hybridpro and post processing direct interop (without copy through RAM)
+6. tripple buffering ???
+7. project refactoring
