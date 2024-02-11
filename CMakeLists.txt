@@ -19,6 +19,7 @@ if(NOT Vulkan_SHADERC_DLL)
 endif()
 
 include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
 
 macro(_copy_file_to_target target thefile)
     add_custom_command(
