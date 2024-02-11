@@ -1,2 +1,3 @@
+add_subdirectory(common)
 add_subdirectory(consoleapp)
 add_subdirectory(glfwapp)

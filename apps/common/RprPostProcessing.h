@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rpr_helper.h"
-#include <rprpp.h>
+#include "capi/rprpp.h"
 
 class RprPostProcessing {
 private:

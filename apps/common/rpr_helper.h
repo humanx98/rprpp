@@ -4,10 +4,10 @@
 #include <assert.h>
 #include <fstream>
 #include <iostream>
-#include <rprpp.h>
 #include <sstream>
 #include <string>
 #include <vector>
+#include "capi/rprpp.h"
 
 #define RPR_CHECK(x)                             \
     {                                            \
