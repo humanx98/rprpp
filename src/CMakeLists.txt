@@ -20,6 +20,7 @@ set(HEADERS
 set(SOURCES
     Error.cpp
     vk_helper.cpp
+    DescriptorBuilder.cpp
     PostProcessing.cpp
     ShaderManager.cpp
 )

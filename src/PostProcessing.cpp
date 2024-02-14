@@ -30,6 +30,7 @@ std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
 
     vk::CommandBufferAllocateInfo allocInfo(*commandPool, vk::CommandBufferLevel::ePrimary, 2);
     vk::raii::CommandBuffers commandBuffers(dctx.device, allocInfo);
+    assert(commandBuffers.size() >= 2);
 
     vk::helper::Buffer uboBuffer = vk::helper::createBuffer(dctx,
         sizeof(UniformBufferObject),
@@ -46,7 +47,7 @@ std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
 
 void PostProcessing::createShaderModule(ImageFormat outputFormat)
 {
-    std::map<std::string, std::string> macroDefinitions = {
+    const std::unordered_map<std::string, std::string> macroDefinitions = {
         { "OUTPUT_FORMAT", to_glslformat(outputFormat) },
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
     };
@@ -130,7 +131,7 @@ void PostProcessing::transitionImageLayout(vk::helper::Image& image,
 void PostProcessing::createDescriptorSet()
 {
     DescriptorBuilder builder;
-    std::vector<vk::DescriptorImageInfo> descriptorImageInfos = {
+    const std::vector<vk::DescriptorImageInfo> descriptorImageInfos = {
         vk::DescriptorImageInfo(nullptr, *m_outputImage->view, vk::ImageLayout::eGeneral), // binding 0
         vk::DescriptorImageInfo(nullptr, *m_aovs->color.view, vk::ImageLayout::eGeneral), // binding 1
         vk::DescriptorImageInfo(nullptr, *m_aovs->opacity.view, vk::ImageLayout::eGeneral), // binding 2
@@ -140,7 +141,7 @@ void PostProcessing::createDescriptorSet()
         vk::DescriptorImageInfo(nullptr, *m_aovs->background.view, vk::ImageLayout::eGeneral), // binding 6
     };
 
-    for (auto& dii : descriptorImageInfos) {
+    for (const vk::DescriptorImageInfo& dii : descriptorImageInfos) {
         builder.bindStorageImage(&dii);
     }
 

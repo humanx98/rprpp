@@ -6,10 +6,10 @@
 
 namespace rprpp {
 
-vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device, const std::map<std::string, std::string>& macroDefinitions)
+vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
 {
     static std::mutex mutex;
-    static std::map<std::string, std::vector<uint32_t>> compiledShaders;
+    static std::unordered_map<std::string, std::vector<uint32_t>> compiledShaders;
 
     std::string key;
     shaderc::CompileOptions options;
