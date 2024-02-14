@@ -165,9 +165,11 @@ void Dx11App::copyRprFbToPpStagingBuffer(rpr_aov aov)
 {
     size_t size;
     m_hybridproRenderer.getAov(aov, nullptr, 0u, &size);
-    void* data = m_postProcessing.mapStagingBuffer(size);
-    m_hybridproRenderer.getAov(aov, data, size, nullptr);
-    m_postProcessing.unmapStagingBuffer();
+
+    StagingBuffer buffer = m_postProcessing.mapStagingBuffer(size);
+    m_hybridproRenderer.getAov(aov, buffer.data(), size, nullptr);
+
+    buffer.unmap();
 }
 
 void Dx11App::mainLoop()

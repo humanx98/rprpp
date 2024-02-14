@@ -81,8 +81,10 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 
 RprPpError rprppDestroyContext(RprPpContext context)
 {
-	if (!context) 
+    if (!context) {
+        std::cerr << "[WARING] context in null, but it should never be";
 		return RPRPP_SUCCESS;
+    }
 
 	rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
 
