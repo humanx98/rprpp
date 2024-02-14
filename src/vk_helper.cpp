@@ -2,33 +2,55 @@
 #include "Error.h"
 #include "common.h"
 #include <iostream>
+
 #include <map>
 
 namespace vk::helper {
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
-{
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
-}
+namespace {
 
-vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
-{
-    return { {},
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
-        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
-        &debugUtilsMessengerCallback };
-}
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        return VK_FALSE;
+    }
+
+    vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
+    {
+        return { {},
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+            &debugUtilsMessengerCallback };
+    }
+
+    void validateRequiredExtensions(const std::vector<const char*>& extensions)
+    {
+        const std::array<const char*, 3> requiredExtension {
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
+        };
+
+        // validate that all required extensions are present in extensions container
+        std::for_each(requiredExtension.begin(), requiredExtension.end(), [&extensions](const char* requiredExtensionName) {
+            auto iter = std::find_if(extensions.begin(), extensions.end(),
+                [&requiredExtensionName](const char* extensionName) {
+                    return std::strcmp(requiredExtensionName, extensionName) == 0;
+                });
+
+            if (iter == extensions.end()) {
+                throw rprpp::InternalError("Required Extension " + std::string(requiredExtensionName) + " not found");
+            }
+        });
+    } // validateReqFunction
+
+} // namespace
 
 std::pair<vk::raii::Instance, std::vector<const char*>> createInstance(const vk::raii::Context& context, bool enableValidationLayers)
 {
-    std::vector<const char*> enabledExtensions;
+    std::vector<const char*> enabledExtension;
     std::vector<const char*> enabledLayers;
-    std::map<const char*, bool, cmp_str> foundExtensions = {
-        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME, false },
-    };
+
     std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
     if (enableValidationLayers) {
         bool foundValidationLayer = false;
@@ -44,29 +66,23 @@ std::pair<vk::raii::Instance, std::vector<const char*>> createInstance(const vk:
             throw rprpp::InternalError("Layer VK_LAYER_KHRONOS_validation not supported\n");
         }
 
-        for (VkExtensionProperties& prop : context.enumerateInstanceExtensionProperties()) {
-            auto it = foundExtensions.find(prop.extensionName);
-            if (it != foundExtensions.end()) {
-                it->second = true;
-                enabledExtensions.push_back(it->first);
-            }
-        }
-
-        for (auto const& fe : foundExtensions) {
-            if (!fe.second) {
-                throw rprpp::InternalError("Instance Extension " + std::string(fe.first) + " not supported\n");
-            }
-        }
-
         debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
     }
+    const auto& extensionProperties = context.enumerateInstanceExtensionProperties();
+    enabledExtension.reserve(extensionProperties.size());
+
+    for (const VkExtensionProperties& prop : extensionProperties) {
+        enabledExtension.push_back(prop.extensionName);
+    }
+        
+    validateRequiredExtensions(enabledExtension);
 
     vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
     vk::InstanceCreateInfo instanceCreateInfo(
         {},
         &applicationInfo,
         enabledLayers,
-        enabledExtensions,
+        enabledExtension,
         debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
     return std::make_pair(vk::raii::Instance(context, instanceCreateInfo), enabledLayers);
 }
