@@ -57,7 +57,7 @@ public:
         vk::raii::CommandPool&& commandPool,
         vk::raii::CommandBuffer&& secondaryCommandBuffer,
         vk::raii::CommandBuffer&& computeCommandBuffer,
-        vk::helper::Buffer&& uboBuffer);
+        vk::helper::Buffer&& uboBuffer) noexcept;
 
     PostProcessing(PostProcessing&&)            = default;
     PostProcessing& operator=(PostProcessing&&) = default;

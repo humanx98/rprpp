@@ -2,7 +2,6 @@
 #include "DescriptorBuilder.h"
 #include "common.h"
 #include <algorithm>
-#include <map>
 
 namespace rprpp {
 
@@ -13,7 +12,7 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
     vk::raii::CommandPool&& commandPool,
     vk::raii::CommandBuffer&& secondaryCommandBuffer,
     vk::raii::CommandBuffer&& computeCommandBuffer,
-    vk::helper::Buffer&& uboBuffer)
+    vk::helper::Buffer&& uboBuffer) noexcept
     : m_dctx(std::move(dctx))
     , m_commandPool(std::move(commandPool))
     , m_secondaryCommandBuffer(std::move(secondaryCommandBuffer))
