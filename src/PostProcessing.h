@@ -65,7 +65,7 @@ public:
     PostProcessing(PostProcessing&)                  = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
 
-    static PostProcessing* create(uint32_t deviceId);
+    static std::unique_ptr<PostProcessing> create(uint32_t deviceId);
 
     void* mapStagingBuffer(size_t size);
     void unmapStagingBuffer();
@@ -139,4 +139,4 @@ private:
     std::optional<vk::raii::Pipeline> m_computePipeline;
 };
 
-}
+} // namespace rprpp

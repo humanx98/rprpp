@@ -22,7 +22,7 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
 {
 }
 
-PostProcessing* PostProcessing::create(uint32_t deviceId)
+std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
 {
     vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(deviceId);
 
@@ -37,7 +37,8 @@ PostProcessing* PostProcessing::create(uint32_t deviceId)
         vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    return new PostProcessing(std::move(dctx),
+    return std::make_unique<PostProcessing>(
+        std::move(dctx),
         std::move(commandPool),
         std::move(commandBuffers[0]),
         std::move(commandBuffers[1]),

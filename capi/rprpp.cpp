@@ -12,6 +12,9 @@
 
 #include <iostream>
 
+using PostProcessingPtr = std::unique_ptr<rprpp::PostProcessing>;
+static std::vector<PostProcessingPtr> GlobalPostProcessingObjects;
+
 template <class Function, 
     class... Params>
 [[nodiscard("Please, don't ignore result")]]
@@ -67,8 +70,11 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 
     auto result = safeCall(rprpp::PostProcessing::create, deviceId);
     check(result);
-    
-    *outContext = *result;
+
+    *outContext = result->get();
+
+    // avoid memleak
+    GlobalPostProcessingObjects.emplace_back(std::move(*result)); 
 
     return RPRPP_SUCCESS;
 }
@@ -79,7 +85,23 @@ RprPpError rprppDestroyContext(RprPpContext context)
 		return RPRPP_SUCCESS;
 
 	rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
-	delete pp;
+
+    // find in mempool this pointer
+    auto iter = std::find_if(GlobalPostProcessingObjects.begin(), GlobalPostProcessingObjects.end(), 
+        [&pp](const PostProcessingPtr& ptr) { return pp == ptr.get(); });
+
+    // not found in pool, return error
+    if (iter == GlobalPostProcessingObjects.end()) {
+        std::cerr << "This memory doesn't belong to pool";
+        return RPRPP_ERROR_INTERNAL_ERROR;
+    }
+
+    auto result = safeCall([&iter]() { iter->reset(); });
+    // we don't care about vulkan context anymore and should always drop this object from pool
+	GlobalPostProcessingObjects.erase(iter);
+
+    // only after pool clean up. This is correct place
+    check(result);
 
     return RPRPP_SUCCESS;
 }
