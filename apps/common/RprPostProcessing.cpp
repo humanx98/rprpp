@@ -19,10 +19,8 @@ RprPostProcessing::~RprPostProcessing()
 	if (!m_context)
 		return;
 
-	RprPpError status;
-
-	status = rprppDestroyContext(m_context);
-	RPRPP_CHECK(status);
+	// ignore any errors
+	(void)rprppDestroyContext(m_context);
 }
 
 StagingBuffer RprPostProcessing::mapStagingBuffer(size_t size)

@@ -89,8 +89,9 @@ RprPpError rprppDestroyContext(RprPpContext context)
 	rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
 
     // find in mempool this pointer
-    auto iter = std::find_if(GlobalPostProcessingObjects.begin(), GlobalPostProcessingObjects.end(), 
-        [&pp](const PostProcessingPtr& ptr) { return pp == ptr.get(); });
+	auto same_addr = [&pp](const PostProcessingPtr& ptr) { return pp == ptr.get(); };
+
+	auto iter = std::find_if(GlobalPostProcessingObjects.begin(), GlobalPostProcessingObjects.end(), same_addr);
 
     // not found in pool, return error
     if (iter == GlobalPostProcessingObjects.end()) {

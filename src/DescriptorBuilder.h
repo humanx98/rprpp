@@ -1,23 +1,28 @@
 #pragma once
 
 #include "vk.h"
-#include <map>
-#include <optional>
 #include <vector>
 
 namespace rprpp {
 
 class DescriptorBuilder {
-private:
-    std::map<vk::DescriptorType, size_t> m_poolSizes;
-
 public:
-    std::vector<vk::DescriptorSetLayoutBinding> bindings;
-    std::vector<vk::WriteDescriptorSet> writes;
-
-    std::vector<vk::DescriptorPoolSize> poolSizes();
     void bindStorageImage(const vk::DescriptorImageInfo* imageInfo);
     void bindUniformBuffer(vk::DescriptorBufferInfo* bufferInfo);
+
+    const std::vector<vk::DescriptorPoolSize>& poolSizes() const { return m_poolSizesCached; }
+
+    const std::vector<vk::DescriptorSetLayoutBinding>& bindings() const noexcept { return m_bindings; }
+    const std::vector<vk::WriteDescriptorSet>& writes() const noexcept { return m_writes; }
+
+    void updateDescriptorSet(const vk::DescriptorSet& descriptorSet);
+
+private:
+    vk::DescriptorPoolSize& findOrCreate(vk::DescriptorType type);
+
+    std::vector<vk::DescriptorSetLayoutBinding> m_bindings;
+    std::vector<vk::WriteDescriptorSet> m_writes;
+    std::vector<vk::DescriptorPoolSize> m_poolSizesCached;
 };
 
 }

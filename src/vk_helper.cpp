@@ -3,9 +3,6 @@
 #include "common.h"
 #include <iostream>
 
-#include <map>
-#include <array>
-
 namespace vk::helper {
 
 namespace {
@@ -36,10 +33,11 @@ namespace {
     {
         // validate that all required extensions are present in extensions container
         std::for_each(requiredExtensions.begin(), requiredExtensions.end(), [&extensions](const char* requiredExtensionName) {
-			auto iter = std::find_if(extensions.begin(), extensions.end(), [&requiredExtensionName](const char* extensionName) {
+            auto sameExtensionNames = [&requiredExtensionName](const char* extensionName) -> bool {
 			    return std::strcmp(requiredExtensionName, extensionName) == 0;
-			});
+			};
 
+			auto iter = std::find_if(extensions.begin(), extensions.end(), sameExtensionNames);
             if (iter == extensions.end()) {
                 throw rprpp::InternalError("Required Extension " + std::string(requiredExtensionName) + " not found");
             }

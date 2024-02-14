@@ -148,15 +148,13 @@ void PostProcessing::createDescriptorSet()
     vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer.buffer, 0, sizeof(UniformBufferObject)); // binding 7
     builder.bindUniformBuffer(&uboDescriptoInfo);
 
-    auto poolSizes = builder.poolSizes();
-    m_descriptorSetLayout = m_dctx.device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings));
+    const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
+    m_descriptorSetLayout = m_dctx.device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
     m_descriptorPool = m_dctx.device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
     m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx.device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
 
-    for (auto& w : builder.writes) {
-        w.dstSet = *m_descriptorSet.value();
-    }
-    m_dctx.device.updateDescriptorSets(builder.writes, nullptr);
+    builder.updateDescriptorSet(*m_descriptorSet.value());
+    m_dctx.device.updateDescriptorSets(builder.writes(), nullptr);
 }
 
 void PostProcessing::createComputePipeline()
