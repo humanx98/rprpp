@@ -53,51 +53,19 @@ struct UniformBufferObject {
 };
 
 class PostProcessing {
-private:
-    HANDLE m_sharedDx11TextureHandle = nullptr;
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
-    ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
-    bool m_uboDirty = true;
-    UniformBufferObject m_ubo;
-    std::vector<const char*> m_enabledLayers;
-    ShaderManager m_shaderManager;
-    vk::helper::DeviceContext m_dctx;
-    vk::raii::CommandPool m_commandPool;
-    vk::raii::CommandBuffer m_secondaryCommandBuffer;
-    vk::raii::CommandBuffer m_computeCommandBuffer;
-    vk::helper::Buffer m_uboBuffer;
-    std::optional<vk::raii::ShaderModule> m_shaderModule;
-    std::optional<vk::helper::Buffer> m_stagingBuffer;
-    std::optional<vk::helper::Image> m_outputImage;
-    std::optional<Aovs> m_aovs;
-    std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
-    std::optional<vk::raii::DescriptorPool> m_descriptorPool;
-    std::optional<vk::raii::DescriptorSet> m_descriptorSet;
-    std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
-    std::optional<vk::raii::Pipeline> m_computePipeline;
-    void createShaderModule(ImageFormat outputFormat);
-    void createDescriptorSet();
-    void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle);
-    void createComputePipeline();
-    void recordComputeCommandBuffer(uint32_t width, uint32_t height);
-    void transitionImageLayout(vk::helper::Image& image,
-        vk::AccessFlags dstAccess,
-        vk::ImageLayout dstLayout,
-        vk::PipelineStageFlags dstStage);
-    void copyStagingBufferToAov(vk::helper::Image& image);
-    void updateUbo();
-
 public:
     PostProcessing(vk::helper::DeviceContext&& dctx,
         vk::raii::CommandPool&& commandPool,
         vk::raii::CommandBuffer&& secondaryCommandBuffer,
         vk::raii::CommandBuffer&& computeCommandBuffer,
         vk::helper::Buffer&& uboBuffer);
-    PostProcessing(PostProcessing&&) = default;
+
+    PostProcessing(PostProcessing&&)            = default;
     PostProcessing& operator=(PostProcessing&&) = default;
-    PostProcessing(PostProcessing&) = delete;
+
+    PostProcessing(PostProcessing&)                  = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
+
     static PostProcessing* create(uint32_t deviceId);
     void* mapStagingBuffer(size_t size);
     void unmapStagingBuffer();
@@ -252,6 +220,43 @@ public:
     void setDenoiserEnabled(bool enabled) noexcept
     {
     }
+
+private:
+    HANDLE m_sharedDx11TextureHandle = nullptr;
+    uint32_t m_width = 0;
+    uint32_t m_height = 0;
+    ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
+    bool m_uboDirty = true;
+    UniformBufferObject m_ubo;
+    std::vector<const char*> m_enabledLayers;
+    ShaderManager m_shaderManager;
+    vk::helper::DeviceContext m_dctx;
+    vk::raii::CommandPool m_commandPool;
+    vk::raii::CommandBuffer m_secondaryCommandBuffer;
+    vk::raii::CommandBuffer m_computeCommandBuffer;
+    vk::helper::Buffer m_uboBuffer;
+    std::optional<vk::raii::ShaderModule> m_shaderModule;
+    std::optional<vk::helper::Buffer> m_stagingBuffer;
+    std::optional<vk::helper::Image> m_outputImage;
+    std::optional<Aovs> m_aovs;
+    std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
+    std::optional<vk::raii::DescriptorPool> m_descriptorPool;
+    std::optional<vk::raii::DescriptorSet> m_descriptorSet;
+    std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
+    std::optional<vk::raii::Pipeline> m_computePipeline;
+    void createShaderModule(ImageFormat outputFormat);
+    void createDescriptorSet();
+    void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE sharedDx11TextureHandle);
+    void createComputePipeline();
+    void recordComputeCommandBuffer(uint32_t width, uint32_t height);
+    void transitionImageLayout(vk::helper::Image& image,
+        vk::AccessFlags dstAccess,
+        vk::ImageLayout dstLayout,
+        vk::PipelineStageFlags dstStage);
+    void copyStagingBufferToAov(vk::helper::Image& image);
+    void updateUbo();
+
+
 };
 
 }
