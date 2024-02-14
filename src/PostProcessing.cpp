@@ -6,11 +6,11 @@
 
 namespace rprpp {
 
-PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
-    vk::raii::CommandPool commandPool,
-    vk::raii::CommandBuffer secondaryCommandBuffer,
-    vk::raii::CommandBuffer computeCommandBuffer,
-    vk::helper::Buffer uboBuffer)
+PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
+    vk::raii::CommandPool&& commandPool,
+    vk::raii::CommandBuffer&& secondaryCommandBuffer,
+    vk::raii::CommandBuffer&& computeCommandBuffer,
+    vk::helper::Buffer&& uboBuffer)
     : m_dctx(std::move(dctx))
     , m_commandPool(std::move(commandPool))
     , m_secondaryCommandBuffer(std::move(secondaryCommandBuffer))
@@ -21,12 +21,7 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
 
 PostProcessing* PostProcessing::create(uint32_t deviceId)
 {
-#if NDEBUG
-    bool enableValidationLayers = false;
-#else
-    bool enableValidationLayers = true;
-#endif
-    vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(enableValidationLayers, deviceId);
+    vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(deviceId);
 
     vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, dctx.queueFamilyIndex);
     vk::raii::CommandPool commandPool = vk::raii::CommandPool(dctx.device, cmdPoolInfo);

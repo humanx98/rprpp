@@ -39,7 +39,7 @@ struct Image {
 void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet);
 uint32_t getDeviceCount();
 
-DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId);
+DeviceContext createDeviceContext(uint32_t deviceId);
 
 Image createImage(const DeviceContext& dctx,
     uint32_t width,

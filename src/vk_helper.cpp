@@ -4,12 +4,21 @@
 #include <iostream>
 
 #include <map>
+#include <array>
 
 namespace vk::helper {
 
 namespace {
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    struct VulkanInstance
+    {
+        vk::raii::Instance instance;
+
+        std::vector<const char*> enabledLayers;
+		std::vector<const char*> enabledExtension;
+    };
+
+    VKAPI_ATTR VkBool32 debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
         return VK_FALSE;
@@ -23,20 +32,13 @@ namespace {
             &debugUtilsMessengerCallback };
     }
 
-    void validateRequiredExtensions(const std::vector<const char*>& extensions)
+    void validateRequiredExtensions(const std::vector<const char*>& extensions, const std::vector<const char*>& requiredExtensions)
     {
-        const std::array<const char*, 3> requiredExtension {
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-            VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
-            VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
-        };
-
         // validate that all required extensions are present in extensions container
-        std::for_each(requiredExtension.begin(), requiredExtension.end(), [&extensions](const char* requiredExtensionName) {
-            auto iter = std::find_if(extensions.begin(), extensions.end(),
-                [&requiredExtensionName](const char* extensionName) {
-                    return std::strcmp(requiredExtensionName, extensionName) == 0;
-                });
+        std::for_each(requiredExtensions.begin(), requiredExtensions.end(), [&extensions](const char* requiredExtensionName) {
+			auto iter = std::find_if(extensions.begin(), extensions.end(), [&requiredExtensionName](const char* extensionName) {
+			    return std::strcmp(requiredExtensionName, extensionName) == 0;
+			});
 
             if (iter == extensions.end()) {
                 throw rprpp::InternalError("Required Extension " + std::string(requiredExtensionName) + " not found");
@@ -44,16 +46,14 @@ namespace {
         });
     } // validateReqFunction
 
-    struct VulkanInstance
-    {
-        vk::raii::Instance instance;
-
-        std::vector<const char*> enabledLayers;
-		std::vector<const char*> enabledExtension;
-    };
-
 	VulkanInstance createInstance(const vk::raii::Context& context, bool enableValidationLayers)
 	{
+        static const std::vector<const char*> requiredExtensions {
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
+        };
+
 		std::vector<const char*> enabledExtension;
 		std::vector<const char*> enabledLayers;
 
@@ -80,8 +80,8 @@ namespace {
 		for (const VkExtensionProperties& prop : extensionProperties) {
 			enabledExtension.push_back(prop.extensionName);
 		}
-			
-		validateRequiredExtensions(enabledExtension);
+	
+        validateRequiredExtensions(enabledExtension, requiredExtensions);
 
 		vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
 		vk::InstanceCreateInfo instanceCreateInfo(
@@ -101,28 +101,24 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
     const std::vector<const char*>& enabledLayers,
     const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
 {
-    std::vector<const char*> enabledExtensions;
-    std::map<const char*, bool, cmp_str> foundExtensions = {
-        { VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, false },
-        { VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME, false }, //  for hybridpro
-        { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false }, // for hybridpro
+    const static std::vector<const char*> requiredExtensions {
+        VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, 
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, 
+        VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, 
+        VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,  //  for hybridpro
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, // for hybridpro
     };
-    for (auto& prop : physicalDevice.enumerateDeviceExtensionProperties()) {
-        auto it = foundExtensions.find(prop.extensionName);
-        if (it != foundExtensions.end()) {
-            it->second = true;
-            enabledExtensions.push_back(it->first);
-        }
+
+    std::vector<const char*> enabledExtensions;
+
+    const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
+    enabledExtensions.reserve(extensionProperties.size());
+    for (const vk::ExtensionProperties& property : extensionProperties) {
+        enabledExtensions.push_back(property.extensionName);
     }
 
-    for (auto const& fe : foundExtensions) {
-        if (!fe.second) {
-            throw rprpp::InternalError("Device Extension " + std::string(fe.first) + " not supported\n");
-        }
-    }
+    validateRequiredExtensions(enabledExtensions, requiredExtensions);
 
     vk::PhysicalDeviceFeatures deviceFeatures;
     deviceFeatures.samplerAnisotropy = true; // for hybridpro
@@ -215,8 +211,14 @@ void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, 
     }
 }
 
-DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId)
+DeviceContext createDeviceContext(uint32_t deviceId)
 {
+#if NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+
     vk::raii::Context context;
     VulkanInstance vulkanInstance = createInstance(context, enableValidationLayers);
     //auto enabledLayers = std::move(instanceAndValidationLayers.second);
