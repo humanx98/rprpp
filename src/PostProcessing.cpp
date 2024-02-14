@@ -6,6 +6,9 @@
 
 namespace rprpp {
 
+const int WorkgroupSize = 32;
+const int NumComponents = 4;
+
 PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
     vk::raii::CommandPool&& commandPool,
     vk::raii::CommandBuffer&& secondaryCommandBuffer,
@@ -323,5 +326,155 @@ void PostProcessing::run()
         m_dctx.queue.waitIdle();
     }
 }
+
+    VkPhysicalDevice PostProcessing::getVkPhysicalDevice() const noexcept
+    {
+        return static_cast<VkPhysicalDevice>(*m_dctx.physicalDevice);
+    }
+
+    VkDevice PostProcessing::getVkDevice() const noexcept
+    {
+        return static_cast<VkDevice>(*m_dctx.device);
+    }
+
+    void PostProcessing::copyStagingBufferToAovColor()
+    {
+        copyStagingBufferToAov(m_aovs.value().color);
+    }
+
+    void PostProcessing::copyStagingBufferToAovOpacity()
+    {
+        copyStagingBufferToAov(m_aovs.value().opacity);
+    }
+
+    void PostProcessing::copyStagingBufferToAovShadowCatcher()
+    {
+        copyStagingBufferToAov(m_aovs.value().shadowCatcher);
+    }
+
+    void PostProcessing::copyStagingBufferToAovReflectionCatcher()
+    {
+        copyStagingBufferToAov(m_aovs.value().reflectionCatcher);
+    }
+
+    void PostProcessing::copyStagingBufferToAovMattePass()
+    {
+        copyStagingBufferToAov(m_aovs.value().mattePass);
+    }
+
+    void PostProcessing::copyStagingBufferToAovBackground()
+    {
+        copyStagingBufferToAov(m_aovs.value().background);
+    }
+
+    void PostProcessing::setGamma(float gamma) noexcept
+    {
+        m_ubo.invGamma = 1.0f / (gamma > 0.00001f ? gamma : 1.0f);
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setShadowIntensity(float shadowIntensity) noexcept
+    {
+        m_ubo.shadowIntensity = shadowIntensity;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapWhitepoint(float x, float y, float z) noexcept
+    {
+        m_ubo.tonemap.whitepoint[0] = x;
+        m_ubo.tonemap.whitepoint[1] = y;
+        m_ubo.tonemap.whitepoint[2] = z;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapVignetting(float vignetting) noexcept
+    {
+        m_ubo.tonemap.vignetting = vignetting;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapCrushBlacks(float crushBlacks) noexcept
+    {
+        m_ubo.tonemap.crushBlacks = crushBlacks;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapBurnHighlights(float burnHighlights) noexcept
+    {
+        m_ubo.tonemap.burnHighlights = burnHighlights;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapSaturation(float saturation) noexcept
+    {
+        m_ubo.tonemap.saturation = saturation;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapCm2Factor(float cm2Factor) noexcept
+    {
+        m_ubo.tonemap.cm2Factor = cm2Factor;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapFilmIso(float filmIso) noexcept
+    {
+        m_ubo.tonemap.filmIso = filmIso;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapCameraShutter(float cameraShutter) noexcept
+    {
+        m_ubo.tonemap.cameraShutter = cameraShutter;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapFNumber(float fNumber) noexcept
+    {
+        m_ubo.tonemap.fNumber = fNumber;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapFocalLength(float focalLength) noexcept
+    {
+        m_ubo.tonemap.focalLength = focalLength;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapAperture(float aperture) noexcept
+    {
+        m_ubo.tonemap.aperture = aperture;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomRadius(float radius) noexcept
+    {
+        m_ubo.bloom.radius = radius;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomBrightnessScale(float brightnessScale) noexcept
+    {
+        m_ubo.bloom.brightnessScale = brightnessScale;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomThreshold(float threshold) noexcept
+    {
+        m_ubo.bloom.threshold = threshold;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomEnabled(bool enabled) noexcept
+    {
+        m_ubo.bloom.enabled = enabled ? 1 : 0;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setDenoiserEnabled(bool enabled) noexcept
+    {
+    }
+
+
 
 }
