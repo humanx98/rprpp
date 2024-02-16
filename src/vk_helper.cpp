@@ -10,9 +10,7 @@ namespace {
     struct VulkanInstance
     {
         vk::raii::Instance instance;
-
         std::vector<const char*> enabledLayers;
-		std::vector<const char*> enabledExtension;
     };
 
     VKAPI_ATTR VkBool32 debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -52,7 +50,7 @@ namespace {
             VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
         };
 
-		std::vector<const char*> enabledExtension;
+		std::vector<const char*> extensions;
 		std::vector<const char*> enabledLayers;
 
 		std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
@@ -73,20 +71,20 @@ namespace {
 			debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
 		}
 		const auto& extensionProperties = context.enumerateInstanceExtensionProperties();
-		enabledExtension.reserve(extensionProperties.size());
+		extensions.reserve(extensionProperties.size());
 
 		for (const VkExtensionProperties& prop : extensionProperties) {
-			enabledExtension.push_back(prop.extensionName);
+			extensions.push_back(prop.extensionName);
 		}
 	
-        validateRequiredExtensions(enabledExtension, requiredExtensions);
+        validateRequiredExtensions(extensions, requiredExtensions);
 
 		vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
 		vk::InstanceCreateInfo instanceCreateInfo(
 			{},
 			&applicationInfo,
 			enabledLayers,
-			enabledExtension,
+			requiredExtensions,
 			debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
 
 		return {
@@ -108,22 +106,22 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, // for hybridpro
     };
 
-    std::vector<const char*> enabledExtensions;
+    std::vector<const char*> extensions;
 
     const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
-    enabledExtensions.reserve(extensionProperties.size());
+    extensions.reserve(extensionProperties.size());
     for (const vk::ExtensionProperties& property : extensionProperties) {
-        enabledExtensions.push_back(property.extensionName);
+        extensions.push_back(property.extensionName);
     }
 
-    validateRequiredExtensions(enabledExtensions, requiredExtensions);
+    validateRequiredExtensions(extensions, requiredExtensions);
 
     vk::PhysicalDeviceFeatures deviceFeatures;
     deviceFeatures.samplerAnisotropy = true; // for hybridpro
     vk::PhysicalDeviceVulkan12Features features12;
     features12.bufferDeviceAddress = true; // for hybridpro
     features12.samplerFilterMinmax = true; // for hybridpro
-    vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, enabledExtensions, &deviceFeatures, &features12);
+    vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, requiredExtensions, &deviceFeatures, &features12);
     return physicalDevice.createDevice(deviceCreateInfo);
 }
 
