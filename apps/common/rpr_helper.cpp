@@ -1,5 +1,12 @@
 #include "rpr_helper.h"
 
+#include <cassert>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
 void ErrorManager(rpr_status errorCode, const char* fileName, int line)
 {
     std::cerr << "ERROR detected - program will stop." << std::endl;

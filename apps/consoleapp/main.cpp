@@ -86,9 +86,12 @@ void copyRprFbToPpStagingBuffer(HybridProRenderer& r, RprPostProcessing& pp, rpr
 {
     size_t size;
     r.getAov(aov, nullptr, 0u, &size);
-    void* data = pp.mapStagingBuffer(size);
-    r.getAov(aov, data, size, nullptr);
-    pp.unmapStagingBuffer();
+
+    StagingBuffer buffer = pp.mapStagingBuffer(size);
+
+    r.getAov(aov, buffer.data(), size, nullptr);
+
+    buffer.unmap();
 }
 
 inline uint8_t floatToByte(float value)

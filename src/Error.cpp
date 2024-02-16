@@ -15,7 +15,7 @@ InternalError::InternalError(const std::string& message)
 }
 
 InvalidParameter::InvalidParameter(const std::string& parameterName, const std::string& message)
-    : Error(RPRPP_ERROR_INVALID_PARAMETER, parameterName + "is invalid parameter. " + message)
+    : Error(RPRPP_ERROR_INVALID_PARAMETER, parameterName + " is invalid parameter. " + message)
 {
 }
 

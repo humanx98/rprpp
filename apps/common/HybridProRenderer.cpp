@@ -2,6 +2,7 @@
 #include "rpr_helper.h"
 #include <RadeonProRender_VK.h>
 #include <set>
+#include <iostream>
 
 inline constexpr int FramesInFlight = 3;
 

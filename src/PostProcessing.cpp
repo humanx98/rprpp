@@ -2,15 +2,17 @@
 #include "DescriptorBuilder.h"
 #include "common.h"
 #include <algorithm>
-#include <map>
 
 namespace rprpp {
 
-PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
-    vk::raii::CommandPool commandPool,
-    vk::raii::CommandBuffer secondaryCommandBuffer,
-    vk::raii::CommandBuffer computeCommandBuffer,
-    vk::helper::Buffer uboBuffer)
+const int WorkgroupSize = 32;
+const int NumComponents = 4;
+
+PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
+    vk::raii::CommandPool&& commandPool,
+    vk::raii::CommandBuffer&& secondaryCommandBuffer,
+    vk::raii::CommandBuffer&& computeCommandBuffer,
+    vk::helper::Buffer&& uboBuffer) noexcept
     : m_dctx(std::move(dctx))
     , m_commandPool(std::move(commandPool))
     , m_secondaryCommandBuffer(std::move(secondaryCommandBuffer))
@@ -19,27 +21,24 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext dctx,
 {
 }
 
-PostProcessing* PostProcessing::create(uint32_t deviceId)
+std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
 {
-#if NDEBUG
-    bool enableValidationLayers = false;
-#else
-    bool enableValidationLayers = true;
-#endif
-    vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(enableValidationLayers, deviceId);
+    vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(deviceId);
 
     vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, dctx.queueFamilyIndex);
     vk::raii::CommandPool commandPool = vk::raii::CommandPool(dctx.device, cmdPoolInfo);
 
     vk::CommandBufferAllocateInfo allocInfo(*commandPool, vk::CommandBufferLevel::ePrimary, 2);
     vk::raii::CommandBuffers commandBuffers(dctx.device, allocInfo);
+    assert(commandBuffers.size() >= 2);
 
     vk::helper::Buffer uboBuffer = vk::helper::createBuffer(dctx,
         sizeof(UniformBufferObject),
         vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    return new PostProcessing(std::move(dctx),
+    return std::make_unique<PostProcessing>(
+        std::move(dctx),
         std::move(commandPool),
         std::move(commandBuffers[0]),
         std::move(commandBuffers[1]),
@@ -48,7 +47,7 @@ PostProcessing* PostProcessing::create(uint32_t deviceId)
 
 void PostProcessing::createShaderModule(ImageFormat outputFormat)
 {
-    std::map<std::string, std::string> macroDefinitions = {
+    const std::unordered_map<std::string, std::string> macroDefinitions = {
         { "OUTPUT_FORMAT", to_glslformat(outputFormat) },
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
     };
@@ -132,7 +131,7 @@ void PostProcessing::transitionImageLayout(vk::helper::Image& image,
 void PostProcessing::createDescriptorSet()
 {
     DescriptorBuilder builder;
-    std::vector<vk::DescriptorImageInfo> descriptorImageInfos = {
+    const std::vector<vk::DescriptorImageInfo> descriptorImageInfos = {
         vk::DescriptorImageInfo(nullptr, *m_outputImage->view, vk::ImageLayout::eGeneral), // binding 0
         vk::DescriptorImageInfo(nullptr, *m_aovs->color.view, vk::ImageLayout::eGeneral), // binding 1
         vk::DescriptorImageInfo(nullptr, *m_aovs->opacity.view, vk::ImageLayout::eGeneral), // binding 2
@@ -142,22 +141,20 @@ void PostProcessing::createDescriptorSet()
         vk::DescriptorImageInfo(nullptr, *m_aovs->background.view, vk::ImageLayout::eGeneral), // binding 6
     };
 
-    for (auto& dii : descriptorImageInfos) {
+    for (const vk::DescriptorImageInfo& dii : descriptorImageInfos) {
         builder.bindStorageImage(&dii);
     }
 
     vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer.buffer, 0, sizeof(UniformBufferObject)); // binding 7
     builder.bindUniformBuffer(&uboDescriptoInfo);
 
-    auto poolSizes = builder.poolSizes();
-    m_descriptorSetLayout = m_dctx.device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings));
+    const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
+    m_descriptorSetLayout = m_dctx.device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
     m_descriptorPool = m_dctx.device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
     m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx.device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
 
-    for (auto& w : builder.writes) {
-        w.dstSet = *m_descriptorSet.value();
-    }
-    m_dctx.device.updateDescriptorSets(builder.writes, nullptr);
+    builder.updateDescriptorSet(*m_descriptorSet.value());
+    m_dctx.device.updateDescriptorSets(builder.writes(), nullptr);
 }
 
 void PostProcessing::createComputePipeline()
@@ -328,5 +325,155 @@ void PostProcessing::run()
         m_dctx.queue.waitIdle();
     }
 }
+
+    VkPhysicalDevice PostProcessing::getVkPhysicalDevice() const noexcept
+    {
+        return static_cast<VkPhysicalDevice>(*m_dctx.physicalDevice);
+    }
+
+    VkDevice PostProcessing::getVkDevice() const noexcept
+    {
+        return static_cast<VkDevice>(*m_dctx.device);
+    }
+
+    void PostProcessing::copyStagingBufferToAovColor()
+    {
+        copyStagingBufferToAov(m_aovs.value().color);
+    }
+
+    void PostProcessing::copyStagingBufferToAovOpacity()
+    {
+        copyStagingBufferToAov(m_aovs.value().opacity);
+    }
+
+    void PostProcessing::copyStagingBufferToAovShadowCatcher()
+    {
+        copyStagingBufferToAov(m_aovs.value().shadowCatcher);
+    }
+
+    void PostProcessing::copyStagingBufferToAovReflectionCatcher()
+    {
+        copyStagingBufferToAov(m_aovs.value().reflectionCatcher);
+    }
+
+    void PostProcessing::copyStagingBufferToAovMattePass()
+    {
+        copyStagingBufferToAov(m_aovs.value().mattePass);
+    }
+
+    void PostProcessing::copyStagingBufferToAovBackground()
+    {
+        copyStagingBufferToAov(m_aovs.value().background);
+    }
+
+    void PostProcessing::setGamma(float gamma) noexcept
+    {
+        m_ubo.invGamma = 1.0f / (gamma > 0.00001f ? gamma : 1.0f);
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setShadowIntensity(float shadowIntensity) noexcept
+    {
+        m_ubo.shadowIntensity = shadowIntensity;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapWhitepoint(float x, float y, float z) noexcept
+    {
+        m_ubo.tonemap.whitepoint[0] = x;
+        m_ubo.tonemap.whitepoint[1] = y;
+        m_ubo.tonemap.whitepoint[2] = z;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapVignetting(float vignetting) noexcept
+    {
+        m_ubo.tonemap.vignetting = vignetting;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapCrushBlacks(float crushBlacks) noexcept
+    {
+        m_ubo.tonemap.crushBlacks = crushBlacks;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapBurnHighlights(float burnHighlights) noexcept
+    {
+        m_ubo.tonemap.burnHighlights = burnHighlights;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapSaturation(float saturation) noexcept
+    {
+        m_ubo.tonemap.saturation = saturation;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapCm2Factor(float cm2Factor) noexcept
+    {
+        m_ubo.tonemap.cm2Factor = cm2Factor;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapFilmIso(float filmIso) noexcept
+    {
+        m_ubo.tonemap.filmIso = filmIso;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapCameraShutter(float cameraShutter) noexcept
+    {
+        m_ubo.tonemap.cameraShutter = cameraShutter;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapFNumber(float fNumber) noexcept
+    {
+        m_ubo.tonemap.fNumber = fNumber;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapFocalLength(float focalLength) noexcept
+    {
+        m_ubo.tonemap.focalLength = focalLength;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setToneMapAperture(float aperture) noexcept
+    {
+        m_ubo.tonemap.aperture = aperture;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomRadius(float radius) noexcept
+    {
+        m_ubo.bloom.radius = radius;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomBrightnessScale(float brightnessScale) noexcept
+    {
+        m_ubo.bloom.brightnessScale = brightnessScale;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomThreshold(float threshold) noexcept
+    {
+        m_ubo.bloom.threshold = threshold;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setBloomEnabled(bool enabled) noexcept
+    {
+        m_ubo.bloom.enabled = enabled ? 1 : 0;
+        m_uboDirty = true;
+    }
+
+    void PostProcessing::setDenoiserEnabled(bool enabled) noexcept
+    {
+    }
+
+
 
 }

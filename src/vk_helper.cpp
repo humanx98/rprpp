@@ -2,101 +2,121 @@
 #include "Error.h"
 #include "common.h"
 #include <iostream>
-#include <map>
 
 namespace vk::helper {
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
-{
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-    return VK_FALSE;
-}
+namespace {
 
-vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
-{
-    return { {},
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
-        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
-        &debugUtilsMessengerCallback };
-}
+    struct VulkanInstance
+    {
+        vk::raii::Instance instance;
 
-std::pair<vk::raii::Instance, std::vector<const char*>> createInstance(const vk::raii::Context& context, bool enableValidationLayers)
-{
-    std::vector<const char*> enabledExtensions;
-    std::vector<const char*> enabledLayers;
-    std::map<const char*, bool, cmp_str> foundExtensions = {
-        { VK_EXT_DEBUG_UTILS_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME, false },
+        std::vector<const char*> enabledLayers;
+		std::vector<const char*> enabledExtension;
     };
-    std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
-    if (enableValidationLayers) {
-        bool foundValidationLayer = false;
-        for (auto& prop : context.enumerateInstanceLayerProperties()) {
-            if (strcmp("VK_LAYER_KHRONOS_validation", prop.layerName) == 0) {
-                foundValidationLayer = true;
-                enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
-                break;
-            }
-        }
 
-        if (!foundValidationLayer) {
-            throw rprpp::InternalError("Layer VK_LAYER_KHRONOS_validation not supported\n");
-        }
-
-        for (VkExtensionProperties& prop : context.enumerateInstanceExtensionProperties()) {
-            auto it = foundExtensions.find(prop.extensionName);
-            if (it != foundExtensions.end()) {
-                it->second = true;
-                enabledExtensions.push_back(it->first);
-            }
-        }
-
-        for (auto const& fe : foundExtensions) {
-            if (!fe.second) {
-                throw rprpp::InternalError("Instance Extension " + std::string(fe.first) + " not supported\n");
-            }
-        }
-
-        debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
+    VKAPI_ATTR VkBool32 debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        return VK_FALSE;
     }
 
-    vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
-    vk::InstanceCreateInfo instanceCreateInfo(
-        {},
-        &applicationInfo,
-        enabledLayers,
-        enabledExtensions,
-        debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
-    return std::make_pair(vk::raii::Instance(context, instanceCreateInfo), enabledLayers);
-}
+    vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()
+    {
+        return { {},
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+            &debugUtilsMessengerCallback };
+    }
+
+    void validateRequiredExtensions(const std::vector<const char*>& extensions, const std::vector<const char*>& requiredExtensions)
+    {
+        // validate that all required extensions are present in extensions container
+        std::for_each(requiredExtensions.begin(), requiredExtensions.end(), [&extensions](const char* requiredExtensionName) {
+            auto sameExtensionNames = [&requiredExtensionName](const char* extensionName) -> bool {
+			    return std::strcmp(requiredExtensionName, extensionName) == 0;
+			};
+
+			auto iter = std::find_if(extensions.begin(), extensions.end(), sameExtensionNames);
+            if (iter == extensions.end()) {
+                throw rprpp::InternalError("Required Extension " + std::string(requiredExtensionName) + " not found");
+            }
+        });
+    } // validateReqFunction
+
+	VulkanInstance createInstance(const vk::raii::Context& context, bool enableValidationLayers)
+	{
+        static const std::vector<const char*> requiredExtensions {
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
+        };
+
+		std::vector<const char*> enabledExtension;
+		std::vector<const char*> enabledLayers;
+
+		std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
+		if (enableValidationLayers) {
+			bool foundValidationLayer = false;
+			for (auto& prop : context.enumerateInstanceLayerProperties()) {
+				if (strcmp("VK_LAYER_KHRONOS_validation", prop.layerName) == 0) {
+					foundValidationLayer = true;
+					enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
+					break;
+				}
+			}
+
+			if (!foundValidationLayer) {
+				throw rprpp::InternalError("Layer VK_LAYER_KHRONOS_validation not supported\n");
+			}
+
+			debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
+		}
+		const auto& extensionProperties = context.enumerateInstanceExtensionProperties();
+		enabledExtension.reserve(extensionProperties.size());
+
+		for (const VkExtensionProperties& prop : extensionProperties) {
+			enabledExtension.push_back(prop.extensionName);
+		}
+	
+        validateRequiredExtensions(enabledExtension, requiredExtensions);
+
+		vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
+		vk::InstanceCreateInfo instanceCreateInfo(
+			{},
+			&applicationInfo,
+			enabledLayers,
+			enabledExtension,
+			debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
+
+		return {
+			.instance = vk::raii::Instance(context, instanceCreateInfo),
+			.enabledLayers = enabledLayers
+		};
+	} // createInstance
 
 vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
     const std::vector<const char*>& enabledLayers,
     const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
 {
-    std::vector<const char*> enabledExtensions;
-    std::map<const char*, bool, cmp_str> foundExtensions = {
-        { VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, false },
-        { VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, false },
-        { VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME, false }, //  for hybridpro
-        { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false }, // for hybridpro
+    const static std::vector<const char*> requiredExtensions {
+        VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, 
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, 
+        VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, 
+        VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,  //  for hybridpro
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, // for hybridpro
     };
-    for (auto& prop : physicalDevice.enumerateDeviceExtensionProperties()) {
-        auto it = foundExtensions.find(prop.extensionName);
-        if (it != foundExtensions.end()) {
-            it->second = true;
-            enabledExtensions.push_back(it->first);
-        }
+
+    std::vector<const char*> enabledExtensions;
+
+    const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
+    enabledExtensions.reserve(extensionProperties.size());
+    for (const vk::ExtensionProperties& property : extensionProperties) {
+        enabledExtensions.push_back(property.extensionName);
     }
 
-    for (auto const& fe : foundExtensions) {
-        if (!fe.second) {
-            throw rprpp::InternalError("Device Extension " + std::string(fe.first) + " not supported\n");
-        }
-    }
+    validateRequiredExtensions(enabledExtensions, requiredExtensions);
 
     vk::PhysicalDeviceFeatures deviceFeatures;
     deviceFeatures.samplerAnisotropy = true; // for hybridpro
@@ -105,94 +125,6 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
     features12.samplerFilterMinmax = true; // for hybridpro
     vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, enabledExtensions, &deviceFeatures, &features12);
     return physicalDevice.createDevice(deviceCreateInfo);
-}
-
-uint32_t getDeviceCount()
-{
-    vk::raii::Context context;
-    auto instanceAndValidationLayers = createInstance(context, false);
-    vk::raii::Instance instance = std::move(instanceAndValidationLayers.first);
-    vk::raii::PhysicalDevices physicalDevices(instance);
-    return physicalDevices.size();
-}
-
-void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet)
-{
-    vk::raii::Context context;
-    auto instanceAndValidationLayers = createInstance(context, false);
-    vk::raii::Instance instance = std::move(instanceAndValidationLayers.first);
-    vk::raii::PhysicalDevices physicalDevices(instance);
-
-    if (physicalDevices.size() <= deviceId) {
-        throw rprpp::InvalidDevice(deviceId);
-    }
-
-    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
-    vk::PhysicalDeviceProperties props = physicalDevice.getProperties();
-
-    switch (info) {
-    case DeviceInfo::eName: {
-        size_t len = std::strlen(props.deviceName) + 1;
-        if (sizeRet != nullptr) {
-            *sizeRet = len;
-        }
-
-        if (data != nullptr && size <= len) {
-            std::strcpy((char*)data, props.deviceName);
-        }
-        break;
-    }
-    default:
-        throw rprpp::InvalidParameter("deviceInfo", "Not supported device info type");
-    }
-}
-
-DeviceContext createDeviceContext(bool enableValidationLayers, uint32_t deviceId)
-{
-    vk::raii::Context context;
-    auto instanceAndValidationLayers = createInstance(context, enableValidationLayers);
-    vk::raii::Instance instance = std::move(instanceAndValidationLayers.first);
-    auto enabledLayers = std::move(instanceAndValidationLayers.second);
-    std::optional<vk::raii::DebugUtilsMessengerEXT> debugUtilMessenger;
-    if (enableValidationLayers) {
-        debugUtilMessenger = instance.createDebugUtilsMessengerEXT(makeDebugUtilsMessengerCreateInfoEXT());
-    }
-
-    vk::raii::PhysicalDevices physicalDevices(instance);
-    if (physicalDevices.size() <= deviceId) {
-        throw rprpp::InvalidDevice(deviceId);
-    }
-    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
-
-    auto queueFamilies = physicalDevice.getQueueFamilyProperties();
-    uint32_t queueFamilyIndex = 0;
-    for (; queueFamilyIndex < queueFamilies.size(); ++queueFamilyIndex) {
-        if (queueFamilies[queueFamilyIndex].queueCount > 0
-            && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eCompute)
-            && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eTransfer)) {
-            break;
-        }
-    }
-
-    if (queueFamilyIndex == queueFamilies.size()) {
-        throw rprpp::InternalError("Could not find a queue family that supports operations");
-    }
-
-    float queuePriority = 1.0f;
-    vk::raii::Device device = createDevice(physicalDevice,
-        enabledLayers,
-        { vk::DeviceQueueCreateInfo({}, queueFamilyIndex, 1, &queuePriority) });
-    vk::raii::Queue queue = device.getQueue(queueFamilyIndex, 0);
-
-    return {
-        std::move(context),
-        std::move(instance),
-        std::move(debugUtilMessenger),
-        std::move(physicalDevice),
-        std::move(device),
-        std::move(queue),
-        queueFamilyIndex
-    };
 }
 
 uint32_t findMemoryType(const vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
@@ -231,6 +163,103 @@ vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx,
         uint32_t memoryType = findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
         return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
     }
+}
+
+} // namespace
+
+// -------------------------------------------------------------------
+// Public functions implementations
+// -------------------------------------------------------------------
+
+uint32_t getDeviceCount()
+{
+    vk::raii::Context context;
+    VulkanInstance vulkanInstance = createInstance(context, false);
+    vk::raii::PhysicalDevices physicalDevices(vulkanInstance.instance);
+    return physicalDevices.size();
+}
+
+void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet)
+{
+    vk::raii::Context context;
+    VulkanInstance vulkanInstance = createInstance(context, false);
+    vk::raii::PhysicalDevices physicalDevices(vulkanInstance.instance);
+
+    if (physicalDevices.size() <= deviceId) {
+        throw rprpp::InvalidDevice(deviceId);
+    }
+
+    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
+    vk::PhysicalDeviceProperties props = physicalDevice.getProperties();
+
+    switch (info) {
+    case DeviceInfo::eName: {
+        size_t len = std::strlen(props.deviceName) + 1;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && size <= len) {
+            std::strcpy((char*)data, props.deviceName);
+        }
+        break;
+    }
+    default:
+        throw rprpp::InvalidParameter("deviceInfo", "Not supported device info type");
+    }
+}
+
+DeviceContext createDeviceContext(uint32_t deviceId)
+{
+#if NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+
+    vk::raii::Context context;
+    VulkanInstance vulkanInstance = createInstance(context, enableValidationLayers);
+    //auto enabledLayers = std::move(instanceAndValidationLayers.second);
+    std::optional<vk::raii::DebugUtilsMessengerEXT> debugUtilMessenger;
+    if (enableValidationLayers) {
+        debugUtilMessenger = vulkanInstance.instance.createDebugUtilsMessengerEXT(makeDebugUtilsMessengerCreateInfoEXT());
+    }
+
+    vk::raii::PhysicalDevices physicalDevices(vulkanInstance.instance);
+    if (physicalDevices.size() <= deviceId) {
+        throw rprpp::InvalidDevice(deviceId);
+    }
+    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
+
+    auto queueFamilies = physicalDevice.getQueueFamilyProperties();
+    uint32_t queueFamilyIndex = 0;
+    for (; queueFamilyIndex < queueFamilies.size(); ++queueFamilyIndex) {
+        if (queueFamilies[queueFamilyIndex].queueCount > 0
+            && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eCompute)
+            && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eTransfer)) {
+            break;
+        }
+    }
+
+    if (queueFamilyIndex == queueFamilies.size()) {
+        throw rprpp::InternalError("Could not find a queue family that supports operations");
+    }
+
+    float queuePriority = 1.0f;
+    vk::raii::Device device = createDevice(physicalDevice,
+        vulkanInstance.enabledLayers,
+        { vk::DeviceQueueCreateInfo({}, queueFamilyIndex, 1, &queuePriority) });
+    vk::raii::Queue queue = device.getQueue(queueFamilyIndex, 0);
+
+    return {
+        std::move(context),
+        std::move(vulkanInstance.instance),
+        std::move(debugUtilMessenger),
+        std::move(physicalDevice),
+        std::move(device),
+        std::move(queue),
+        queueFamilyIndex
+    };
 }
 
 Image createImage(const DeviceContext& dctx,

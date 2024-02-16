@@ -1,13 +1,8 @@
 #pragma once
 
-#include <RadeonProRender.h>
-#include <assert.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
 #include "capi/rprpp.h"
+#include <RadeonProRender.h>
+#include <string>
 
 #define RPR_CHECK(x)                             \
     {                                            \

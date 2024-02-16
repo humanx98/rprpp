@@ -6,12 +6,15 @@ FetchContent_Declare(stb
 FetchContent_MakeAvailable(stb)
 
 set(HEADERS
+	StagingBuffer.h
 	HybridProRenderer.h  
 	RprPostProcessing.h  
 	rpr_helper.h
 )
 set(SOURCES
+	StagingBuffer.cpp
 	HybridProRenderer.cpp  
+	RprPostProcessing.cpp
 	rpr_helper.cpp
 )
 
