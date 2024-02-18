@@ -28,11 +28,19 @@ StagingBuffer RprPostProcessing::mapStagingBuffer(size_t size)
 	return StagingBuffer(&m_context, size);
 }
 
-void RprPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle sharedDx11TextureHandle)
+void RprPostProcessing::setFramesInFlihgt(uint32_t framesInFlight)
 {
 	RprPpError status;
 
-	status = rprppContextResize(m_context, width, height, format, sharedDx11TextureHandle);
+	status = rprppContextSetFramesInFlihgt(m_context, framesInFlight);
+	RPRPP_CHECK(status);
+}
+
+void RprPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
+{
+	RprPpError status;
+
+	status = rprppContextResize(m_context, width, height, format, outputDx11TextureHandle, aovsVkInteropInfo);
 	RPRPP_CHECK(status);
 }
 
@@ -44,34 +52,50 @@ void RprPostProcessing::getOutput(uint8_t* dst, size_t size, size_t* retSize)
 	RPRPP_CHECK(status);
 }
 
-void RprPostProcessing::run()
+void RprPostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
 {
 	RprPpError status;
 
-	status = rprppContextRun(m_context);
+	status = rprppContextRun(m_context, aovsReadySemaphore, toSignalAfterProcessingSemaphore);
 	RPRPP_CHECK(status);
 }
 
-RprPpVkHandle RprPostProcessing::getVkPhysicalDevice() const 
+void RprPostProcessing::waitQueueIdle()
 {
 	RprPpError status;
-	RprPpVkHandle vkhandle;
+
+	status = rprppContextWaitQueueIdle(m_context);
+	RPRPP_CHECK(status);
+}
+
+VkPhysicalDevice RprPostProcessing::getVkPhysicalDevice() const noexcept
+{
+	RprPpError status;
+	RprPpVkPhysicalDevice vkhandle = nullptr;
 
 	status = rprppContextGetVkPhysicalDevice(m_context, &vkhandle);
 	RPRPP_CHECK(status);
-
-	return vkhandle;
+	return static_cast<VkPhysicalDevice>(vkhandle);
 }
 
-RprPpVkHandle RprPostProcessing::getVkDevice() const 
+VkDevice RprPostProcessing::getVkDevice() const noexcept
 {
 	RprPpError status;
-	RprPpVkHandle vkhandle;
+	RprPpVkDevice vkhandle = nullptr;
 
 	status = rprppContextGetVkDevice(m_context, &vkhandle);
 	RPRPP_CHECK(status);
+	return static_cast<VkDevice>(vkhandle);
+}
 
-	return vkhandle;
+VkQueue RprPostProcessing::getVkQueue() const noexcept
+{
+	RprPpError status;
+	RprPpVkQueue vkhandle = nullptr;
+
+	status = rprppContextGetVkQueue(m_context, &vkhandle);
+	RPRPP_CHECK(status);
+	return static_cast<VkQueue>(vkhandle);
 }
 
 void RprPostProcessing::copyStagingBufferToAovColor()

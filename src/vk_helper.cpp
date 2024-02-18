@@ -99,11 +99,22 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
 {
     const static std::vector<const char*> requiredExtensions {
         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-        VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, 
-        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, 
-        VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, 
-        VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,  //  for hybridpro
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, // for hybridpro
+        // VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, // we don't use it right now
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+        // VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, // we don't use it right now
+        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+        
+        //  for hybridpro
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+        VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+        VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
     };
 
     std::vector<const char*> extensions;
@@ -116,12 +127,43 @@ vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
 
     validateRequiredExtensions(extensions, requiredExtensions);
 
-    vk::PhysicalDeviceFeatures deviceFeatures;
-    deviceFeatures.samplerAnisotropy = true; // for hybridpro
+    vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
+    accelerationStructureFeatures.accelerationStructure = vk::True;
+
+    vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFetures;
+    rayQueryFetures.rayQuery = vk::True;
+
     vk::PhysicalDeviceVulkan12Features features12;
-    features12.bufferDeviceAddress = true; // for hybridpro
-    features12.samplerFilterMinmax = true; // for hybridpro
-    vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, requiredExtensions, &deviceFeatures, &features12);
+    features12.drawIndirectCount = vk::True;
+    features12.shaderFloat16 = vk::True;
+    features12.descriptorIndexing = vk::True;
+    features12.shaderSampledImageArrayNonUniformIndexing = vk::True;
+    features12.shaderStorageBufferArrayNonUniformIndexing = vk::True;
+    features12.samplerFilterMinmax = vk::True;
+    features12.bufferDeviceAddress = vk::True;
+
+    vk::PhysicalDeviceVulkan11Features features11;
+    features11. storageBuffer16BitAccess  = vk::True;
+
+    vk::PhysicalDeviceFeatures2 features2;
+    features2.features.independentBlend = vk::True;
+    features2.features.geometryShader = vk::True;
+    features2.features.multiDrawIndirect = vk::True;
+    features2.features.wideLines = vk::True;
+    features2.features.samplerAnisotropy = vk::True;
+    features2.features.vertexPipelineStoresAndAtomics = vk::True;
+    features2.features.fragmentStoresAndAtomics = vk::True;
+    features2.features.shaderStorageImageExtendedFormats = vk::True;
+    features2.features.shaderFloat64 = vk::True;
+    features2.features.shaderInt64 = vk::True;
+    features2.features.shaderInt16 = vk::True;
+
+    accelerationStructureFeatures.pNext = &rayQueryFetures;
+    rayQueryFetures.pNext = &features12;
+    features12.pNext = &features11;
+    features11.pNext = &features2;
+
+    vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, requiredExtensions, nullptr, &accelerationStructureFeatures);
     return physicalDevice.createDevice(deviceCreateInfo);
 }
 
@@ -229,25 +271,28 @@ DeviceContext createDeviceContext(uint32_t deviceId)
     }
     vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
 
+    std::optional<uint32_t> queueFamilyIndex;
+    std::vector<vk::DeviceQueueCreateInfo> queueInfos;
+    float queuePriority = 1.0f;
     auto queueFamilies = physicalDevice.getQueueFamilyProperties();
-    uint32_t queueFamilyIndex = 0;
-    for (; queueFamilyIndex < queueFamilies.size(); ++queueFamilyIndex) {
-        if (queueFamilies[queueFamilyIndex].queueCount > 0
-            && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eCompute)
-            && (queueFamilies[queueFamilyIndex].queueFlags & vk::QueueFlagBits::eTransfer)) {
-            break;
+    for (uint32_t i = 0; i < queueFamilies.size(); ++i) {
+        queueInfos.push_back(vk::DeviceQueueCreateInfo({}, i, 1, &queuePriority));
+        if (!queueFamilyIndex.has_value()
+            && queueFamilies[i].queueCount > 0
+            && (queueFamilies[i].queueFlags & vk::QueueFlagBits::eCompute)
+            && (queueFamilies[i].queueFlags & vk::QueueFlagBits::eTransfer)) {
+            queueFamilyIndex = i;
         }
     }
 
-    if (queueFamilyIndex == queueFamilies.size()) {
-        throw rprpp::InternalError("Could not find a queue family that supports operations");
+    if (!queueFamilyIndex.has_value()) {
+        throw rprpp::InternalError("Could not find a queue family that supports compute and transfer operations");
     }
 
-    float queuePriority = 1.0f;
     vk::raii::Device device = createDevice(physicalDevice,
         vulkanInstance.enabledLayers,
-        { vk::DeviceQueueCreateInfo({}, queueFamilyIndex, 1, &queuePriority) });
-    vk::raii::Queue queue = device.getQueue(queueFamilyIndex, 0);
+        queueInfos);
+    vk::raii::Queue queue = device.getQueue(queueFamilyIndex.value(), 0);
 
     return {
         std::move(context),
@@ -256,7 +301,7 @@ DeviceContext createDeviceContext(uint32_t deviceId)
         std::move(physicalDevice),
         std::move(device),
         std::move(queue),
-        queueFamilyIndex
+        queueFamilyIndex.value()
     };
 }
 

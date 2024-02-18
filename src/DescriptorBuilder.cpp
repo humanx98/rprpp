@@ -32,6 +32,29 @@ namespace rprpp {
         poolSize.descriptorCount++;
     }
 
+    void DescriptorBuilder::bindCombinedImageSampler(vk::DescriptorImageInfo* imageInfo)
+    {
+        uint32_t bindingIndex = static_cast<uint32_t>(m_bindings.size());
+        vk::DescriptorType type = vk::DescriptorType::eCombinedImageSampler;
+
+        vk::DescriptorSetLayoutBinding binding;
+        binding.binding = bindingIndex;
+        binding.descriptorType = type;
+        binding.descriptorCount = 1;
+        binding.stageFlags = vk::ShaderStageFlagBits::eCompute;
+        m_bindings.push_back(binding);
+
+        vk::WriteDescriptorSet write;
+        write.dstBinding = bindingIndex;
+        write.descriptorCount = 1;
+        write.descriptorType = type;
+        write.pImageInfo = imageInfo;
+        m_writes.push_back(write);
+
+        vk::DescriptorPoolSize& poolSize = findOrCreate(type);
+        poolSize.descriptorCount++;
+    }
+
     void DescriptorBuilder::bindUniformBuffer(vk::DescriptorBufferInfo* bufferInfo)
     {
         uint32_t bindingIndex = static_cast<uint32_t>(m_bindings.size());

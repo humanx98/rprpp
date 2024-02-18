@@ -4,6 +4,8 @@
 #include "capi/rprpp.h"
 #include "StagingBuffer.h"
 
+#include <vulkan/vulkan.h>
+
 class RprPostProcessing {
 public:
     RprPostProcessing(uint32_t deviceId);
@@ -13,12 +15,19 @@ public:
 
     StagingBuffer mapStagingBuffer(size_t size);
 
-    void resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle sharedDx11TextureHandle = nullptr);
+    void setFramesInFlihgt(uint32_t framesInFlight);
+    void resize(uint32_t width,
+        uint32_t height,
+        RprPpImageFormat format,
+        RprPpDx11Handle outputDx11TextureHandle = nullptr,
+        RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
-    void run();
+    void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
 
-    RprPpVkHandle getVkPhysicalDevice() const;
-    RprPpVkHandle getVkDevice() const;
+    void waitQueueIdle();
+    VkPhysicalDevice getVkPhysicalDevice() const noexcept;
+    VkDevice getVkDevice() const noexcept;
+    VkQueue getVkQueue() const noexcept;
 
     void copyStagingBufferToAovColor();
     void copyStagingBufferToAovOpacity();

@@ -8,6 +8,7 @@ namespace rprpp {
 class DescriptorBuilder {
 public:
     void bindStorageImage(const vk::DescriptorImageInfo* imageInfo);
+    void bindCombinedImageSampler(vk::DescriptorImageInfo* imageInfo);
     void bindUniformBuffer(vk::DescriptorBufferInfo* bufferInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes() const { return m_poolSizesCached; }
