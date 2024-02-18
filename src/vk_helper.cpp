@@ -7,8 +7,7 @@ namespace vk::helper {
 
 namespace {
 
-    struct VulkanInstance
-    {
+    struct VulkanInstance {
         vk::raii::Instance instance;
         std::vector<const char*> enabledLayers;
     };
@@ -32,178 +31,178 @@ namespace {
         // validate that all required extensions are present in extensions container
         std::for_each(requiredExtensions.begin(), requiredExtensions.end(), [&extensions](const char* requiredExtensionName) {
             auto sameExtensionNames = [&requiredExtensionName](const char* extensionName) -> bool {
-			    return std::strcmp(requiredExtensionName, extensionName) == 0;
-			};
+                return std::strcmp(requiredExtensionName, extensionName) == 0;
+            };
 
-			auto iter = std::find_if(extensions.begin(), extensions.end(), sameExtensionNames);
+            auto iter = std::find_if(extensions.begin(), extensions.end(), sameExtensionNames);
             if (iter == extensions.end()) {
                 throw rprpp::InternalError("Required Extension " + std::string(requiredExtensionName) + " not found");
             }
         });
     } // validateReqFunction
 
-	VulkanInstance createInstance(const vk::raii::Context& context, bool enableValidationLayers)
-	{
+    VulkanInstance createInstance(const vk::raii::Context& context, bool enableValidationLayers)
+    {
         static const std::vector<const char*> requiredExtensions {
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
             VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
             VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
         };
 
-		std::vector<const char*> extensions;
-		std::vector<const char*> enabledLayers;
+        std::vector<const char*> extensions;
+        std::vector<const char*> enabledLayers;
 
-		std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
-		if (enableValidationLayers) {
-			bool foundValidationLayer = false;
-			for (auto& prop : context.enumerateInstanceLayerProperties()) {
-				if (strcmp("VK_LAYER_KHRONOS_validation", prop.layerName) == 0) {
-					foundValidationLayer = true;
-					enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
-					break;
-				}
-			}
+        std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
+        if (enableValidationLayers) {
+            bool foundValidationLayer = false;
+            for (auto& prop : context.enumerateInstanceLayerProperties()) {
+                if (strcmp("VK_LAYER_KHRONOS_validation", prop.layerName) == 0) {
+                    foundValidationLayer = true;
+                    enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
+                    break;
+                }
+            }
 
-			if (!foundValidationLayer) {
-				throw rprpp::InternalError("Layer VK_LAYER_KHRONOS_validation not supported\n");
-			}
+            if (!foundValidationLayer) {
+                throw rprpp::InternalError("Layer VK_LAYER_KHRONOS_validation not supported\n");
+            }
 
-			debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
-		}
-		const auto& extensionProperties = context.enumerateInstanceExtensionProperties();
-		extensions.reserve(extensionProperties.size());
+            debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
+        }
+        const auto& extensionProperties = context.enumerateInstanceExtensionProperties();
+        extensions.reserve(extensionProperties.size());
 
-		for (const VkExtensionProperties& prop : extensionProperties) {
-			extensions.push_back(prop.extensionName);
-		}
-	
+        for (const VkExtensionProperties& prop : extensionProperties) {
+            extensions.push_back(prop.extensionName);
+        }
+
         validateRequiredExtensions(extensions, requiredExtensions);
 
-		vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
-		vk::InstanceCreateInfo instanceCreateInfo(
-			{},
-			&applicationInfo,
-			enabledLayers,
-			requiredExtensions,
-			debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
+        vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
+        vk::InstanceCreateInfo instanceCreateInfo(
+            {},
+            &applicationInfo,
+            enabledLayers,
+            requiredExtensions,
+            debugCreateInfo.has_value() ? &debugCreateInfo.value() : nullptr);
 
-		return {
-			.instance = vk::raii::Instance(context, instanceCreateInfo),
-			.enabledLayers = enabledLayers
-		};
-	} // createInstance
+        return {
+            .instance = vk::raii::Instance(context, instanceCreateInfo),
+            .enabledLayers = enabledLayers
+        };
+    } // createInstance
 
-vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
-    const std::vector<const char*>& enabledLayers,
-    const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
-{
-    const static std::vector<const char*> requiredExtensions {
-        VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
-        // VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, // we don't use it right now
-        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
-        // VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, // we don't use it right now
-        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-        
-        //  for hybridpro
-        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-        VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
-        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-        VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
-        VK_KHR_MAINTENANCE3_EXTENSION_NAME,
-        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
-        VK_KHR_RAY_QUERY_EXTENSION_NAME,
-        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-    };
+    vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
+        const std::vector<const char*>& enabledLayers,
+        const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
+    {
+        const static std::vector<const char*> requiredExtensions {
+            VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+            // VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, // we don't use it right now
+            VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+            // VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, // we don't use it right now
+            VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 
-    std::vector<const char*> extensions;
+            //  for hybridpro
+            VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+            VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+            VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
+            VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+            VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+            VK_KHR_RAY_QUERY_EXTENSION_NAME,
+            VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        };
 
-    const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
-    extensions.reserve(extensionProperties.size());
-    for (const vk::ExtensionProperties& property : extensionProperties) {
-        extensions.push_back(property.extensionName);
+        std::vector<const char*> extensions;
+
+        const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
+        extensions.reserve(extensionProperties.size());
+        for (const vk::ExtensionProperties& property : extensionProperties) {
+            extensions.push_back(property.extensionName);
+        }
+
+        validateRequiredExtensions(extensions, requiredExtensions);
+
+        vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
+        accelerationStructureFeatures.accelerationStructure = vk::True;
+
+        vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFetures;
+        rayQueryFetures.rayQuery = vk::True;
+
+        vk::PhysicalDeviceVulkan12Features features12;
+        features12.drawIndirectCount = vk::True;
+        features12.shaderFloat16 = vk::True;
+        features12.descriptorIndexing = vk::True;
+        features12.shaderSampledImageArrayNonUniformIndexing = vk::True;
+        features12.shaderStorageBufferArrayNonUniformIndexing = vk::True;
+        features12.samplerFilterMinmax = vk::True;
+        features12.bufferDeviceAddress = vk::True;
+
+        vk::PhysicalDeviceVulkan11Features features11;
+        features11.storageBuffer16BitAccess = vk::True;
+
+        vk::PhysicalDeviceFeatures2 features2;
+        features2.features.independentBlend = vk::True;
+        features2.features.geometryShader = vk::True;
+        features2.features.multiDrawIndirect = vk::True;
+        features2.features.wideLines = vk::True;
+        features2.features.samplerAnisotropy = vk::True;
+        features2.features.vertexPipelineStoresAndAtomics = vk::True;
+        features2.features.fragmentStoresAndAtomics = vk::True;
+        features2.features.shaderStorageImageExtendedFormats = vk::True;
+        features2.features.shaderFloat64 = vk::True;
+        features2.features.shaderInt64 = vk::True;
+        features2.features.shaderInt16 = vk::True;
+
+        accelerationStructureFeatures.pNext = &rayQueryFetures;
+        rayQueryFetures.pNext = &features12;
+        features12.pNext = &features11;
+        features11.pNext = &features2;
+
+        vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, requiredExtensions, nullptr, &accelerationStructureFeatures);
+        return physicalDevice.createDevice(deviceCreateInfo);
     }
 
-    validateRequiredExtensions(extensions, requiredExtensions);
+    uint32_t findMemoryType(const vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+    {
+        vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
 
-    vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
-    accelerationStructureFeatures.accelerationStructure = vk::True;
+        throw rprpp::InternalError("Failed to find suitable memory type!");
+    }
 
-    vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFetures;
-    rayQueryFetures.rayQuery = vk::True;
-
-    vk::PhysicalDeviceVulkan12Features features12;
-    features12.drawIndirectCount = vk::True;
-    features12.shaderFloat16 = vk::True;
-    features12.descriptorIndexing = vk::True;
-    features12.shaderSampledImageArrayNonUniformIndexing = vk::True;
-    features12.shaderStorageBufferArrayNonUniformIndexing = vk::True;
-    features12.samplerFilterMinmax = vk::True;
-    features12.bufferDeviceAddress = vk::True;
-
-    vk::PhysicalDeviceVulkan11Features features11;
-    features11. storageBuffer16BitAccess  = vk::True;
-
-    vk::PhysicalDeviceFeatures2 features2;
-    features2.features.independentBlend = vk::True;
-    features2.features.geometryShader = vk::True;
-    features2.features.multiDrawIndirect = vk::True;
-    features2.features.wideLines = vk::True;
-    features2.features.samplerAnisotropy = vk::True;
-    features2.features.vertexPipelineStoresAndAtomics = vk::True;
-    features2.features.fragmentStoresAndAtomics = vk::True;
-    features2.features.shaderStorageImageExtendedFormats = vk::True;
-    features2.features.shaderFloat64 = vk::True;
-    features2.features.shaderInt64 = vk::True;
-    features2.features.shaderInt16 = vk::True;
-
-    accelerationStructureFeatures.pNext = &rayQueryFetures;
-    rayQueryFetures.pNext = &features12;
-    features12.pNext = &features11;
-    features11.pNext = &features2;
-
-    vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, requiredExtensions, nullptr, &accelerationStructureFeatures);
-    return physicalDevice.createDevice(deviceCreateInfo);
-}
-
-uint32_t findMemoryType(const vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
-{
-    vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
+    vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx,
+        const vk::raii::Image& image,
+        HANDLE sharedDx11TextureHandle)
+    {
+        if (sharedDx11TextureHandle != nullptr) {
+            vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
+            vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
+            vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
+            (*dctx.device).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
+            vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
+            vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
+                sharedDx11TextureHandle,
+                nullptr,
+                &memoryDedicatedAllocateInfo);
+            uint32_t memoryType = findMemoryType(dctx.physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+            vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
+                memoryType,
+                &importMemoryInfo);
+            return dctx.device.allocateMemory(memoryAllocateInfo);
+        } else {
+            vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
+            uint32_t memoryType = findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+            return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
         }
     }
-
-    throw rprpp::InternalError("Failed to find suitable memory type!");
-}
-
-vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx,
-    const vk::raii::Image& image,
-    HANDLE sharedDx11TextureHandle)
-{
-    if (sharedDx11TextureHandle != nullptr) {
-        vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
-        vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
-        vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
-        (*dctx.device).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
-        vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
-        vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
-            sharedDx11TextureHandle,
-            nullptr,
-            &memoryDedicatedAllocateInfo);
-        uint32_t memoryType = findMemoryType(dctx.physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
-            memoryType,
-            &importMemoryInfo);
-        return dctx.device.allocateMemory(memoryAllocateInfo);
-    } else {
-        vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-        uint32_t memoryType = findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-    }
-}
 
 } // namespace
 
@@ -259,7 +258,7 @@ DeviceContext createDeviceContext(uint32_t deviceId)
 
     vk::raii::Context context;
     VulkanInstance vulkanInstance = createInstance(context, enableValidationLayers);
-    //auto enabledLayers = std::move(instanceAndValidationLayers.second);
+    // auto enabledLayers = std::move(instanceAndValidationLayers.second);
     std::optional<vk::raii::DebugUtilsMessengerEXT> debugUtilMessenger;
     if (enableValidationLayers) {
         debugUtilMessenger = vulkanInstance.instance.createDebugUtilsMessengerEXT(makeDebugUtilsMessengerCreateInfoEXT());

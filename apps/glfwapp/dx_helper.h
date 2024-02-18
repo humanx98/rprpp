@@ -1,20 +1,19 @@
 #pragma once
 
-#include <winerror.h>
-#include <iostream>
 #include <assert.h>
 #include <filesystem>
+#include <iostream>
+#include <winerror.h>
 
-
-#define DX_CHECK(f)                                                                                  \
-    {                                                                                                \
-        HRESULT res = (f);                                                                           \
-        if (!SUCCEEDED(res)) {                                                                       \
+#define DX_CHECK(f)                                                                                           \
+    {                                                                                                         \
+        HRESULT res = (f);                                                                                    \
+        if (!SUCCEEDED(res)) {                                                                                \
             printf("[NoAovsInteropApp.h] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            _com_error err(res);                                                                     \
+            _com_error err(res);                                                                              \
             printf("[NoAovsInteropApp.h] messsage : %s\n", err.ErrorMessage());                               \
-            assert(false);                                                                           \
-        }                                                                                            \
+            assert(false);                                                                                    \
+        }                                                                                                     \
     }
 
 struct GpuIndices {

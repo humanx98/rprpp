@@ -1,7 +1,7 @@
 #include "PostProcessing.h"
 #include "DescriptorBuilder.h"
-#include "common.h"
 #include "Error.h"
+#include "common.h"
 #include <algorithm>
 
 template <class... Ts>
@@ -184,29 +184,29 @@ void PostProcessing::createDescriptorSet()
 
     std::vector<vk::DescriptorImageInfo> descriptorImageInfos;
     std::visit(overload {
-        [&](const Aovs& arg) {
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.color.view, vk::ImageLayout::eGeneral)); // binding 1
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.opacity.view, vk::ImageLayout::eGeneral)); // binding 2
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.shadowCatcher.view, vk::ImageLayout::eGeneral)); // binding 3
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.reflectionCatcher.view, vk::ImageLayout::eGeneral)); // binding 4
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.mattePass.view, vk::ImageLayout::eGeneral)); // binding 5
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.background.view, vk::ImageLayout::eGeneral)); // binding 6
-            for (auto& dii : descriptorImageInfos) {
-                builder.bindStorageImage(&dii);
-            }
-        },
-        [&](const InteropAovs& arg) {
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.color, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 1
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.opacity, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 2
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.shadowCatcher, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 3
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.reflectionCatcher, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 4
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.mattePass, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 5
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.background, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 6
-            for (auto& dii : descriptorImageInfos) {
-                builder.bindCombinedImageSampler(&dii);
-            }
-        } 
-    }, m_aovs.value());
+                   [&](const Aovs& arg) {
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.color.view, vk::ImageLayout::eGeneral)); // binding 1
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.opacity.view, vk::ImageLayout::eGeneral)); // binding 2
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.shadowCatcher.view, vk::ImageLayout::eGeneral)); // binding 3
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.reflectionCatcher.view, vk::ImageLayout::eGeneral)); // binding 4
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.mattePass.view, vk::ImageLayout::eGeneral)); // binding 5
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.background.view, vk::ImageLayout::eGeneral)); // binding 6
+                       for (auto& dii : descriptorImageInfos) {
+                           builder.bindStorageImage(&dii);
+                       }
+                   },
+                   [&](const InteropAovs& arg) {
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.color, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 1
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.opacity, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 2
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.shadowCatcher, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 3
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.reflectionCatcher, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 4
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.mattePass, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 5
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.background, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 6
+                       for (auto& dii : descriptorImageInfos) {
+                           builder.bindCombinedImageSampler(&dii);
+                       }
+                   } },
+        m_aovs.value());
 
     vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer.buffer, 0, sizeof(UniformBufferObject)); // binding 7
     builder.bindUniformBuffer(&uboDescriptoInfo);
@@ -449,9 +449,9 @@ void PostProcessing::copyStagingBufferToAovColor()
         throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
     }
     std::visit(overload {
-        [&](Aovs& arg) { copyStagingBufferToAov(arg.color); },
-        [](InteropAovs& args) {} 
-    }, m_aovs.value());
+                   [&](Aovs& arg) { copyStagingBufferToAov(arg.color); },
+                   [](InteropAovs& args) {} },
+        m_aovs.value());
 }
 
 void PostProcessing::copyStagingBufferToAovOpacity()
@@ -460,9 +460,9 @@ void PostProcessing::copyStagingBufferToAovOpacity()
         throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
     }
     std::visit(overload {
-        [&](Aovs& arg) { copyStagingBufferToAov(arg.opacity); },
-        [](InteropAovs& args) {} 
-    }, m_aovs.value());
+                   [&](Aovs& arg) { copyStagingBufferToAov(arg.opacity); },
+                   [](InteropAovs& args) {} },
+        m_aovs.value());
 }
 
 void PostProcessing::copyStagingBufferToAovShadowCatcher()
@@ -471,9 +471,9 @@ void PostProcessing::copyStagingBufferToAovShadowCatcher()
         throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
     }
     std::visit(overload {
-        [&](Aovs& arg) { copyStagingBufferToAov(arg.shadowCatcher); },
-        [](InteropAovs& args) {} 
-    }, m_aovs.value());
+                   [&](Aovs& arg) { copyStagingBufferToAov(arg.shadowCatcher); },
+                   [](InteropAovs& args) {} },
+        m_aovs.value());
 }
 
 void PostProcessing::copyStagingBufferToAovReflectionCatcher()
@@ -482,9 +482,9 @@ void PostProcessing::copyStagingBufferToAovReflectionCatcher()
         throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
     }
     std::visit(overload {
-        [&](Aovs& arg) { copyStagingBufferToAov(arg.reflectionCatcher); },
-        [](InteropAovs& args) {} 
-    }, m_aovs.value());
+                   [&](Aovs& arg) { copyStagingBufferToAov(arg.reflectionCatcher); },
+                   [](InteropAovs& args) {} },
+        m_aovs.value());
 }
 
 void PostProcessing::copyStagingBufferToAovMattePass()
@@ -493,9 +493,9 @@ void PostProcessing::copyStagingBufferToAovMattePass()
         throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
     }
     std::visit(overload {
-        [&](Aovs& arg) { copyStagingBufferToAov(arg.mattePass); },
-        [](InteropAovs& args) {} 
-    },m_aovs.value());
+                   [&](Aovs& arg) { copyStagingBufferToAov(arg.mattePass); },
+                   [](InteropAovs& args) {} },
+        m_aovs.value());
 }
 
 void PostProcessing::copyStagingBufferToAovBackground()
@@ -504,9 +504,9 @@ void PostProcessing::copyStagingBufferToAovBackground()
         throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
     }
     std::visit(overload {
-        [&](Aovs& arg) { copyStagingBufferToAov(arg.background); },
-        [](InteropAovs& args) {} 
-    }, m_aovs.value());
+                   [&](Aovs& arg) { copyStagingBufferToAov(arg.background); },
+                   [](InteropAovs& args) {} },
+        m_aovs.value());
 }
 
 void PostProcessing::setGamma(float gamma) noexcept

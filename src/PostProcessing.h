@@ -4,10 +4,10 @@
 #include "ShaderManager.h"
 #include "vk_helper.h"
 
+#include <memory>
 #include <optional>
 #include <variant>
 #include <vector>
-#include <memory>
 
 namespace rprpp {
 
@@ -82,10 +82,10 @@ public:
         vk::raii::CommandBuffer&& computeCommandBuffer,
         vk::helper::Buffer&& uboBuffer) noexcept;
 
-    PostProcessing(PostProcessing&&)            = default;
+    PostProcessing(PostProcessing&&) = default;
     PostProcessing& operator=(PostProcessing&&) = default;
 
-    PostProcessing(PostProcessing&)                  = delete;
+    PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
 
     static std::unique_ptr<PostProcessing> create(uint32_t deviceId);

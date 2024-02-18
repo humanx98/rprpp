@@ -11,7 +11,7 @@
 #define HEIGHT 700
 #define INTEROP true
 #define DEVICE_ID 0
-// please note that when we use frames in flight > 1 
+// please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
 #define FRAMES_IN_FLIGHT 1
 #define ITERATIONS 100
@@ -111,7 +111,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     for (size_t i = 0; i < ITERATIONS; i++) {
         renderer.render();
         renderer.flushFrameBuffers();
-        
+
         VkFence fence = fences[currentFrame];
         VK_CHECK(vkWaitForFences(postProcessing.getVkDevice(), 1, &fence, true, UINT64_MAX));
         vkResetFences(postProcessing.getVkDevice(), 1, &fence);
@@ -124,8 +124,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         vkQueueSubmit(postProcessing.getVkQueue(), 0, nullptr, fence);
         currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
 
-        if (i == 0 || i == ITERATIONS - 1) 
-        {
+        if (i == 0 || i == ITERATIONS - 1) {
             postProcessing.waitQueueIdle();
             size_t size;
             postProcessing.getOutput(nullptr, 0, &size);
@@ -149,10 +148,9 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     }
 }
 
-
 void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
 {
-     std::filesystem::path hybridproDll = exeDirPath / "HybridPro.dll";
+    std::filesystem::path hybridproDll = exeDirPath / "HybridPro.dll";
     std::filesystem::path hybridproCacheDir = exeDirPath / "hybridpro_cache";
     std::filesystem::path assetsDir = exeDirPath;
 
@@ -166,7 +164,7 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     std::vector<uint8_t> output;
     for (size_t i = 0; i < ITERATIONS; i++) {
         renderer.render();
-        
+
         copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_COLOR);
         postProcessing.copyStagingBufferToAovColor();
         copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_OPACITY);
@@ -183,8 +181,7 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
         postProcessing.run();
         postProcessing.waitQueueIdle();
 
-        if (i == 0 || i == ITERATIONS - 1) 
-        {
+        if (i == 0 || i == ITERATIONS - 1) {
             size_t size;
             postProcessing.getOutput(nullptr, 0, &size);
             output.resize(size);

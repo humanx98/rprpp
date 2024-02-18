@@ -2,291 +2,290 @@
 
 RprPostProcessing::RprPostProcessing(uint32_t deviceId)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppCreateContext(deviceId, &m_context);
-	RPRPP_CHECK(status);
+    status = rprppCreateContext(deviceId, &m_context);
+    RPRPP_CHECK(status);
 }
 
 /* RprPostProcessing::RprPostProcessing(RprPostProcessing&& other) noexcept
     : m_context(nullptr)
 {
-	std::swap(other.m_context, m_context);
+        std::swap(other.m_context, m_context);
 }*/
 
 RprPostProcessing::~RprPostProcessing()
 {
-	if (!m_context)
-		return;
+    if (!m_context)
+        return;
 
-	// ignore any errors
-	(void)rprppDestroyContext(m_context);
+    // ignore any errors
+    (void)rprppDestroyContext(m_context);
 }
 
 StagingBuffer RprPostProcessing::mapStagingBuffer(size_t size)
 {
-	return StagingBuffer(&m_context, size);
+    return StagingBuffer(&m_context, size);
 }
 
 void RprPostProcessing::setFramesInFlihgt(uint32_t framesInFlight)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetFramesInFlihgt(m_context, framesInFlight);
-	RPRPP_CHECK(status);
+    status = rprppContextSetFramesInFlihgt(m_context, framesInFlight);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextResize(m_context, width, height, format, outputDx11TextureHandle, aovsVkInteropInfo);
-	RPRPP_CHECK(status);
+    status = rprppContextResize(m_context, width, height, format, outputDx11TextureHandle, aovsVkInteropInfo);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::getOutput(uint8_t* dst, size_t size, size_t* retSize)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextGetOutput(m_context, dst, size, retSize);
-	RPRPP_CHECK(status);
+    status = rprppContextGetOutput(m_context, dst, size, retSize);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextRun(m_context, aovsReadySemaphore, toSignalAfterProcessingSemaphore);
-	RPRPP_CHECK(status);
+    status = rprppContextRun(m_context, aovsReadySemaphore, toSignalAfterProcessingSemaphore);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::waitQueueIdle()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextWaitQueueIdle(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextWaitQueueIdle(m_context);
+    RPRPP_CHECK(status);
 }
 
 VkPhysicalDevice RprPostProcessing::getVkPhysicalDevice() const noexcept
 {
-	RprPpError status;
-	RprPpVkPhysicalDevice vkhandle = nullptr;
+    RprPpError status;
+    RprPpVkPhysicalDevice vkhandle = nullptr;
 
-	status = rprppContextGetVkPhysicalDevice(m_context, &vkhandle);
-	RPRPP_CHECK(status);
-	return static_cast<VkPhysicalDevice>(vkhandle);
+    status = rprppContextGetVkPhysicalDevice(m_context, &vkhandle);
+    RPRPP_CHECK(status);
+    return static_cast<VkPhysicalDevice>(vkhandle);
 }
 
 VkDevice RprPostProcessing::getVkDevice() const noexcept
 {
-	RprPpError status;
-	RprPpVkDevice vkhandle = nullptr;
+    RprPpError status;
+    RprPpVkDevice vkhandle = nullptr;
 
-	status = rprppContextGetVkDevice(m_context, &vkhandle);
-	RPRPP_CHECK(status);
-	return static_cast<VkDevice>(vkhandle);
+    status = rprppContextGetVkDevice(m_context, &vkhandle);
+    RPRPP_CHECK(status);
+    return static_cast<VkDevice>(vkhandle);
 }
 
 VkQueue RprPostProcessing::getVkQueue() const noexcept
 {
-	RprPpError status;
-	RprPpVkQueue vkhandle = nullptr;
+    RprPpError status;
+    RprPpVkQueue vkhandle = nullptr;
 
-	status = rprppContextGetVkQueue(m_context, &vkhandle);
-	RPRPP_CHECK(status);
-	return static_cast<VkQueue>(vkhandle);
+    status = rprppContextGetVkQueue(m_context, &vkhandle);
+    RPRPP_CHECK(status);
+    return static_cast<VkQueue>(vkhandle);
 }
 
 void RprPostProcessing::copyStagingBufferToAovColor()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextCopyStagingBufferToAovColor(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextCopyStagingBufferToAovColor(m_context);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::copyStagingBufferToAovOpacity()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextCopyStagingBufferToAovOpacity(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextCopyStagingBufferToAovOpacity(m_context);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::copyStagingBufferToAovShadowCatcher()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextCopyStagingBufferToAovShadowCatcher(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextCopyStagingBufferToAovShadowCatcher(m_context);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::copyStagingBufferToAovReflectionCatcher()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextCopyStagingBufferToAovReflectionCatcher(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextCopyStagingBufferToAovReflectionCatcher(m_context);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::copyStagingBufferToAovMattePass()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextCopyStagingBufferToAovMattePass(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextCopyStagingBufferToAovMattePass(m_context);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::copyStagingBufferToAovBackground()
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextCopyStagingBufferToAovBackground(m_context);
-	RPRPP_CHECK(status);
+    status = rprppContextCopyStagingBufferToAovBackground(m_context);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setGamma(float gamma)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetGamma(m_context, gamma);
-	RPRPP_CHECK(status);
+    status = rprppContextSetGamma(m_context, gamma);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setShadowIntensity(float shadowIntensity)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetShadowIntensity(m_context, shadowIntensity);
-	RPRPP_CHECK(status);
+    status = rprppContextSetShadowIntensity(m_context, shadowIntensity);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapWhitepoint(float x, float y, float z)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status =rprppContextSetToneMapWhitepoint(m_context, x, y, z);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapWhitepoint(m_context, x, y, z);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapVignetting(float vignetting)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapVignetting(m_context, vignetting);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapVignetting(m_context, vignetting);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapCrushBlacks(float crushBlacks)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapCrushBlacks(m_context, crushBlacks);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapCrushBlacks(m_context, crushBlacks);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapBurnHighlights(float burnHighlights)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapBurnHighlights(m_context, burnHighlights);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapBurnHighlights(m_context, burnHighlights);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapSaturation(float saturation)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapSaturation(m_context, saturation);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapSaturation(m_context, saturation);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapCm2Factor(float cm2Factor)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapCm2Factor(m_context, cm2Factor);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapCm2Factor(m_context, cm2Factor);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapFilmIso(float filmIso)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapFilmIso(m_context, filmIso);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapFilmIso(m_context, filmIso);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapCameraShutter(float cameraShutter)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapCameraShutter(m_context, cameraShutter);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapCameraShutter(m_context, cameraShutter);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapFNumber(float fNumber)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapFNumber(m_context, fNumber);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapFNumber(m_context, fNumber);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapFocalLength(float focalLength)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapFocalLength(m_context, focalLength);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapFocalLength(m_context, focalLength);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setToneMapAperture(float aperture)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetToneMapAperture(m_context, aperture);
-	RPRPP_CHECK(status);
+    status = rprppContextSetToneMapAperture(m_context, aperture);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setBloomRadius(float radius)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetBloomRadius(m_context, radius);
-	RPRPP_CHECK(status);
+    status = rprppContextSetBloomRadius(m_context, radius);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setBloomBrightnessScale(float brightnessScale)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetBloomBrightnessScale(m_context, brightnessScale);
-	RPRPP_CHECK(status);
+    status = rprppContextSetBloomBrightnessScale(m_context, brightnessScale);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setBloomThreshold(float threshold)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetBloomThreshold(m_context, threshold);
-	RPRPP_CHECK(status);
+    status = rprppContextSetBloomThreshold(m_context, threshold);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setBloomEnabled(bool enabled)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetBloomEnabled(m_context, enabled ? RPRPP_TRUE : RPRPP_FALSE);
-	RPRPP_CHECK(status);
+    status = rprppContextSetBloomEnabled(m_context, enabled ? RPRPP_TRUE : RPRPP_FALSE);
+    RPRPP_CHECK(status);
 }
 
 void RprPostProcessing::setDenoiserEnabled(bool enabled)
 {
-	RprPpError status;
+    RprPpError status;
 
-	status = rprppContextSetDenoiserEnabled(m_context, enabled ? RPRPP_TRUE : RPRPP_FALSE);
-	RPRPP_CHECK(status);
+    status = rprppContextSetDenoiserEnabled(m_context, enabled ? RPRPP_TRUE : RPRPP_FALSE);
+    RPRPP_CHECK(status);
 }
-

@@ -2,8 +2,8 @@
 
 #include "capi/rprpp.h"
 #include <RadeonProRender.h>
-#include <vulkan/vulkan.h>
 #include <string>
+#include <vulkan/vulkan.h>
 
 #define VK_CHECK(x)                              \
     {                                            \

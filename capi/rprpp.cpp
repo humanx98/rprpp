@@ -4,30 +4,26 @@
 #include "PostProcessing.h"
 #include "vk_helper.h"
 
-#include <utility>
-#include <type_traits>
-#include <concepts>
 #include <cassert>
+#include <concepts>
 #include <functional>
 #include <optional>
+#include <type_traits>
+#include <utility>
 
 #include <iostream>
 
 using PostProcessingPtr = std::unique_ptr<rprpp::PostProcessing>;
 static std::vector<PostProcessingPtr> GlobalPostProcessingObjects;
 
-template <class Function, 
+template <class Function,
     class... Params>
-[[nodiscard("Please, don't ignore result")]]
-inline auto safeCall(Function function, Params&&... params) noexcept -> std::expected<std::invoke_result_t<Function, Params&&...>, RprPpError>
+[[nodiscard("Please, don't ignore result")]] inline auto safeCall(Function function, Params&&... params) noexcept -> std::expected<std::invoke_result_t<Function, Params&&...>, RprPpError>
 {
-    try {   
-        if constexpr (!std::is_same<std::invoke_result_t<Function, Params&&...>, void>::value)
-        {
+    try {
+        if constexpr (!std::is_same<std::invoke_result_t<Function, Params&&...>, void>::value) {
             return std::invoke(function, std::forward<Params>(params)...);
-        } 
-        else 
-        {
+        } else {
             std::invoke(function, std::forward<Params>(params)...);
             return {};
         }
@@ -45,13 +41,13 @@ inline auto safeCall(Function function, Params&&... params) noexcept -> std::exp
 
 #define check(status)        \
     if (!status.has_value()) \
-    return status.error();
+        return status.error();
 
 RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
 {
     auto result = safeCall(vk::helper::getDeviceCount);
     check(result);
-    
+
     *deviceCount = *result;
 
     return RPRPP_SUCCESS;
@@ -67,7 +63,7 @@ RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, voi
 
 RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 {
-	assert(outContext);
+    assert(outContext);
 
     auto result = safeCall(rprpp::PostProcessing::create, deviceId);
     check(result);
@@ -75,7 +71,7 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
     *outContext = result->get();
 
     // avoid memleak
-    GlobalPostProcessingObjects.emplace_back(std::move(*result)); 
+    GlobalPostProcessingObjects.emplace_back(std::move(*result));
 
     return RPRPP_SUCCESS;
 }
@@ -84,15 +80,15 @@ RprPpError rprppDestroyContext(RprPpContext context)
 {
     if (!context) {
         std::cerr << "[WARING] context in null, but it should never be";
-		return RPRPP_SUCCESS;
+        return RPRPP_SUCCESS;
     }
 
-	rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+    rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
 
     // find in mempool this pointer
-	auto same_addr = [&pp](const PostProcessingPtr& ptr) { return pp == ptr.get(); };
+    auto same_addr = [&pp](const PostProcessingPtr& ptr) { return pp == ptr.get(); };
 
-	auto iter = std::find_if(GlobalPostProcessingObjects.begin(), GlobalPostProcessingObjects.end(), same_addr);
+    auto iter = std::find_if(GlobalPostProcessingObjects.begin(), GlobalPostProcessingObjects.end(), same_addr);
 
     // not found in pool, return error
     if (iter == GlobalPostProcessingObjects.end()) {
@@ -102,7 +98,7 @@ RprPpError rprppDestroyContext(RprPpContext context)
 
     auto result = safeCall([&iter]() { iter->reset(); });
     // we don't care about vulkan context anymore and should always drop this object from pool
-	GlobalPostProcessingObjects.erase(iter);
+    GlobalPostProcessingObjects.erase(iter);
 
     // only after pool clean up. This is correct place
     check(result);
@@ -116,7 +112,7 @@ RprPpError rprppContextGetOutput(RprPpContext context, uint8_t* dst, size_t size
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
-	    pp->getOutput(dst, size, retSize);
+        pp->getOutput(dst, size, retSize);
     });
     check(result);
 
@@ -134,34 +130,34 @@ RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysical
     });
     check(result);
 
-	return RPRPP_SUCCESS;
+    return RPRPP_SUCCESS;
 }
 
 RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkDevice* device)
 {
-	assert(context);
-	assert(device);
+    assert(context);
+    assert(device);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
         *device = pp->getVkDevice();
     });
     check(result);
-    
+
     return RPRPP_SUCCESS;
 }
 
 RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue)
 {
-	assert(context);
-	assert(queue);
+    assert(context);
+    assert(queue);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
         *queue = pp->getVkQueue();
     });
     check(result);
-    
+
     return RPRPP_SUCCESS;
 }
 
@@ -201,7 +197,7 @@ RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t hei
     });
     check(result);
 
-   return RPRPP_SUCCESS;
+    return RPRPP_SUCCESS;
 }
 
 RprPpError rprppContextRun(RprPpContext context, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
@@ -279,7 +275,7 @@ RprPpError rprppContextCopyStagingBufferToAovOpacity(RprPpContext context)
         pp->copyStagingBufferToAovOpacity();
     });
     check(result);
-   
+
     return RPRPP_SUCCESS;
 }
 
@@ -383,7 +379,7 @@ RprPpError rprppContextSetToneMapBurnHighlights(RprPpContext context, float burn
         pp->setToneMapBurnHighlights(burnHighlights);
     });
     check(result);
-    
+
     return RPRPP_SUCCESS;
 }
 
@@ -455,7 +451,7 @@ RprPpError rprppContextSetToneMapFNumber(RprPpContext context, float fNumber)
 RprPpError rprppContextSetToneMapFocalLength(RprPpContext context, float focalLength)
 {
     assert(context);
-	
+
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
         pp->setToneMapFocalLength(focalLength);
@@ -533,7 +529,7 @@ RprPpError rprppContextSetBloomEnabled(RprPpContext context, uint32_t enabled)
 RprPpError rprppContextSetGamma(RprPpContext context, float gamma)
 {
     assert(context);
-	
+
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
         pp->setGamma(gamma);
@@ -566,5 +562,5 @@ RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, uint32_t enabled
     });
     check(result);
 
-	return RPRPP_SUCCESS;
+    return RPRPP_SUCCESS;
 }

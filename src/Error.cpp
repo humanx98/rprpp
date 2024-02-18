@@ -4,8 +4,8 @@
 namespace rprpp {
 
 Error::Error(int err, const std::string& message)
-: std::runtime_error(message),
-  errorCode(err)
+    : std::runtime_error(message)
+    , errorCode(err)
 {
 }
 

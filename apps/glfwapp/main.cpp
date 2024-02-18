@@ -6,10 +6,9 @@
 #define HEIGHT 1000
 #define INTEROP true
 #define DEVICE_ID 0
-// please note that when we use frames in flight > 1 
+// please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
 #define FRAMES_IN_FLIGHT 1
-
 
 int main(int argc, const char* argv[])
 {

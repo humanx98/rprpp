@@ -1,15 +1,15 @@
 #pragma once
 
-#include "rpr_helper.h"
-#include "capi/rprpp.h"
 #include "StagingBuffer.h"
+#include "capi/rprpp.h"
+#include "rpr_helper.h"
 
 #include <vulkan/vulkan.h>
 
 class RprPostProcessing {
 public:
     RprPostProcessing(uint32_t deviceId);
-    //RprPostProcessing(RprPostProcessing&& other) noexcept;
+    // RprPostProcessing(RprPostProcessing&& other) noexcept;
 
     ~RprPostProcessing();
 
@@ -55,8 +55,9 @@ public:
     void setBloomEnabled(bool enabled);
     void setDenoiserEnabled(bool enabled);
 
-    RprPostProcessing(const RprPostProcessing&)            = delete;
+    RprPostProcessing(const RprPostProcessing&) = delete;
     RprPostProcessing& operator=(const RprPostProcessing&) = delete;
+
 private:
     RprPpContext m_context;
 };

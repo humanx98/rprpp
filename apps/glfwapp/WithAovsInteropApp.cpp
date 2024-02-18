@@ -238,7 +238,7 @@ void WithAovsInteropApp::mainLoop()
             {
                 m_hybridproRenderer->render();
                 m_hybridproRenderer->flushFrameBuffers();
-                
+
                 VkFence fence = m_fences[currentFrame];
                 VK_CHECK(vkWaitForFences(m_postProcessing->getVkDevice(), 1, &fence, true, UINT64_MAX));
                 vkResetFences(m_postProcessing->getVkDevice(), 1, &fence);
@@ -253,7 +253,6 @@ void WithAovsInteropApp::mainLoop()
 
                 m_postProcessing->waitQueueIdle();
             }
-
 
             IDXGIKeyedMutex* km;
             DX_CHECK(m_sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));
