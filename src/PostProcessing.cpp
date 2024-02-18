@@ -27,7 +27,6 @@ PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
     , m_computeCommandBuffer(std::move(computeCommandBuffer))
     , m_uboBuffer(std::move(uboBuffer))
 {
-    setFramesInFlihgt(1);
 }
 
 std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
@@ -300,23 +299,6 @@ void PostProcessing::updateUbo()
     m_dctx.queue.waitIdle();
 }
 
-void PostProcessing::setFramesInFlihgt(uint32_t framesInFlight)
-{
-    if (framesInFlight == 0) {
-        throw InvalidParameter("framesInFlight", "Frames in Flight cannot be 0.");
-    }
-
-    if (m_framesInFlight != framesInFlight) {
-        m_fences.clear();
-
-        for (uint32_t i = 0; i < framesInFlight; i++) {
-            m_fences.push_back(m_dctx.device.createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled)));
-        }
-        m_fenceIndex = 0;
-        m_framesInFlight = framesInFlight;
-    }
-}
-
 void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
 {
     if (m_width == width
@@ -402,9 +384,6 @@ void PostProcessing::run(VkSemaphore aovsReadySemaphore, VkSemaphore toSignalAft
             m_uboDirty = false;
         }
 
-        vk::resultCheck(m_dctx.device.waitForFences(*m_fences[m_fenceIndex], true, UINT64_MAX), "PostProcessing::run transfering fence timeout");
-        m_dctx.device.resetFences(*m_fences[m_fenceIndex]);
-
         vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
         vk::Semaphore waitSemaphore = static_cast<vk::Semaphore>(aovsReadySemaphore);
         vk::Semaphore signalSemaphore = static_cast<vk::Semaphore>(toSignalAfterProcessingSemaphore);
@@ -417,9 +396,7 @@ void PostProcessing::run(VkSemaphore aovsReadySemaphore, VkSemaphore toSignalAft
             submitInfo.setSignalSemaphores(signalSemaphore);
         }
         submitInfo.setCommandBuffers(*m_computeCommandBuffer);
-        m_dctx.queue.submit(submitInfo, *m_fences[m_fenceIndex]);
-
-        m_fenceIndex = (m_fenceIndex + 1) % m_framesInFlight;
+        m_dctx.queue.submit(submitInfo);
     }
 }
 

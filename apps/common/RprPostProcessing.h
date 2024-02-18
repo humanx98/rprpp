@@ -15,7 +15,6 @@ public:
 
     StagingBuffer mapStagingBuffer(size_t size);
 
-    void setFramesInFlihgt(uint32_t framesInFlight);
     void resize(uint32_t width,
         uint32_t height,
         RprPpImageFormat format,

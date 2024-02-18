@@ -28,14 +28,6 @@ StagingBuffer RprPostProcessing::mapStagingBuffer(size_t size)
     return StagingBuffer(&m_context, size);
 }
 
-void RprPostProcessing::setFramesInFlihgt(uint32_t framesInFlight)
-{
-    RprPpError status;
-
-    status = rprppContextSetFramesInFlihgt(m_context, framesInFlight);
-    RPRPP_CHECK(status);
-}
-
 void RprPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
 {
     RprPpError status;

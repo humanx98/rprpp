@@ -161,19 +161,6 @@ RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue)
     return RPRPP_SUCCESS;
 }
 
-RPRPP_API RprPpError rprppContextSetFramesInFlihgt(RprPpContext context, uint32_t framesInFlight)
-{
-    assert(context);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
-        pp->setFramesInFlihgt(framesInFlight);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
 RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* pAovsVkInterop)
 {
     assert(context);

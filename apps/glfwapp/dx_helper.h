@@ -9,9 +9,9 @@
     {                                                                                                         \
         HRESULT res = (f);                                                                                    \
         if (!SUCCEEDED(res)) {                                                                                \
-            printf("[NoAovsInteropApp.h] Fatal : HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
+            printf("Fatal : DX HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
             _com_error err(res);                                                                              \
-            printf("[NoAovsInteropApp.h] messsage : %s\n", err.ErrorMessage());                               \
+            printf("messsage : %s\n", err.ErrorMessage());                               \
             assert(false);                                                                                    \
         }                                                                                                     \
     }

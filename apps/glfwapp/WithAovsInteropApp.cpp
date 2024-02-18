@@ -122,7 +122,6 @@ void WithAovsInteropApp::intiSwapChain()
 void WithAovsInteropApp::initHybridProAndPostProcessing()
 {
     m_postProcessing = std::make_unique<RprPostProcessing>(m_gpuIndices.vk);
-    m_postProcessing->setFramesInFlihgt(m_framesInFlight);
 
     for (uint32_t i = 0; i < m_framesInFlight; i++) {
         VkSemaphore semaphore;

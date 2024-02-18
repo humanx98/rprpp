@@ -92,7 +92,6 @@ public:
 
     void* mapStagingBuffer(size_t size);
     void unmapStagingBuffer();
-    void setFramesInFlihgt(uint32_t framesInFlight);
     void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run(VkSemaphore aovsReadySemaphore, VkSemaphore toSignalAfterProcessingSemaphore);
@@ -143,8 +142,6 @@ private:
 
     uint32_t m_width = 0;
     uint32_t m_height = 0;
-    uint32_t m_fenceIndex = 0;
-    uint32_t m_framesInFlight = 0;
     HANDLE m_outputDx11TextureHandle = nullptr;
     ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
     std::optional<AovsVkInteropInfo> m_aovsVkInteropInfo;
@@ -166,7 +163,6 @@ private:
     std::optional<vk::raii::DescriptorSet> m_descriptorSet;
     std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
     std::optional<vk::raii::Pipeline> m_computePipeline;
-    std::vector<vk::raii::Fence> m_fences;
 };
 
 } // namespace rprpp
