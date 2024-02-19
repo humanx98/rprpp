@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 3.26.1)
-project(rprpp LANGUAGES CXX VERSION 0.1)
-
-option(RPRPP_EXPORT_API "Export dll symbols" 1)
+project(vkdx11_interop LANGUAGES CXX VERSION 1.0.1)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+
+option(RPRPP_EXPORT_API "Export dll symbols" 1)
+
+# Get the latest abbreviated commit hash of the working branch
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
@@ -31,6 +39,6 @@ macro(_copy_file_to_target target thefile)
     )
 endmacro()
 
-add_subdirectory(capi)
-add_subdirectory(src)
+add_subdirectory(vkdx11_interop)
+add_subdirectory(rprpp)
 add_subdirectory(apps)

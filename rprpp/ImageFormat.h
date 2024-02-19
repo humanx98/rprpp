@@ -1,6 +1,6 @@
 #pragma once
 
-#include "capi/rprpp.h"
+#include "vkdx11_interop/vkdx11_interop.h"
 #include "vk.h"
 
 namespace rprpp {
