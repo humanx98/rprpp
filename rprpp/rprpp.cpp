@@ -1,4 +1,4 @@
-#include "include/rprpp.h"
+#include "rprpp.h"
 
 #include "Error.h"
 #include "PostProcessing.h"

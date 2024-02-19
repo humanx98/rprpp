@@ -1,7 +1,6 @@
 #pragma once
 
 #include "StagingBuffer.h"
-#include <rprpp.h>
 #include "rpr_helper.h"
 
 #include <vulkan/vulkan.h>
@@ -9,8 +8,6 @@
 class RprPostProcessing {
 public:
     RprPostProcessing(uint32_t deviceId);
-    // RprPostProcessing(RprPostProcessing&& other) noexcept;
-
     ~RprPostProcessing();
 
     StagingBuffer mapStagingBuffer(size_t size);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <rprpp.h>
+#include "rprpp/rprpp.h"
 #include <RadeonProRender.h>
 #include <string>
 #include <vulkan/vulkan.h>

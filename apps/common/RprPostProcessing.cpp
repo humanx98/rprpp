@@ -8,12 +8,6 @@ RprPostProcessing::RprPostProcessing(uint32_t deviceId)
     RPRPP_CHECK(status);
 }
 
-/* RprPostProcessing::RprPostProcessing(RprPostProcessing&& other) noexcept
-    : m_context(nullptr)
-{
-        std::swap(other.m_context, m_context);
-}*/
-
 RprPostProcessing::~RprPostProcessing()
 {
     if (!m_context)
