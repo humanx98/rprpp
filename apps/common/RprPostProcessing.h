@@ -1,7 +1,7 @@
 #pragma once
 
 #include "StagingBuffer.h"
-#include "vkdx11_interop/rprpp.h"
+#include "vkdx11_interop/vkdx11_interop.h"
 #include "rpr_helper.h"
 
 #include <vulkan/vulkan.h>

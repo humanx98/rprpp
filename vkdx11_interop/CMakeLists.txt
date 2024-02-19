@@ -1,9 +1,9 @@
 set(HEADERS
-	rprpp.h
+	vkdx11_interop.h
 )
 
 set(SOURCES
-	rprpp.cpp
+	vkdx11_interop.cpp
 )
 
 configure_file(
