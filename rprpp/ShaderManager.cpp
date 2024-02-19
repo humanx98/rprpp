@@ -1,7 +1,7 @@
 #include "ShaderManager.h"
 #include "Error.h"
 #include <mutex>
-#include <rprppconfig.h>
+#include <rprpp_config.h>
 #include <shaderc/shaderc.hpp>
 
 namespace rprpp {

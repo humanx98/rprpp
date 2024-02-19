@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26.1)
-project(vkdx11_interop LANGUAGES CXX VERSION 1.0.1)
+project(rprpp LANGUAGES CXX VERSION 1.0.1)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,6 +39,5 @@ macro(_copy_file_to_target target thefile)
     )
 endmacro()
 
-add_subdirectory(vkdx11_interop)
 add_subdirectory(rprpp)
 add_subdirectory(apps)

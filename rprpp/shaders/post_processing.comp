@@ -51,7 +51,7 @@ layout (set = 0, binding = 6, rgba32f) uniform readonly image2D aovBackground;
 #endif
 layout (set = 0, binding = 7) uniform UBO 
 {
-	ToneMap tonemap;
+    ToneMap tonemap;
     Bloom bloom;
     float shadowIntensity;
     float invGamma;

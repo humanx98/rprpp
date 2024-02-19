@@ -1,8 +1,8 @@
-#include "vkdx11_interop.h"
+#include "include/rprpp.h"
 
-#include "rprpp/Error.h"
-#include "rprpp/PostProcessing.h"
-#include "rprpp/vk_helper.h"
+#include "Error.h"
+#include "PostProcessing.h"
+#include "vk_helper.h"
 
 #include <cassert>
 #include <concepts>

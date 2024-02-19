@@ -10,12 +10,12 @@
 #define VERSION_BUILD               @PROJECT_VERSION_PATCH@
 #define VERSION_REVISION            @GIT_COMMIT_HASH@
 
-#define VER_FILE_DESCRIPTION_STR    "RadeonProRender hybridpro interop library"
+#define VER_FILE_DESCRIPTION_STR    "RadeonProRender Post Processing library"
 #define VER_FILE_VERSION            VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD
 #define VER_FILE_VERSION_STR        STRINGIZE(VERSION_REVISION)
 
 
-#define VER_PRODUCTNAME_STR         "vkdx11_interop"
+#define VER_PRODUCTNAME_STR         "rprpp"
 #define VER_PRODUCT_VERSION         VER_FILE_VERSION
 #define VER_PRODUCT_VERSION_STR     VER_FILE_VERSION_STR
 #define VER_ORIGINAL_FILENAME_STR   VER_PRODUCTNAME_STR ".dll"

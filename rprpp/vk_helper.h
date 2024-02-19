@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vkdx11_interop/vkdx11_interop.h"
+#include "include/rprpp.h"
 #include "vk.h"
 
 namespace vk::helper {
