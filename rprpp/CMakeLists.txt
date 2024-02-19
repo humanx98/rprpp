@@ -44,10 +44,6 @@ add_library(rprpp SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/version.rc
 )
 
-target_compile_definitions(rprpp PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}/version_info.h
-    ${CMAKE_CURRENT_BINARY_DIR}/version.rc
-)
 if(RPRPP_EXPORT_API)
     target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
 endif()
