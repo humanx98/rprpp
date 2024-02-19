@@ -187,13 +187,24 @@ RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t hei
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppContextRun(RprPpContext context, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
+RprPpError rprppContextRun(RprPpContext context, RprPpVkSemaphore inAovsReadySemaphore, RprPpVkSemaphore inToSignalAfterProcessingSemaphore)
 {
     assert(context);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
-        pp->run(static_cast<VkSemaphore>(aovsReadySemaphore), static_cast<VkSemaphore>(toSignalAfterProcessingSemaphore));
+
+        std::optional<vk::Semaphore> aovsReadySemaphore;
+        if (inAovsReadySemaphore != nullptr) {
+            aovsReadySemaphore = static_cast<vk::Semaphore>(static_cast<VkSemaphore>(inAovsReadySemaphore));
+        }
+
+        std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore;
+        if (inToSignalAfterProcessingSemaphore != nullptr) {
+            toSignalAfterProcessingSemaphore = static_cast<vk::Semaphore>(static_cast<VkSemaphore>(inToSignalAfterProcessingSemaphore));
+        }
+
+        pp->run(aovsReadySemaphore, toSignalAfterProcessingSemaphore);
     });
     check(result);
 

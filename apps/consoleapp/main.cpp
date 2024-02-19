@@ -13,7 +13,7 @@
 #define DEVICE_ID 0
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
-#define FRAMES_IN_FLIGHT 1
+#define FRAMES_IN_FLIGHT 3
 #define ITERATIONS 100
 
 void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, RprPpImageFormat format);
@@ -79,8 +79,8 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     {
         VkSubmitInfo submitInfo {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pSignalSemaphores = frameBuffersReleaseSemaphores.data();
-        submitInfo.signalSemaphoreCount = frameBuffersReleaseSemaphores.size();
+        submitInfo.pSignalSemaphores = &frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT];
+        submitInfo.signalSemaphoreCount = 1;
         VK_CHECK(vkQueueSubmit(postProcessing.getVkQueue(), 1, &submitInfo, nullptr));
     }
 
@@ -117,7 +117,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
 
         uint32_t semaphoreIndex = renderer.getSemaphoreIndex();
         VkSemaphore aovsReadySemaphore = frameBuffersReadySemaphores[semaphoreIndex];
-        VkSemaphore processingFinishedSemaphore = frameBuffersReleaseSemaphores[semaphoreIndex];
+        VkSemaphore processingFinishedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
 
         postProcessing.run(aovsReadySemaphore, processingFinishedSemaphore);
         vkQueueSubmit(postProcessing.getVkQueue(), 0, nullptr, fence);

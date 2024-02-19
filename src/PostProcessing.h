@@ -94,7 +94,7 @@ public:
     void unmapStagingBuffer();
     void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
-    void run(VkSemaphore aovsReadySemaphore, VkSemaphore toSignalAfterProcessingSemaphore);
+    void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
     void waitQueueIdle();
 
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;

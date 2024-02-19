@@ -376,7 +376,7 @@ void PostProcessing::getOutput(uint8_t* dst, size_t size, size_t* retSize)
     }
 }
 
-void PostProcessing::run(VkSemaphore aovsReadySemaphore, VkSemaphore toSignalAfterProcessingSemaphore)
+void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore)
 {
     if (m_computePipeline.has_value()) {
         if (m_uboDirty) {
@@ -385,15 +385,13 @@ void PostProcessing::run(VkSemaphore aovsReadySemaphore, VkSemaphore toSignalAft
         }
 
         vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
-        vk::Semaphore waitSemaphore = static_cast<vk::Semaphore>(aovsReadySemaphore);
-        vk::Semaphore signalSemaphore = static_cast<vk::Semaphore>(toSignalAfterProcessingSemaphore);
         vk::SubmitInfo submitInfo;
-        if (aovsReadySemaphore != VK_NULL_HANDLE) {
+        if (aovsReadySemaphore.has_value()) {
             submitInfo.setWaitDstStageMask(waitStage);
-            submitInfo.setWaitSemaphores(waitSemaphore);
+            submitInfo.setWaitSemaphores(aovsReadySemaphore.value());
         }
-        if (toSignalAfterProcessingSemaphore != VK_NULL_HANDLE) {
-            submitInfo.setSignalSemaphores(signalSemaphore);
+        if (toSignalAfterProcessingSemaphore.has_value()) {
+            submitInfo.setSignalSemaphores(toSignalAfterProcessingSemaphore.value());
         }
         submitInfo.setCommandBuffers(*m_computeCommandBuffer);
         m_dctx.queue.submit(submitInfo);
