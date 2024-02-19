@@ -9,7 +9,6 @@ set(SHADERS
 
 set(HEADERS
     Error.h
-    common.h
     vk_helper.h
     vk.h
     DescriptorBuilder.h

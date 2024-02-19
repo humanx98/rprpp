@@ -1,7 +1,6 @@
 #include "PostProcessing.h"
 #include "DescriptorBuilder.h"
 #include "Error.h"
-#include "common.h"
 #include <algorithm>
 
 template <class... Ts>
