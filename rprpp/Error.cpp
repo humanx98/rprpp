@@ -1,5 +1,5 @@
 #include "Error.h"
-#include "capi/rprpp.h"
+#include "vkdx11_interop/rprpp.h"
 
 namespace rprpp {
 

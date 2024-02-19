@@ -1,6 +1,6 @@
 #pragma once
 
-#include "capi/rprpp.h"
+#include "vkdx11_interop/rprpp.h"
 #include "rpr_helper.h"
 
 class StagingBuffer {
