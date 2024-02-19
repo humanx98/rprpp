@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26.1)
-project(vkdx11_interop LANGUAGES CXX VERSION 0.1.0)
+project(vkdx11_interop LANGUAGES CXX VERSION 1.0.1)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
