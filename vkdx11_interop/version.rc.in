@@ -1,3 +1,4 @@
+// generated from version.rc.in
 #include "version_info.h"
 
 VS_VERSION_INFO VERSIONINFO

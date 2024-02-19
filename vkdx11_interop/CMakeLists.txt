@@ -17,7 +17,10 @@ configure_file(
         @ONLY
 )
 
-add_library(vkdx11_interop SHARED ${HEADERS} ${SOURCES})
+add_library(vkdx11_interop SHARED ${HEADERS} ${SOURCES} 
+        ${CMAKE_CURRENT_BINARY_DIR}/version_info.h
+	${CMAKE_CURRENT_BINARY_DIR}/version.rc
+)
 target_compile_definitions(vkdx11_interop PRIVATE 
 	${CMAKE_CURRENT_BINARY_DIR}/version_info.h
 	${CMAKE_CURRENT_BINARY_DIR}/version.rc
@@ -36,6 +39,6 @@ target_link_libraries(vkdx11_interop
 	PRIVATE rprpp
 )
 
-set_target_properties(vkdx11_interop PROPERTIES PUBLIC_HEADER "rprpp.h")
+set_target_properties(vkdx11_interop PROPERTIES PUBLIC_HEADER "vkdx11_interop.h")
 
-install(TARGETS vkdx11_interop RUNTIME PUBLIC_HEADER)
+install(TARGETS vkdx11_interop RUNTIME PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vkdx11_interop)

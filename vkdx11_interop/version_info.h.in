@@ -1,4 +1,6 @@
-#include <Windows.h>
+// Generated from version_info.h.in
+
+#include <windows.h>
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
@@ -6,7 +8,7 @@
 #define VERSION_MAJOR               @PROJECT_VERSION_MAJOR@
 #define VERSION_MINOR               @PROJECT_VERSION_MINOR@
 #define VERSION_BUILD               @PROJECT_VERSION_PATCH@
-#define VERSION_REVISION            @PROJECT_VERSION_TWEAK@
+#define VERSION_REVISION            @GIT_COMMIT_HASH@
 
 #define VER_FILE_DESCRIPTION_STR    "RadeonProRender hybridpro interop library"
 #define VER_FILE_VERSION            VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD
