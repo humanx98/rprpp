@@ -27,7 +27,7 @@ target_include_directories(appcommon PUBLIC
 
 target_link_libraries(appcommon PUBLIC 
     rprpp
-    capi
+    vkdx11_interop
     ${RPRSDK_DIR}/libWin64/RadeonProRender64.lib
  )
 
