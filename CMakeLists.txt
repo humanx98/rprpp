@@ -42,5 +42,5 @@ macro(_copy_file_to_target target thefile)
 endmacro()
 
 add_subdirectory(capi)
-add_subdirectory(src)
+add_subdirectory(rprpp)
 add_subdirectory(apps)

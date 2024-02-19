@@ -29,7 +29,6 @@ endif()
 _copy_file_to_target(vkdx11_interop ${Vulkan_SHADERC_DLL})
 
 target_include_directories(vkdx11_interop 
-	PRIVATE ${CMAKE_SOURCE_DIR}/src
 	PRIVATE ${Vulkan_INCLUDE_DIR}
 )
 
