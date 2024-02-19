@@ -1,5 +1,5 @@
 #include "Error.h"
-#include "include/rprpp.h"
+#include "rprpp.h"
 
 namespace rprpp {
 

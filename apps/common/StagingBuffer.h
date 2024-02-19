@@ -1,6 +1,5 @@
 #pragma once
 
-#include <rprpp.h>
 #include "rpr_helper.h"
 
 class StagingBuffer {

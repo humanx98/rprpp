@@ -19,7 +19,7 @@ set(SHADERS
 )
 
 set(HEADERS
-    include/rprpp.h
+    rprpp.h
     Error.h
     vk_helper.h
     vk.h
@@ -29,11 +29,11 @@ set(HEADERS
 )
 
 set(SOURCES
+    rprpp.cpp
     Error.cpp
     vk_helper.cpp
     DescriptorBuilder.cpp
     PostProcessing.cpp
-    rprpp.cpp
     ShaderManager.cpp
 )
 
@@ -44,10 +44,6 @@ add_library(rprpp SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/version.rc
 )
 
-target_compile_definitions(rprpp PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}/version_info.h
-    ${CMAKE_CURRENT_BINARY_DIR}/version.rc
-)
 if(RPRPP_EXPORT_API)
     target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
 endif()
@@ -55,10 +51,9 @@ endif()
 _copy_file_to_target(rprpp ${Vulkan_SHADERC_DLL})
 
 target_include_directories(rprpp
-    PRIVATE ${CMAKE_SOURCE_DIR}
+    PUBLIC ${CMAKE_SOURCE_DIR}
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
     PRIVATE ${Vulkan_INCLUDE_DIR}
-    PUBLIC include/
 )
 
 target_link_libraries(rprpp
@@ -66,6 +61,6 @@ target_link_libraries(rprpp
     PRIVATE ${Vulkan_SHADERC_LIB}
 )
 
-set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "include/rprpp.h")
+set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
 
 install(TARGETS rprpp RUNTIME PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rprpp)
