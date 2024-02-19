@@ -1,6 +1,5 @@
 #include "vk_helper.h"
 #include "Error.h"
-#include "common.h"
 #include <iostream>
 
 namespace vk::helper {
