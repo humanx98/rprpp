@@ -23,12 +23,11 @@ target_include_directories(appcommon PUBLIC
     PUBLIC ${CMAKE_SOURCE_DIR}/apps
     PUBLIC ${RPRSDK_DIR}/inc
     PUBLIC ${stb_SOURCE_DIR}
-    PUBLIC ${Vulkan_INCLUDE_DIR}
 )
 
 target_link_libraries(appcommon PUBLIC
     rprpp
+    Vulkan::Vulkan
     ${RPRSDK_DIR}/libWin64/RadeonProRender64.lib
-    ${Vulkan_LIBRARY}
  )
 
