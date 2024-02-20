@@ -12,9 +12,10 @@ inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
     }
 }
 
-NoAovsInteropApp::NoAovsInteropApp(int width, int height, Paths paths, GpuIndices gpuIndices)
+NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIterations, Paths paths, GpuIndices gpuIndices)
     : m_width(width)
     , m_height(height)
+    , m_renderedIterations(rendererdIterations)
     , m_paths(paths)
     , m_gpuIndices(gpuIndices)
     , m_postProcessing(gpuIndices.vk)
@@ -176,11 +177,10 @@ void NoAovsInteropApp::mainLoop()
     clock_t deltaTime = 0;
     unsigned int frames = 0;
     while (!glfwWindowShouldClose(m_window)) {
-        unsigned int renderedIterations = 1;
         clock_t beginFrame = clock();
         {
             glfwPollEvents();
-            for (unsigned int i = 0; i < renderedIterations; i++) {
+            for (unsigned int i = 0; i < m_renderedIterations; i++) {
                 m_hybridproRenderer.render();
             }
             copyRprFbToPpStagingBuffer(RPR_AOV_COLOR);
@@ -207,7 +207,7 @@ void NoAovsInteropApp::mainLoop()
         }
         clock_t endFrame = clock();
         deltaTime += endFrame - beginFrame;
-        frames += renderedIterations;
+        frames += m_renderedIterations;
         double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
         if (deltaTimeInSeconds > 1.0) { // every second
             std::cout << "Iterations per second = "

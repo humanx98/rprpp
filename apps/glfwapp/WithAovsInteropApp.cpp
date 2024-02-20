@@ -12,9 +12,10 @@ inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
     }
 }
 
-WithAovsInteropApp::WithAovsInteropApp(int width, int height, uint32_t framesInFlight, Paths paths, GpuIndices gpuIndices)
+WithAovsInteropApp::WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, GpuIndices gpuIndices)
     : m_width(width)
     , m_height(height)
+    , m_renderedIterations(renderedIterations)
     , m_framesInFlight(framesInFlight)
     , m_paths(paths)
     , m_gpuIndices(gpuIndices)
@@ -140,8 +141,8 @@ void WithAovsInteropApp::initHybridProAndPostProcessing()
     {
         VkSubmitInfo submitInfo {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pSignalSemaphores = m_frameBuffersReleaseSemaphores.data();
-        submitInfo.signalSemaphoreCount = m_frameBuffersReleaseSemaphores.size();
+        submitInfo.pSignalSemaphores = &m_frameBuffersReleaseSemaphores[1 % m_framesInFlight];
+        submitInfo.signalSemaphoreCount = 1;
         VK_CHECK(vkQueueSubmit(m_postProcessing->getVkQueue(), 1, &submitInfo, nullptr));
     }
 
@@ -229,26 +230,38 @@ void WithAovsInteropApp::mainLoop()
 {
     clock_t deltaTime = 0;
     unsigned int frames = 0;
-    uint32_t currentFrame = 0;
     while (!glfwWindowShouldClose(m_window)) {
         clock_t beginFrame = clock();
         {
             glfwPollEvents();
             {
-                m_hybridproRenderer->render();
-                m_hybridproRenderer->flushFrameBuffers();
+                for (unsigned int i = 0; i < m_renderedIterations; i++) {
+                    // +1 because we get semaphore before rendering
+                    uint32_t semaphoreIndex = (m_hybridproRenderer->getSemaphoreIndex() + 1) % m_framesInFlight;
+                    VkFence fence = m_fences[semaphoreIndex];
+                    VK_CHECK(vkWaitForFences(m_postProcessing->getVkDevice(), 1, &fence, true, UINT64_MAX));
+                    vkResetFences(m_postProcessing->getVkDevice(), 1, &fence);
 
-                VkFence fence = m_fences[currentFrame];
-                VK_CHECK(vkWaitForFences(m_postProcessing->getVkDevice(), 1, &fence, true, UINT64_MAX));
-                vkResetFences(m_postProcessing->getVkDevice(), 1, &fence);
+                    m_hybridproRenderer->render();
+                    m_hybridproRenderer->flushFrameBuffers();
 
-                uint32_t semaphoreIndex = m_hybridproRenderer->getSemaphoreIndex();
-                VkSemaphore aovsReadySemaphore = m_frameBuffersReadySemaphores[semaphoreIndex];
-                VkSemaphore processingFinishedSemaphore = m_frameBuffersReleaseSemaphores[semaphoreIndex];
+                    VkSemaphore aovsReadySemaphore = m_frameBuffersReadySemaphores[semaphoreIndex];
+                    VkSemaphore processingFinishedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
 
-                m_postProcessing->run(aovsReadySemaphore, processingFinishedSemaphore);
-                vkQueueSubmit(m_postProcessing->getVkQueue(), 0, nullptr, fence);
-                currentFrame = (currentFrame + 1) % m_framesInFlight;
+                    if (i < m_renderedIterations - 1) {
+                        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+                        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+                        submitInfo.pWaitDstStageMask = &waitStage;
+                        submitInfo.pWaitSemaphores = &aovsReadySemaphore;
+                        submitInfo.waitSemaphoreCount = 1;
+                        submitInfo.pSignalSemaphores = &processingFinishedSemaphore;
+                        submitInfo.signalSemaphoreCount = 1;
+                        vkQueueSubmit(m_postProcessing->getVkQueue(), 1, &submitInfo, fence);
+                    } else {
+                        m_postProcessing->run(aovsReadySemaphore, processingFinishedSemaphore);
+                        vkQueueSubmit(m_postProcessing->getVkQueue(), 0, nullptr, fence);
+                    }
+                }
 
                 m_postProcessing->waitQueueIdle();
             }
@@ -262,7 +275,7 @@ void WithAovsInteropApp::mainLoop()
         }
         clock_t endFrame = clock();
         deltaTime += endFrame - beginFrame;
-        frames += 1;
+        frames += m_renderedIterations;
         double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
         if (deltaTimeInSeconds > 1.0) { // every second
             std::cout << "Iterations per second = "

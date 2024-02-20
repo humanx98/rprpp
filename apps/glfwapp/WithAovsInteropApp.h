@@ -23,6 +23,7 @@ class WithAovsInteropApp {
 private:
     int m_width;
     int m_height;
+    int m_renderedIterations;
     uint32_t m_framesInFlight;
     GpuIndices m_gpuIndices;
     Paths m_paths;
@@ -52,7 +53,7 @@ private:
     void mainLoop();
 
 public:
-    WithAovsInteropApp(int width, int height, uint32_t framesInFlight, Paths paths, GpuIndices gpuIndices);
+    WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, GpuIndices gpuIndices);
     ~WithAovsInteropApp();
     void run();
 };

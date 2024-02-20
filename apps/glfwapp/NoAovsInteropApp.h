@@ -21,6 +21,7 @@ class NoAovsInteropApp {
 private:
     int m_width;
     int m_height;
+    int m_renderedIterations;
     GpuIndices m_gpuIndices;
     Paths m_paths;
     GLFWwindow* m_window = nullptr;
@@ -45,7 +46,7 @@ private:
     void mainLoop();
 
 public:
-    NoAovsInteropApp(int width, int height, Paths paths, GpuIndices gpuIndices);
+    NoAovsInteropApp(int width, int height, int renderedIterations, Paths paths, GpuIndices gpuIndices);
     ~NoAovsInteropApp();
     void run();
 };

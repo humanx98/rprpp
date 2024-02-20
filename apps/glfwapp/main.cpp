@@ -4,11 +4,12 @@
 
 #define WIDTH 2000
 #define HEIGHT 1000
+#define RENDERED_ITERATIONS 16
 #define INTEROP true
 #define DEVICE_ID 0
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
-#define FRAMES_IN_FLIGHT 1
+#define FRAMES_IN_FLIGHT 4
 
 int main(int argc, const char* argv[])
 {
@@ -32,13 +33,9 @@ int main(int argc, const char* argv[])
         std::cout << "Device id = " << i << ", name = " << std::string(deviceName.begin(), deviceName.end()) << std::endl;
     }
 #if INTEROP
-    if (FRAMES_IN_FLIGHT > 1) {
-        std::cerr << "doesn't support FRAMES_IN_FLIGHT > 1 right now" << std::endl;
-        throw std::runtime_error("doesn't support FRAMES_IN_FLIGHT > 1 right now");
-    }
-    WithAovsInteropApp app(WIDTH, HEIGHT, FRAMES_IN_FLIGHT, paths, gpus);
+    WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, gpus);
 #else
-    NoAovsInteropApp app(WIDTH, HEIGHT, paths, gpus);
+    NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, gpus);
 #endif
     try {
         app.run();
