@@ -48,8 +48,6 @@ if(RPRPP_EXPORT_API)
     target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
 endif()
 
-_copy_file_to_target(rprpp ${Vulkan_SHADERC_DLL})
-
 target_include_directories(rprpp
     PUBLIC ${CMAKE_SOURCE_DIR}
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
@@ -57,7 +55,7 @@ target_include_directories(rprpp
 
 target_link_libraries(rprpp
     PRIVATE Vulkan::Vulkan
-    PRIVATE ${Vulkan_SHADERC_LIB}
+    PRIVATE Vulkan::shaderc_combined
 )
 
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
