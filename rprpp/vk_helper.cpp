@@ -25,18 +25,16 @@ namespace {
             &debugUtilsMessengerCallback };
     }
 
-    void validateRequiredExtensions(const std::vector<const char*>& extensions, const std::vector<const char*>& requiredExtensions)
+    bool validateRequiredExtensions(const std::vector<const char*>& extensions, const std::vector<const char*>& requiredExtensions)
     {
         // validate that all required extensions are present in extensions container
-        std::for_each(requiredExtensions.begin(), requiredExtensions.end(), [&extensions](const char* requiredExtensionName) {
+        return std::all_of(requiredExtensions.begin(), requiredExtensions.end(), [&extensions](const char* requiredExtensionName) {
             auto sameExtensionNames = [&requiredExtensionName](const char* extensionName) -> bool {
                 return std::strcmp(requiredExtensionName, extensionName) == 0;
             };
 
             auto iter = std::find_if(extensions.begin(), extensions.end(), sameExtensionNames);
-            if (iter == extensions.end()) {
-                throw rprpp::InternalError("Required Extension " + std::string(requiredExtensionName) + " not found");
-            }
+            return iter != extensions.end();
         });
     } // validateReqFunction
 
@@ -48,7 +46,7 @@ namespace {
             VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
         };
 
-        std::vector<const char*> extensions;
+        std::vector<const char*> availableExtensions;
         std::vector<const char*> enabledLayers;
 
         std::optional<vk::DebugUtilsMessengerCreateInfoEXT> debugCreateInfo;
@@ -69,13 +67,15 @@ namespace {
             debugCreateInfo = makeDebugUtilsMessengerCreateInfoEXT();
         }
         const auto& extensionProperties = context.enumerateInstanceExtensionProperties();
-        extensions.reserve(extensionProperties.size());
+        availableExtensions.reserve(extensionProperties.size());
 
         for (const VkExtensionProperties& prop : extensionProperties) {
-            extensions.push_back(prop.extensionName);
+            availableExtensions.push_back(prop.extensionName);
         }
 
-        validateRequiredExtensions(extensions, requiredExtensions);
+        if (!validateRequiredExtensions(availableExtensions, requiredExtensions)) {
+            throw rprpp::InternalError("Instance Required Extensions not found");
+        }
 
         vk::ApplicationInfo applicationInfo("AppName", 1, "EngineName", 1, VK_API_VERSION_1_2);
         vk::InstanceCreateInfo instanceCreateInfo(
@@ -95,35 +95,46 @@ namespace {
         const std::vector<const char*>& enabledLayers,
         const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
     {
-        const static std::vector<const char*> requiredExtensions {
+        static std::vector<const char*> requiredExtensions {
             VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
             // VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, // we don't use it right now
             VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
             // VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, // we don't use it right now
             VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 
-            //  for hybridpro
+            // for hybridpro
             VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-            VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
-            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
             VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
+            VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
             VK_KHR_MAINTENANCE3_EXTENSION_NAME,
-            VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
-            VK_KHR_RAY_QUERY_EXTENSION_NAME,
             VK_KHR_SPIRV_1_4_EXTENSION_NAME,
         };
 
-        std::vector<const char*> extensions;
+        //  for hybridpro
+        const static std::vector<const char*> rayTracingExtensions {
+            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+            VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+            VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        };
+
+        std::vector<const char*> availableExtensions;
 
         const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
-        extensions.reserve(extensionProperties.size());
+        availableExtensions.reserve(extensionProperties.size());
         for (const vk::ExtensionProperties& property : extensionProperties) {
-            extensions.push_back(property.extensionName);
+            availableExtensions.push_back(property.extensionName);
         }
 
-        validateRequiredExtensions(extensions, requiredExtensions);
+        if (!validateRequiredExtensions(availableExtensions, requiredExtensions)) {
+            throw rprpp::InternalError("Physical Device Required Extensions not found");
+        }
+
+        bool supportHardwareRT = validateRequiredExtensions(availableExtensions, rayTracingExtensions);
+        if (supportHardwareRT) {
+            requiredExtensions.insert(requiredExtensions.end(), rayTracingExtensions.begin(), rayTracingExtensions.end());
+        }
 
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
         accelerationStructureFeatures.accelerationStructure = vk::True;
@@ -161,7 +172,12 @@ namespace {
         features12.pNext = &features11;
         features11.pNext = &features2;
 
-        vk::DeviceCreateInfo deviceCreateInfo({}, queueInfos, enabledLayers, requiredExtensions, nullptr, &accelerationStructureFeatures);
+        vk::DeviceCreateInfo deviceCreateInfo({},
+            queueInfos,
+            enabledLayers,
+            requiredExtensions,
+            nullptr,
+            supportHardwareRT ? (void*)&accelerationStructureFeatures : (void*)&features12);
         return physicalDevice.createDevice(deviceCreateInfo);
     }
 
@@ -202,7 +218,6 @@ namespace {
             return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
         }
     }
-
 } // namespace
 
 // -------------------------------------------------------------------
@@ -269,28 +284,32 @@ DeviceContext createDeviceContext(uint32_t deviceId)
     }
     vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
 
-    std::optional<uint32_t> queueFamilyIndex;
+    std::optional<uint32_t> computeQueueFamilyIndex;
+    bool computeOnGraphics = false;
     std::vector<vk::DeviceQueueCreateInfo> queueInfos;
     float queuePriority = 1.0f;
     auto queueFamilies = physicalDevice.getQueueFamilyProperties();
     for (uint32_t i = 0; i < queueFamilies.size(); ++i) {
         queueInfos.push_back(vk::DeviceQueueCreateInfo({}, i, 1, &queuePriority));
-        if (!queueFamilyIndex.has_value()
-            && queueFamilies[i].queueCount > 0
-            && (queueFamilies[i].queueFlags & vk::QueueFlagBits::eCompute)
-            && (queueFamilies[i].queueFlags & vk::QueueFlagBits::eTransfer)) {
-            queueFamilyIndex = i;
+        bool supportsCompute = queueFamilies[i].queueCount > 0 && queueFamilies[i].queueFlags & vk::QueueFlagBits::eCompute;
+        if (supportsCompute && !computeQueueFamilyIndex.has_value()) {
+            computeQueueFamilyIndex = i;
+            computeOnGraphics = (queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics) == vk::QueueFlagBits::eGraphics;
+        } else if (supportsCompute && computeQueueFamilyIndex.has_value() && computeOnGraphics) {
+            // prefer to use compute queue without graphics support
+            computeQueueFamilyIndex = i;
+            computeOnGraphics = false;
         }
     }
 
-    if (!queueFamilyIndex.has_value()) {
+    if (!computeQueueFamilyIndex.has_value()) {
         throw rprpp::InternalError("Could not find a queue family that supports compute and transfer operations");
     }
 
     vk::raii::Device device = createDevice(physicalDevice,
         vulkanInstance.enabledLayers,
         queueInfos);
-    vk::raii::Queue queue = device.getQueue(queueFamilyIndex.value(), 0);
+    vk::raii::Queue queue = device.getQueue(computeQueueFamilyIndex.value(), 0);
 
     return {
         std::move(context),
@@ -299,7 +318,7 @@ DeviceContext createDeviceContext(uint32_t deviceId)
         std::move(physicalDevice),
         std::move(device),
         std::move(queue),
-        queueFamilyIndex.value()
+        computeQueueFamilyIndex.value()
     };
 }
 
