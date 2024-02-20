@@ -16,9 +16,9 @@
         }                                                                                   \
     }
 
-struct GpuIndices {
-    int dx11 = 0;
-    int vk = 0;
+struct DeviceInfo {
+    int index;
+    std::vector<uint8_t> deviceLUID;
 };
 
 struct Paths {

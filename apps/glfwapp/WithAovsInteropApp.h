@@ -25,7 +25,7 @@ private:
     int m_height;
     int m_renderedIterations;
     uint32_t m_framesInFlight;
-    GpuIndices m_gpuIndices;
+    DeviceInfo m_deviceInfo;
     Paths m_paths;
     GLFWwindow* m_window = nullptr;
     HWND m_hWnd = nullptr;
@@ -53,7 +53,7 @@ private:
     void mainLoop();
 
 public:
-    WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, GpuIndices gpuIndices);
+    WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, DeviceInfo deviceInfo);
     ~WithAovsInteropApp();
     void run();
 };

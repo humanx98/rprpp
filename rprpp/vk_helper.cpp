@@ -243,7 +243,10 @@ void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, 
     }
 
     vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
-    vk::PhysicalDeviceProperties props = physicalDevice.getProperties();
+
+    auto props2 = physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceIDProperties>();
+    vk::PhysicalDeviceProperties props = props2.get<vk::PhysicalDeviceProperties2>().properties;
+    vk::PhysicalDeviceIDProperties idprops = props2.get<vk::PhysicalDeviceIDProperties>();
 
     switch (info) {
     case DeviceInfo::eName: {
@@ -254,6 +257,17 @@ void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, 
 
         if (data != nullptr && size <= len) {
             std::strcpy((char*)data, props.deviceName);
+        }
+        break;
+    }
+    case DeviceInfo::eLUID: {
+        size_t len = VK_LUID_SIZE;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && size <= len) {
+            std::memcpy(data, idprops.deviceLUID, len);
         }
         break;
     }

@@ -22,7 +22,7 @@ private:
     int m_width;
     int m_height;
     int m_renderedIterations;
-    GpuIndices m_gpuIndices;
+    DeviceInfo m_deviceInfo;
     Paths m_paths;
     GLFWwindow* m_window = nullptr;
     HWND m_hWnd = nullptr;
@@ -46,7 +46,7 @@ private:
     void mainLoop();
 
 public:
-    NoAovsInteropApp(int width, int height, int renderedIterations, Paths paths, GpuIndices gpuIndices);
+    NoAovsInteropApp(int width, int height, int rendererdIterations, Paths paths, DeviceInfo deviceInfo);
     ~NoAovsInteropApp();
     void run();
 };

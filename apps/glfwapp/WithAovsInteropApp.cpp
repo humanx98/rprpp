@@ -12,13 +12,13 @@ inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
     }
 }
 
-WithAovsInteropApp::WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, GpuIndices gpuIndices)
+WithAovsInteropApp::WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, DeviceInfo deviceInfo)
     : m_width(width)
     , m_height(height)
     , m_renderedIterations(renderedIterations)
     , m_framesInFlight(framesInFlight)
     , m_paths(paths)
-    , m_gpuIndices(gpuIndices)
+    , m_deviceInfo(deviceInfo)
 {
     std::cout << "WithAovsInteropApp()" << std::endl;
 }
@@ -66,30 +66,8 @@ void WithAovsInteropApp::findAdapter()
     ComPtr<IDXGIFactory6> factory6;
     DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
 
-    std::cout << "All DXGI Adapters:" << std::endl;
-
-    ComPtr<IDXGIAdapter1> tmpAdapter;
-    DXGI_ADAPTER_DESC selectedAdapterDesc;
-    int adapterCount = 0;
-    for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
-        adapterCount++;
-
-        DXGI_ADAPTER_DESC desc;
-        tmpAdapter->GetDesc(&desc);
-
-        std::wcout << "\t" << adapterIndex << ". " << desc.Description << std::endl;
-
-        if (adapterIndex == m_gpuIndices.dx11) {
-            m_adapter = tmpAdapter;
-            selectedAdapterDesc = desc;
-        }
-    }
-
-    if (adapterCount <= m_gpuIndices.dx11) {
-        throw std::runtime_error("could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
-    }
-
-    std::wcout << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
+    LUID* luid = reinterpret_cast<LUID*>(&m_deviceInfo.deviceLUID[0]);
+    SUCCEEDED(factory6->EnumAdapterByLuid(*luid, IID_PPV_ARGS(&m_adapter)));
 }
 
 void WithAovsInteropApp::intiSwapChain()
@@ -122,7 +100,7 @@ void WithAovsInteropApp::intiSwapChain()
 
 void WithAovsInteropApp::initHybridProAndPostProcessing()
 {
-    m_postProcessing = std::make_unique<RprPostProcessing>(m_gpuIndices.vk);
+    m_postProcessing = std::make_unique<RprPostProcessing>(m_deviceInfo.index);
 
     for (uint32_t i = 0; i < m_framesInFlight; i++) {
         VkSemaphore semaphore;
@@ -153,7 +131,7 @@ void WithAovsInteropApp::initHybridProAndPostProcessing()
         .frameBuffersReleaseSemaphores = m_frameBuffersReleaseSemaphores.data(),
     };
 
-    m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_gpuIndices.vk, aovsInteropInfo, m_paths.hybridproDll, m_paths.hybridproCacheDir, m_paths.assetsDir);
+    m_hybridproRenderer = std::make_unique<HybridProRenderer>(m_deviceInfo.index, aovsInteropInfo, m_paths.hybridproDll, m_paths.hybridproCacheDir, m_paths.assetsDir);
     m_frameBuffersReadySemaphores = m_hybridproRenderer->getFrameBuffersReadySemaphores();
 }
 

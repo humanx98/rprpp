@@ -11,9 +11,21 @@
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
 #define FRAMES_IN_FLIGHT 4
 
+DeviceInfo getDeviceInfoOf(int index)
+{
+    size_t size;
+    RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_LUID, nullptr, 0, &size));
+    std::vector<uint8_t> deviceLUID;
+    deviceLUID.resize(size);
+    RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_LUID, deviceLUID.data(), size, nullptr));
+    return {
+        .index = index,
+        .deviceLUID = deviceLUID,
+    };
+}
+
 int main(int argc, const char* argv[])
 {
-    GpuIndices gpus = { .dx11 = DEVICE_ID, .vk = DEVICE_ID };
     std::cout << "GlfwApp started..." << std::endl;
     std::filesystem::path exeDirPath = std::filesystem::path(argv[0]).parent_path();
     Paths paths = {
@@ -32,10 +44,15 @@ int main(int argc, const char* argv[])
         RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, deviceName.data(), size, nullptr));
         std::cout << "Device id = " << i << ", name = " << std::string(deviceName.begin(), deviceName.end()) << std::endl;
     }
+
+    if (DEVICE_ID >= deviceCount) {
+        throw std::runtime_error("There is no device with index = " + std::to_string(DEVICE_ID));
+    }
+
 #if INTEROP
-    WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, gpus);
+    WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, getDeviceInfoOf(DEVICE_ID));
 #else
-    NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, gpus);
+    NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, getDeviceInfoOf(DEVICE_ID));
 #endif
     try {
         app.run();

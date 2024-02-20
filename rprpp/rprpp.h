@@ -27,6 +27,7 @@ typedef enum RprPpError {
 
 typedef enum RprPpDeviceInfo {
     RPRPP_DEVICE_INFO_NAME = 0,
+    RPRPP_DEVICE_INFO_LUID = 1,
 } RprPpDeviceInfo;
 
 typedef enum RprPpImageFormat {

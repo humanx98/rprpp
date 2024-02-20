@@ -12,14 +12,14 @@ inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
     }
 }
 
-NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIterations, Paths paths, GpuIndices gpuIndices)
+NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIterations, Paths paths, DeviceInfo deviceInfo)
     : m_width(width)
     , m_height(height)
     , m_renderedIterations(rendererdIterations)
     , m_paths(paths)
-    , m_gpuIndices(gpuIndices)
-    , m_postProcessing(gpuIndices.vk)
-    , m_hybridproRenderer(gpuIndices.vk, std::nullopt, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
+    , m_deviceInfo(deviceInfo)
+    , m_postProcessing(deviceInfo.index)
+    , m_hybridproRenderer(deviceInfo.index, std::nullopt, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
 {
     std::cout << "NoAovsInteropApp()" << std::endl;
 }
@@ -58,30 +58,8 @@ void NoAovsInteropApp::findAdapter()
     ComPtr<IDXGIFactory6> factory6;
     DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
 
-    std::cout << "All DXGI Adapters:" << std::endl;
-
-    ComPtr<IDXGIAdapter1> tmpAdapter;
-    DXGI_ADAPTER_DESC selectedAdapterDesc;
-    int adapterCount = 0;
-    for (UINT adapterIndex = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&tmpAdapter))); ++adapterIndex) {
-        adapterCount++;
-
-        DXGI_ADAPTER_DESC desc;
-        tmpAdapter->GetDesc(&desc);
-
-        std::wcout << "\t" << adapterIndex << ". " << desc.Description << std::endl;
-
-        if (adapterIndex == m_gpuIndices.dx11) {
-            m_adapter = tmpAdapter;
-            selectedAdapterDesc = desc;
-        }
-    }
-
-    if (adapterCount <= m_gpuIndices.dx11) {
-        throw std::runtime_error("could not find a IDXGIAdapter1, gpuIndices.dx11 is out of range");
-    }
-
-    std::wcout << "Selected adapter: " << selectedAdapterDesc.Description << std::endl;
+    LUID* luid = reinterpret_cast<LUID*>(&m_deviceInfo.deviceLUID[0]);
+    SUCCEEDED(factory6->EnumAdapterByLuid(*luid, IID_PPV_ARGS(&m_adapter)));
 }
 
 void NoAovsInteropApp::intiSwapChain()
