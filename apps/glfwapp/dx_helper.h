@@ -18,7 +18,8 @@
 
 struct DeviceInfo {
     int index;
-    std::vector<uint8_t> deviceLUID;
+    std::string name;
+    std::vector<uint8_t> LUID;
 };
 
 struct Paths {
