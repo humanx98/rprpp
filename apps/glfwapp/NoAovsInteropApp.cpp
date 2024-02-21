@@ -58,7 +58,7 @@ void NoAovsInteropApp::findAdapter()
     ComPtr<IDXGIFactory6> factory6;
     DX_CHECK(factory->QueryInterface(IID_PPV_ARGS(&factory6)));
 
-    LUID* luid = reinterpret_cast<LUID*>(&m_deviceInfo.deviceLUID[0]);
+    LUID* luid = reinterpret_cast<LUID*>(&m_deviceInfo.LUID[0]);
     SUCCEEDED(factory6->EnumAdapterByLuid(*luid, IID_PPV_ARGS(&m_adapter)));
 }
 

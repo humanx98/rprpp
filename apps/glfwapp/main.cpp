@@ -9,18 +9,24 @@
 #define DEVICE_ID 0
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
-#define FRAMES_IN_FLIGHT 4
+#define FRAMES_IN_FLIGHT 3
 
 DeviceInfo getDeviceInfoOf(int index)
 {
     size_t size;
+    RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_NAME, nullptr, 0, &size));
+    std::vector<char> deviceName;
+    deviceName.resize(size);
+    RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_NAME, deviceName.data(), size, nullptr));
+
     RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_LUID, nullptr, 0, &size));
     std::vector<uint8_t> deviceLUID;
     deviceLUID.resize(size);
     RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_LUID, deviceLUID.data(), size, nullptr));
     return {
         .index = index,
-        .deviceLUID = deviceLUID,
+        .name = std::string(deviceName.begin(), deviceName.end()),
+        .LUID = deviceLUID,
     };
 }
 
@@ -34,15 +40,12 @@ int main(int argc, const char* argv[])
         .assetsDir = exeDirPath,
     };
 
+    std::vector<DeviceInfo> deviceInfos;
     uint32_t deviceCount;
     RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
-    for (size_t i = 0; i < deviceCount; i++) {
-        size_t size;
-        RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, nullptr, 0, &size));
-        std::vector<char> deviceName;
-        deviceName.resize(size);
-        RPRPP_CHECK(rprppGetDeviceInfo(i, RPRPP_DEVICE_INFO_NAME, deviceName.data(), size, nullptr));
-        std::cout << "Device id = " << i << ", name = " << std::string(deviceName.begin(), deviceName.end()) << std::endl;
+    for (int i = 0; i < deviceCount; i++) {
+        deviceInfos.push_back(getDeviceInfoOf(i));
+        std::cout << "Device id = " << i << ", name = " << deviceInfos[i].name << std::endl;
     }
 
     if (DEVICE_ID >= deviceCount) {
@@ -50,9 +53,9 @@ int main(int argc, const char* argv[])
     }
 
 #if INTEROP
-    WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, getDeviceInfoOf(DEVICE_ID));
+    WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, deviceInfos.at(DEVICE_ID));
 #else
-    NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, getDeviceInfoOf(DEVICE_ID));
+    NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, deviceInfos.at(DEVICE_ID));
 #endif
     try {
         app.run();
