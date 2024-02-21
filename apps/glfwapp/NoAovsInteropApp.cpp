@@ -46,6 +46,7 @@ void NoAovsInteropApp::initWindow()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     m_window = glfwCreateWindow(m_width, m_height, "VkDx11 Interop", nullptr, nullptr);
+    glfwGetWindowSize(m_window, &m_width, &m_height);
     m_hWnd = glfwGetWin32Window(m_window);
     glfwSetFramebufferSizeCallback(m_window, NoAovsInteropApp::onResize);
     glfwSetWindowUserPointer(m_window, this);
