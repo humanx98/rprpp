@@ -18,7 +18,7 @@ find_library(RPR_LIBRARY
 find_path(RPR_HIP_KERNELS_DIR
 	NAME AllPreCompilations.json
 	HINTS /usr/share/RadeonProRender/hipbin
-	"${RPR_SDK_ROOT}"
+	"${RPR_SDK_ROOT}/hipbin"
 	"${RPR_HIPBIN}"
 	ENV RPR_SDK_ROOT 
 	ENV RPR_HIPBIN
