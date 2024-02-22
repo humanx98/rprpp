@@ -13,17 +13,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/CompileOptions.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/WindowsFileVersion.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/CopyFileToTarget.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/VulkanTools.cmake")
+
 set(RPR_SDK_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/RadeonProRenderSDK")
 
 find_package(Vulkan COMPONENTS shaderc_combined REQUIRED)
-get_filename_component(Vulkan_LIBRARY_DIR ${Vulkan_LIBRARY} DIRECTORY)
-find_file(Vulkan_SHADERC_COMBINEDD_LIB NAMES shaderc_combinedd.lib HINTS ${Vulkan_LIBRARY_DIR})
-if(NOT Vulkan_SHADERC_COMBINEDD_LIB)
-  message(FATAL_ERROR "Install 'Shader Toolchain Debug Symbols - 64 bit' with VulkanSDK in order to have shaderc_combinedd.lib")
-endif()
-
 find_package(Stb REQUIRED)
 find_package(RadeonProRenderSDK 3.1.0 REQUIRED COMPONENTS hybridpro)
+
+check_vulkan(${Vulkan_LIBRARY})
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)

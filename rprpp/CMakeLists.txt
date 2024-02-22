@@ -43,7 +43,6 @@ add_library(rprpp SHARED
     ${CMAKE_CURRENT_BINARY_DIR}/version_info.h
     ${CMAKE_CURRENT_BINARY_DIR}/version.rc
 )
-
 if(RPRPP_EXPORT_API)
     target_compile_definitions(rprpp PRIVATE RPRPP_EXPORT_API)
 endif()
@@ -57,7 +56,6 @@ target_link_libraries(rprpp
     PRIVATE Vulkan::Vulkan
     PRIVATE Vulkan::shaderc_combined
 )
-
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
 
 install(TARGETS rprpp RUNTIME PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rprpp)
