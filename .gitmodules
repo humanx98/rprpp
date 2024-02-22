@@ -1,0 +1,7 @@
+[submodule "stb"]
+	path = ThirdParty/stb
+	url = https://github.com/nothings/stb.git
+[submodule "rprsdk"]
+	path = ThirdParty/RadeonProRenderSDK
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderSDK.git
+	shallow = true
