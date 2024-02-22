@@ -7,16 +7,11 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 option(RPRPP_EXPORT_API "Export dll symbols" ON)
 option(BUILD_APPS "Build testing applications" ON)
-
-# Get the latest abbreviated commit hash of the working branch
-execute_process(
-  COMMAND git log -1 --format=%h
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_COMMIT_HASH
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/CompileOptions.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/WindowsFileVersion.cmake")
 
 set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
