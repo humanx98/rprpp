@@ -1,12 +1,14 @@
 #include "WithAovsInteropApp.h"
 
-#define FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+#define FORMAT DXGI_FORMAT_B8G8R8A8_UNORM
 
 inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
 {
     switch (format) {
     case DXGI_FORMAT_R8G8B8A8_UNORM:
         return RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+        return RPRPP_IMAGE_FROMAT_B8G8R8A8_UNORM;
     default:
         throw std::runtime_error("unsupported image format");
     }
