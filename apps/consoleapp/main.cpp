@@ -103,7 +103,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         .mattePass = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_MATTE_PASS),
         .background = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_BACKGROUND),
     };
-    postProcessing.resize(WIDTH, HEIGHT, format, nullptr, &aovsVkInteropInfo);
+    postProcessing.resize(WIDTH, HEIGHT, format, &aovsVkInteropInfo);
 
     std::vector<uint8_t> output;
     uint32_t currentFrame = 0;

@@ -12,15 +12,12 @@ public:
 
     StagingBuffer mapStagingBuffer(size_t size);
 
-    void resize(uint32_t width,
-        uint32_t height,
-        RprPpImageFormat format,
-        RprPpDx11Handle outputDx11TextureHandle = nullptr,
-        RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
+    void resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
-
     void waitQueueIdle();
+    void copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandle);
+
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
     VkDevice getVkDevice() const noexcept;
     VkQueue getVkQueue() const noexcept;

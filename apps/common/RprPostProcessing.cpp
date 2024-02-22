@@ -22,11 +22,11 @@ StagingBuffer RprPostProcessing::mapStagingBuffer(size_t size)
     return StagingBuffer(&m_context, size);
 }
 
-void RprPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
+void RprPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
 {
     RprPpError status;
 
-    status = rprppContextResize(m_context, width, height, format, outputDx11TextureHandle, aovsVkInteropInfo);
+    status = rprppContextResize(m_context, width, height, format, aovsVkInteropInfo);
     RPRPP_CHECK(status);
 }
 
@@ -51,6 +51,14 @@ void RprPostProcessing::waitQueueIdle()
     RprPpError status;
 
     status = rprppContextWaitQueueIdle(m_context);
+    RPRPP_CHECK(status);
+}
+
+void RprPostProcessing::copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandle)
+{
+    RprPpError status;
+
+    status = rprppContextCopyOutputToDx11Texture(m_context, dx11textureHandle);
     RPRPP_CHECK(status);
 }
 

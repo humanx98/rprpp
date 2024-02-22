@@ -192,32 +192,6 @@ namespace {
 
         throw rprpp::InternalError("Failed to find suitable memory type!");
     }
-
-    vk::raii::DeviceMemory allocateImageMemory(const DeviceContext& dctx,
-        const vk::raii::Image& image,
-        HANDLE sharedDx11TextureHandle)
-    {
-        if (sharedDx11TextureHandle != nullptr) {
-            vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
-            vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
-            vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
-            (*dctx.device).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
-            vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
-            vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
-                sharedDx11TextureHandle,
-                nullptr,
-                &memoryDedicatedAllocateInfo);
-            uint32_t memoryType = findMemoryType(dctx.physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-            vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
-                memoryType,
-                &importMemoryInfo);
-            return dctx.device.allocateMemory(memoryAllocateInfo);
-        } else {
-            vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-            uint32_t memoryType = findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-            return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-        }
-    }
 } // namespace
 
 // -------------------------------------------------------------------
@@ -340,13 +314,55 @@ Image createImage(const DeviceContext& dctx,
     uint32_t width,
     uint32_t height,
     vk::Format format,
-    vk::ImageUsageFlags usage,
-    HANDLE sharedDx11TextureHandle)
+    vk::ImageUsageFlags usage)
 {
-    std::optional<vk::ExternalMemoryImageCreateInfo> externalMemoryInfo;
-    if (sharedDx11TextureHandle != nullptr) {
-        externalMemoryInfo = vk::ExternalMemoryImageCreateInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture);
-    }
+    vk::ImageCreateInfo imageInfo({},
+        vk::ImageType::e2D,
+        format,
+        { width, height, 1 },
+        1,
+        1,
+        vk::SampleCountFlagBits::e1,
+        vk::ImageTiling::eOptimal,
+        usage,
+        vk::SharingMode::eExclusive,
+        nullptr,
+        vk::ImageLayout::eUndefined);
+    vk::raii::Image image(dctx.device, imageInfo);
+
+    vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
+    uint32_t memoryType = findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    vk::raii::DeviceMemory memory = dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
+    image.bindMemory(*memory, 0);
+
+    vk::ImageViewCreateInfo viewInfo({},
+        *image,
+        vk::ImageViewType::e2D,
+        format,
+        {},
+        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
+    vk::raii::ImageView view(dctx.device, viewInfo);
+
+    return {
+        .image = std::move(image),
+        .memory = std::move(memory),
+        .view = std::move(view),
+        .width = width,
+        .height = height,
+        .access = vk::AccessFlagBits::eNone,
+        .layout = vk::ImageLayout::eUndefined,
+        .stage = vk::PipelineStageFlagBits::eTopOfPipe
+    };
+}
+
+Image createImageFromDx11Texture(const DeviceContext& dctx,
+    HANDLE sharedDx11TextureHandle,
+    uint32_t width,
+    uint32_t height,
+    vk::Format format,
+    vk::ImageUsageFlags usage)
+{
+    vk::ExternalMemoryImageCreateInfo externalMemoryInfo = vk::ExternalMemoryImageCreateInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture);
 
     vk::ImageCreateInfo imageInfo({},
         vk::ImageType::e2D,
@@ -360,22 +376,36 @@ Image createImage(const DeviceContext& dctx,
         vk::SharingMode::eExclusive,
         nullptr,
         vk::ImageLayout::eUndefined,
-        externalMemoryInfo.has_value() ? &externalMemoryInfo.value() : nullptr);
-    vk::raii::Image vkimage(dctx.device, imageInfo);
+        &externalMemoryInfo);
+    vk::raii::Image image(dctx.device, imageInfo);
 
-    auto memory = allocateImageMemory(dctx, vkimage, sharedDx11TextureHandle);
-    vkimage.bindMemory(*memory, 0);
+    vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
+    vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
+    vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
+    (*dctx.device).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
+    vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
+    vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
+        sharedDx11TextureHandle,
+        nullptr,
+        &memoryDedicatedAllocateInfo);
+    uint32_t memoryType = findMemoryType(dctx.physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
+        memoryType,
+        &importMemoryInfo);
+    vk::raii::DeviceMemory memory = dctx.device.allocateMemory(memoryAllocateInfo);
+
+    image.bindMemory(*memory, 0);
 
     vk::ImageViewCreateInfo viewInfo({},
-        *vkimage,
+        *image,
         vk::ImageViewType::e2D,
         format,
         {},
         { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
     vk::raii::ImageView view(dctx.device, viewInfo);
 
-    Image image = {
-        .image = std::move(vkimage),
+    return {
+        .image = std::move(image),
         .memory = std::move(memory),
         .view = std::move(view),
         .width = width,
@@ -384,8 +414,6 @@ Image createImage(const DeviceContext& dctx,
         .layout = vk::ImageLayout::eUndefined,
         .stage = vk::PipelineStageFlagBits::eTopOfPipe
     };
-
-    return image;
 }
 
 Buffer createBuffer(const DeviceContext& dctx,

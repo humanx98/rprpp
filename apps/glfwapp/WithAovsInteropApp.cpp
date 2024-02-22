@@ -181,7 +181,7 @@ void WithAovsInteropApp::resize(int width, int height)
             .mattePass = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS),
             .background = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND),
         };
-        m_postProcessing->resize(width, height, to_rprppformat(FORMAT), m_sharedTextureHandle, &aovsVkInteropInfo);
+        m_postProcessing->resize(width, height, to_rprppformat(FORMAT), &aovsVkInteropInfo);
 
         float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
         m_postProcessing->setToneMapFocalLength(focalLength);
@@ -245,6 +245,7 @@ void WithAovsInteropApp::mainLoop()
                 }
 
                 m_postProcessing->waitQueueIdle();
+                m_postProcessing->copyOutputToDx11Texture(m_sharedTextureHandle);
             }
 
             IDXGIKeyedMutex* km;

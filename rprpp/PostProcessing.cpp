@@ -62,7 +62,7 @@ void PostProcessing::createShaderModule(ImageFormat outputFormat, bool aovsAreSa
     m_shaderModule = m_shaderManager.get(m_dctx.device, macroDefinitions);
 }
 
-void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
+void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
 {
     size_t stagingBufferSize = std::max(sizeof(UniformBufferObject), width * height * NumComponents * sizeof(float));
     m_stagingBuffer = vk::helper::createBuffer(m_dctx,
@@ -131,8 +131,7 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
         width,
         height,
         to_vk_format(outputFormat),
-        vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage,
-        outputDx11TextureHandle);
+        vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage);
 
     transitionImageLayout(m_outputImage.value(),
         vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
@@ -298,11 +297,10 @@ void PostProcessing::updateUbo()
     m_dctx.queue.waitIdle();
 }
 
-void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
+void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
 {
     if (m_width == width
         && m_height == height
-        && m_outputDx11TextureHandle == outputDx11TextureHandle
         && m_outputImageFormat == format
         && m_aovsVkInteropInfo == aovsVkInteropInfo) {
         return;
@@ -323,13 +321,12 @@ void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format,
     }
 
     if (width > 0 && height > 0) {
-        createImages(width, height, format, outputDx11TextureHandle, aovsVkInteropInfo);
+        createImages(width, height, format, aovsVkInteropInfo);
         createDescriptorSet();
         createComputePipeline();
         recordComputeCommandBuffer(width, height);
     }
 
-    m_outputDx11TextureHandle = outputDx11TextureHandle;
     m_width = width;
     m_height = height;
     m_outputImageFormat = format;
@@ -400,6 +397,52 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
 void PostProcessing::waitQueueIdle()
 {
     m_dctx.queue.waitIdle();
+}
+
+void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
+{
+    if (!m_outputImage.has_value()) {
+        return;
+    }
+
+    if (dx11textureHandle == nullptr) {
+        throw InvalidParameter("dx11textureHandle", "Cannot be null");
+    }
+
+    auto externalDx11Image = vk::helper::createImageFromDx11Texture(m_dctx,
+        dx11textureHandle,
+        m_outputImage->width,
+        m_outputImage->height,
+        to_vk_format(m_outputImageFormat),
+        vk::ImageUsageFlagBits::eTransferDst);
+
+    transitionImageLayout(externalDx11Image,
+        vk::AccessFlagBits::eTransferWrite,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::PipelineStageFlagBits::eTransfer);
+
+    vk::AccessFlags oldAccess = m_outputImage->access;
+    vk::ImageLayout oldLayout = m_outputImage->layout;
+    vk::PipelineStageFlags oldStage = m_outputImage->stage;
+    transitionImageLayout(m_outputImage.value(),
+        vk::AccessFlagBits::eTransferRead,
+        vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eTransfer);
+    {
+        m_secondaryCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+
+        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+        vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
+        m_secondaryCommandBuffer.copyImage(*m_outputImage->image, vk::ImageLayout::eTransferSrcOptimal, *externalDx11Image.image, vk::ImageLayout::eTransferDstOptimal, region);
+
+        m_secondaryCommandBuffer.end();
+
+        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer);
+        m_dctx.queue.submit(submitInfo);
+        m_dctx.queue.waitIdle();
+    }
+
+    transitionImageLayout(m_outputImage.value(), oldAccess, oldLayout, oldStage);
 }
 
 VkPhysicalDevice PostProcessing::getVkPhysicalDevice() const noexcept

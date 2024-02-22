@@ -161,7 +161,7 @@ RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* pAovsVkInterop)
+RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* pAovsVkInterop)
 {
     assert(context);
 
@@ -180,7 +180,7 @@ RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t hei
             };
         }
 
-        pp->resize(width, height, static_cast<rprpp::ImageFormat>(format), outputDx11TextureHandle, aovsVkInteropInfo);
+        pp->resize(width, height, static_cast<rprpp::ImageFormat>(format), aovsVkInteropInfo);
     });
     check(result);
 
@@ -218,6 +218,19 @@ RprPpError rprppContextWaitQueueIdle(RprPpContext context)
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
         pp->waitQueueIdle();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCopyOutputToDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+        pp->copyOutputToDx11Texture(dx11textureHandle);
     });
     check(result);
 

@@ -67,9 +67,10 @@ RPRPP_API RprPpError rprppContextGetOutput(RprPpContext context, uint8_t* dst, s
 RPRPP_API RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysicalDevice* physicalDevice);
 RPRPP_API RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkDevice* device);
 RPRPP_API RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue);
-RPRPP_API RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpDx11Handle outputDx11TextureHandle, RprPpAovsVkInteropInfo* aovsVkInteropInfo);
+RPRPP_API RprPpError rprppContextResize(RprPpContext context, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo);
 RPRPP_API RprPpError rprppContextRun(RprPpContext context, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore);
 RPRPP_API RprPpError rprppContextWaitQueueIdle(RprPpContext context);
+RPRPP_API RprPpError rprppContextCopyOutputToDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle);
 
 RPRPP_API RprPpError rprppContextMapStagingBuffer(RprPpContext context, size_t size, void** data);
 RPRPP_API RprPpError rprppContextUnmapStagingBuffer(RprPpContext context);

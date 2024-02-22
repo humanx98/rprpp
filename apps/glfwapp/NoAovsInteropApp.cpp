@@ -127,7 +127,7 @@ void NoAovsInteropApp::resize(int width, int height)
         viewport.Height = height;
         m_deviceContex->RSSetViewports(1, &viewport);
 
-        m_postProcessing.resize(width, height, to_rprppformat(FORMAT), m_sharedTextureHandle);
+        m_postProcessing.resize(width, height, to_rprppformat(FORMAT));
         m_hybridproRenderer.resize(width, height);
         float focalLength = m_hybridproRenderer.getFocalLength() / 1000.0f;
         m_postProcessing.setToneMapFocalLength(focalLength);
@@ -178,6 +178,7 @@ void NoAovsInteropApp::mainLoop()
             m_postProcessing.copyStagingBufferToAovBackground();
             m_postProcessing.run();
             m_postProcessing.waitQueueIdle();
+            m_postProcessing.copyOutputToDx11Texture(m_sharedTextureHandle);
 
             IDXGIKeyedMutex* km;
             DX_CHECK(m_sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));

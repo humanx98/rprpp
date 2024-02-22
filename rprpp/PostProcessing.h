@@ -92,10 +92,11 @@ public:
 
     void* mapStagingBuffer(size_t size);
     void unmapStagingBuffer();
-    void resize(uint32_t width, uint32_t height, ImageFormat format, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
+    void resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
     void waitQueueIdle();
+    void copyOutputToDx11Texture(HANDLE dx11textureHandle);
 
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
     VkDevice getVkDevice() const noexcept;
@@ -130,7 +131,7 @@ public:
 private:
     void createShaderModule(ImageFormat outputFormat, bool sampledAovs);
     void createDescriptorSet();
-    void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, HANDLE outputDx11TextureHandle, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
+    void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void createComputePipeline();
     void recordComputeCommandBuffer(uint32_t width, uint32_t height);
     void transitionImageLayout(vk::helper::Image& image,
@@ -142,7 +143,6 @@ private:
 
     uint32_t m_width = 0;
     uint32_t m_height = 0;
-    HANDLE m_outputDx11TextureHandle = nullptr;
     ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
     std::optional<AovsVkInteropInfo> m_aovsVkInteropInfo;
     bool m_uboDirty = true;
