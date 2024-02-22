@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 option(RPRPP_EXPORT_API "Export dll symbols" ON)
+option(BUILD_APPS "Build testing applications" ON)
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
@@ -14,6 +15,8 @@ execute_process(
   OUTPUT_VARIABLE GIT_COMMIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
@@ -24,6 +27,8 @@ find_file(Vulkan_SHADERC_COMBINEDD_LIB NAMES shaderc_combinedd.lib HINTS ${Vulka
 if(NOT Vulkan_SHADERC_COMBINEDD_LIB)
   message(FATAL_ERROR "Install 'Shader Toolchain Debug Symbols - 64 bit' with VulkanSDK in order to have shaderc_combinedd.lib")
 endif()
+
+find_package(Stb REQUIRED)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
@@ -39,4 +44,7 @@ macro(_copy_file_to_target target thefile)
 endmacro()
 
 add_subdirectory(rprpp)
-add_subdirectory(apps)
+if (BUILD_APPS)
+    add_subdirectory(stbimpl)
+    add_subdirectory(apps)
+endif()

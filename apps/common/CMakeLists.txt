@@ -1,10 +1,3 @@
-FetchContent_Declare(stb 
-    GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
-)
-FetchContent_MakeAvailable(stb)
-
 set(HEADERS
     StagingBuffer.h
     HybridProRenderer.h
@@ -27,6 +20,7 @@ target_include_directories(appcommon PUBLIC
 
 target_link_libraries(appcommon PUBLIC
     rprpp
+    stbimpl
     Vulkan::Vulkan
     ${RPRSDK_DIR}/libWin64/RadeonProRender64.lib
  )
