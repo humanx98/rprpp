@@ -4,4 +4,3 @@
 [submodule "rprsdk"]
 	path = ThirdParty/RadeonProRenderSDK
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderSDK.git
-	shallow = true
