@@ -9,7 +9,7 @@ add_custom_command(TARGET consoleapp POST_BUILD
   COMMAND_EXPAND_LISTS
 )
 # copy hip kernels
-populate_rprsdk_kernels(consoleapp)
+#populate_rprsdk_kernels(consoleapp)
 
 # copy assets
 _copy_file_to_target(consoleapp ${CMAKE_SOURCE_DIR}/apps/assets/teapot.obj)

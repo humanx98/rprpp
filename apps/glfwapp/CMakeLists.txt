@@ -32,7 +32,7 @@ add_custom_command(TARGET glfwapp POST_BUILD
   COMMAND_EXPAND_LISTS
 )
 # copy hip kernels
-populate_rprsdk_kernels(glfwapp)
+#populate_rprsdk_kernels(glfwapp)
 
 # copy assets
 _copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/apps/assets/teapot.obj)
