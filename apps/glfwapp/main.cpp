@@ -23,10 +23,14 @@ DeviceInfo getDeviceInfoOf(int index)
     std::vector<uint8_t> deviceLUID;
     deviceLUID.resize(size);
     RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_LUID, deviceLUID.data(), size, nullptr));
+
+    uint32_t supportHardwareRT;
+    RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING, &supportHardwareRT, sizeof(supportHardwareRT), nullptr));
     return {
         .index = index,
         .name = std::string(deviceName.begin(), deviceName.end()),
         .LUID = deviceLUID,
+        .supportHardwareRT = supportHardwareRT == RPRPP_TRUE ? true : false,
     };
 }
 
@@ -45,7 +49,11 @@ int main(int argc, const char* argv[])
     RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
     for (int i = 0; i < deviceCount; i++) {
         deviceInfos.push_back(getDeviceInfoOf(i));
-        std::cout << "Device id = " << i << ", name = " << deviceInfos[i].name << std::endl;
+        std::cout << "Device id = " << i << ", name = " << deviceInfos[i].name;
+        if (deviceInfos[i].supportHardwareRT) {
+            std::cout << ", support Hardware Ray Tracing.";
+        }
+        std::cout << std::endl;
     }
 
     if (DEVICE_ID >= deviceCount) {

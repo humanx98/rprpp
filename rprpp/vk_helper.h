@@ -8,6 +8,7 @@ namespace vk::helper {
 enum class DeviceInfo {
     eName = RPRPP_DEVICE_INFO_NAME,
     eLUID = RPRPP_DEVICE_INFO_LUID,
+    eSupportHardwareRayTracing = RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING,
 };
 
 struct DeviceContext {

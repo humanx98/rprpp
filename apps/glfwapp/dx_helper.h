@@ -20,6 +20,7 @@ struct DeviceInfo {
     int index;
     std::string name;
     std::vector<uint8_t> LUID;
+    bool supportHardwareRT;
 };
 
 struct Paths {

@@ -91,6 +91,16 @@ namespace {
         };
     } // createInstance
 
+    std::vector<const char*> getRayTracingExtensions()
+    {
+        return {
+            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+            VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+            VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        };
+    }
+
     vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
         const std::vector<const char*>& enabledLayers,
         const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
@@ -112,12 +122,7 @@ namespace {
         };
 
         //  for hybridpro
-        const static std::vector<const char*> rayTracingExtensions {
-            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-            VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
-            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-            VK_KHR_RAY_QUERY_EXTENSION_NAME,
-        };
+        std::vector<const char*> rayTracingExtensions = getRayTracingExtensions();
 
         std::vector<const char*> availableExtensions;
 
@@ -242,6 +247,27 @@ void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, 
 
         if (data != nullptr && size <= len) {
             std::memcpy(data, idprops.deviceLUID, len);
+        }
+        break;
+    }
+    case DeviceInfo::eSupportHardwareRayTracing: {
+        size_t len = sizeof(uint32_t);
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && size <= len) {
+            std::vector<const char*> availableExtensions;
+            const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
+            availableExtensions.reserve(extensionProperties.size());
+            for (const vk::ExtensionProperties& property : extensionProperties) {
+                availableExtensions.push_back(property.extensionName);
+            }
+            std::vector<const char*> rayTracingExtensions = getRayTracingExtensions();
+            uint32_t supportHardwareRT = validateRequiredExtensions(availableExtensions, rayTracingExtensions)
+                ? RPRPP_TRUE
+                : RPRPP_FALSE;
+            std::memcpy(data, &supportHardwareRT, len);
         }
         break;
     }
