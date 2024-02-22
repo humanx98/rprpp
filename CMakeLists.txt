@@ -12,9 +12,8 @@ option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/CompileOptions.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/WindowsFileVersion.cmake")
-
-set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
-set(RPRSDK_DIR ${LIBS_DIR}/RadeonProRender)
+include("${CMAKE_SOURCE_DIR}/cmake/CopyFileToTarget.cmake")
+set(RPR_SDK_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/RadeonProRenderSDK")
 
 find_package(Vulkan COMPONENTS shaderc_combined REQUIRED)
 get_filename_component(Vulkan_LIBRARY_DIR ${Vulkan_LIBRARY} DIRECTORY)
@@ -24,19 +23,10 @@ if(NOT Vulkan_SHADERC_COMBINEDD_LIB)
 endif()
 
 find_package(Stb REQUIRED)
+find_package(RadeonProRenderSDK 3.1.0 REQUIRED COMPONENTS hybridpro)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
-
-macro(_copy_file_to_target target thefile)
-    add_custom_command(
-        TARGET ${target} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${thefile}
-        $<TARGET_FILE_DIR:${target}>
-        VERBATIM
-    )
-endmacro()
 
 add_subdirectory(rprpp)
 if (BUILD_APPS)

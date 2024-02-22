@@ -14,14 +14,12 @@ set(SOURCES
 add_library(appcommon STATIC ${HEADERS} ${SOURCES})
 target_include_directories(appcommon PUBLIC
     PUBLIC ${CMAKE_SOURCE_DIR}/apps
-    PUBLIC ${RPRSDK_DIR}/inc
-    PUBLIC ${stb_SOURCE_DIR}
 )
 
 target_link_libraries(appcommon PUBLIC
+    RadeonProRenderSDK::RPR
     rprpp
     stbimpl
     Vulkan::Vulkan
-    ${RPRSDK_DIR}/libWin64/RadeonProRender64.lib
  )
 

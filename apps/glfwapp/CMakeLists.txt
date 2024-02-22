@@ -22,13 +22,20 @@ set(SOURCES
 )
 add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
 
-_copy_file_to_target(glfwapp $<TARGET_FILE_DIR:rprpp>/rprpp.dll)
-_copy_file_to_target(glfwapp ${RPRSDK_DIR}/binWin64/HybridPro.dll)
-_copy_file_to_target(glfwapp ${RPRSDK_DIR}/binWin64/RadeonProRender64.dll)
-_copy_file_to_target(glfwapp ${CMAKE_CURRENT_SOURCE_DIR}/../assets/teapot.obj)
-_copy_file_to_target(glfwapp ${CMAKE_CURRENT_SOURCE_DIR}/../assets/envLightImage.exr)
-
 target_link_libraries(glfwapp 
     glfw 
     appcommon
 )
+# automatically copy all dll's deps.
+add_custom_command(TARGET glfwapp POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:glfwapp> $<TARGET_RUNTIME_DLLS:glfwapp>
+  COMMAND_EXPAND_LISTS
+)
+# copy hip kernels
+populate_rprsdk_kernels(glfwapp)
+
+# copy assets
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/apps/assets/teapot.obj)
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/apps/assets/envLightImage.exr)
+
+
