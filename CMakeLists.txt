@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
-option(RPRPP_EXPORT_API "Export dll symbols" 1)
+option(RPRPP_EXPORT_API "Export dll symbols" ON)
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
