@@ -1,5 +1,4 @@
-1. iGPUs support
-2. bloom
-3. denoising
-4. return error messages
-5. handle multi layers iamges (stereo camera)
+1. bloom
+2. denoising
+3. return error messages
+4. handle multi layers iamges (stereo camera)
