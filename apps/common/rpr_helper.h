@@ -3,14 +3,6 @@
 #include "rprpp/rprpp.h"
 #include <RadeonProRender.h>
 #include <string>
-#include <vulkan/vulkan.h>
-
-#define VK_CHECK(x)                              \
-    {                                            \
-        if ((x) != VK_SUCCESS) {                 \
-            ErrorManager(x, __FILE__, __LINE__); \
-        }                                        \
-    }
 
 #define RPR_CHECK(x)                             \
     {                                            \
@@ -66,7 +58,6 @@ inline rpr_creation_flags intToRprCreationFlag(int index)
     }
 }
 
-void ErrorManager(VkResult result, const char* fileName, int line);
 void ErrorManager(rpr_status errorCode, const char* fileName, int line);
 void ErrorManager(RprPpError errorCode, const char* fileName, int line);
 void CheckNoLeak(rpr_context context);

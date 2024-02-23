@@ -524,7 +524,7 @@ RprPpError rprppContextSetBloomThreshold(RprPpContext context, float threshold)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppContextSetBloomEnabled(RprPpContext context, uint32_t enabled)
+RprPpError rprppContextSetBloomEnabled(RprPpContext context, RprPpBool enabled)
 {
     assert(context);
 
@@ -563,13 +563,129 @@ RprPpError rprppContextSetShadowIntensity(RprPpContext context, float shadowInte
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, uint32_t enabled)
+RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, RprPpBool enabled)
 {
     assert(context);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
         pp->setDenoiserEnabled(RPRPP_TRUE == enabled);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppVkCreateSemaphore(RprPpVkDevice device, RprPpVkSemaphore* outSemaphore)
+{
+    assert(device);
+
+    auto result = safeCall([&] {
+        vk::Device vkdevice = static_cast<VkDevice>(device);
+        *outSemaphore = (VkSemaphore)vkdevice.createSemaphore({});
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppVkDestroySemaphore(RprPpVkDevice device, RprPpVkSemaphore semaphore)
+{
+    assert(device);
+
+    auto result = safeCall([&] {
+        vk::Device vkdevice = static_cast<VkDevice>(device);
+        vk::Semaphore vksemaphore = static_cast<VkSemaphore>(semaphore);
+        vkdevice.destroySemaphore(vksemaphore);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppVkCreateFence(RprPpVkDevice device, RprPpBool signaled, RprPpVkFence* outFence)
+{
+    assert(device);
+
+    auto result = safeCall([&] {
+        vk::Device vkdevice = static_cast<VkDevice>(device);
+        vk::FenceCreateInfo info;
+        if (signaled == RPRPP_TRUE) {
+            info.flags = vk::FenceCreateFlagBits::eSignaled;
+        }
+        *outFence = (VkFence)vkdevice.createFence(info);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppVkDestroyFence(RprPpVkDevice device, RprPpVkFence fence)
+{
+    assert(device);
+
+    auto result = safeCall([&] {
+        vk::Device vkdevice = static_cast<VkDevice>(device);
+        vk::Fence vkfence = static_cast<VkFence>(fence);
+        vkdevice.destroyFence(vkfence);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppVkWaitForFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences, RprPpBool waitAll, uint64_t timeout)
+{
+    assert(device);
+
+    auto result = safeCall([&] {
+        VkDevice vkdevice = static_cast<VkDevice>(device);
+        VkFence* vkfences = reinterpret_cast<VkFence*>(pFences);
+        vkWaitForFences(vkdevice, fenceCount, vkfences, waitAll, timeout);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+RprPpError rprppVkResetFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences)
+{
+    assert(device);
+
+    auto result = safeCall([&] {
+        VkDevice vkdevice = static_cast<VkDevice>(device);
+        VkFence* vkfences = reinterpret_cast<VkFence*>(pFences);
+        vkResetFences(vkdevice, fenceCount, vkfences);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppVkQueueSubmitWaitAndSignal(RprPpVkQueue queue, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore signalSemaphore, RprPpVkFence fence)
+{
+    assert(queue);
+
+    auto result = safeCall([&] {
+        VkQueue vkqueue = static_cast<VkQueue>(queue);
+        VkFence vkfence = static_cast<VkFence>(fence);
+        VkSemaphore vkwaitSemaphore = static_cast<VkSemaphore>(waitSemaphore);
+        VkSemaphore vksignalSemaphore = static_cast<VkSemaphore>(signalSemaphore);
+
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+        if (vkwaitSemaphore != VK_NULL_HANDLE) {
+            submitInfo.pWaitDstStageMask = &waitStage;
+            submitInfo.pWaitSemaphores = &vkwaitSemaphore;
+            submitInfo.waitSemaphoreCount = 1;
+        }
+
+        if (vksignalSemaphore != VK_NULL_HANDLE) {
+            submitInfo.pSignalSemaphores = &vksignalSemaphore;
+            submitInfo.signalSemaphoreCount = 1;
+        }
+
+        vkQueueSubmit(vkqueue, 1, &submitInfo, vkfence);
     });
     check(result);
 

@@ -23,10 +23,10 @@ HybridProRenderer::HybridProRenderer(int deviceId,
         instance_.physical_device = m_interopInfo.value().physicalDevice;
         instance_.device = m_interopInfo.value().device;
 
-        interopInfo_.instance_count = 1,
+        interopInfo_.instance_count = 1;
         interopInfo_.instances = &instance_;
-        interopInfo_.main_instance_index = 0,
-        interopInfo_.frames_in_flight = m_interopInfo.value().framesInFlight,
+        interopInfo_.main_instance_index = 0;
+        interopInfo_.frames_in_flight = m_interopInfo.value().framesInFlight;
         interopInfo_.framebuffers_release_semaphores = m_interopInfo.value().frameBuffersReleaseSemaphores;
         properties.push_back((rpr_context_properties)RPR_CONTEXT_CREATEPROP_VK_INTEROP_INFO);
         properties.push_back((rpr_context_properties)&interopInfo_);
@@ -56,7 +56,7 @@ HybridProRenderer::HybridProRenderer(int deviceId,
         m_frameBuffersReadySemaphores.resize(m_interopInfo.value().framesInFlight);
         RPR_CHECK(rprContextGetInfo(m_context,
             (rpr_context_info)RPR_CONTEXT_FRAMEBUFFERS_READY_SEMAPHORES,
-            sizeof(VkSemaphore) * m_interopInfo.value().framesInFlight,
+            sizeof(RprPpVkSemaphore) * m_interopInfo.value().framesInFlight,
             m_frameBuffersReadySemaphores.data(),
             nullptr));
     }
@@ -276,7 +276,7 @@ void HybridProRenderer::render()
     RPR_CHECK(rprContextRender(m_context));
 }
 
-std::vector<VkSemaphore> HybridProRenderer::getFrameBuffersReadySemaphores()
+std::vector<RprPpVkSemaphore> HybridProRenderer::getFrameBuffersReadySemaphores()
 {
     if (!m_interopInfo.has_value()) {
         throw std::runtime_error("getFrameBuffersReadySemaphores is unavailable without vulkan interop");
@@ -310,14 +310,14 @@ void HybridProRenderer::flushFrameBuffers()
     RPR_CHECK(rprContextFlushFrameBuffers(m_context));
 }
 
-VkImage HybridProRenderer::getAovVkImage(rpr_aov aov)
+RprPpVkImage HybridProRenderer::getAovVkImage(rpr_aov aov)
 {
     if (!m_interopInfo.has_value()) {
         throw std::runtime_error("getAovVkImage is unavailable without vulkan interop");
     }
 
-    VkImage image;
-    RPR_CHECK(rprFrameBufferGetInfo(getAov(aov), (rpr_framebuffer_info)RPR_VK_IMAGE_OBJECT, sizeof(VkImage), &image, 0));
+    RprPpVkImage image;
+    RPR_CHECK(rprFrameBufferGetInfo(getAov(aov), (rpr_framebuffer_info)RPR_VK_IMAGE_OBJECT, sizeof(RprPpVkImage), &image, 0));
     return image;
 }
 

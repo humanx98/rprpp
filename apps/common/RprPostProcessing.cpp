@@ -62,34 +62,34 @@ void RprPostProcessing::copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandl
     RPRPP_CHECK(status);
 }
 
-VkPhysicalDevice RprPostProcessing::getVkPhysicalDevice() const noexcept
+RprPpVkPhysicalDevice RprPostProcessing::getVkPhysicalDevice() const noexcept
 {
     RprPpError status;
     RprPpVkPhysicalDevice vkhandle = nullptr;
 
     status = rprppContextGetVkPhysicalDevice(m_context, &vkhandle);
     RPRPP_CHECK(status);
-    return static_cast<VkPhysicalDevice>(vkhandle);
+    return vkhandle;
 }
 
-VkDevice RprPostProcessing::getVkDevice() const noexcept
+RprPpVkDevice RprPostProcessing::getVkDevice() const noexcept
 {
     RprPpError status;
     RprPpVkDevice vkhandle = nullptr;
 
     status = rprppContextGetVkDevice(m_context, &vkhandle);
     RPRPP_CHECK(status);
-    return static_cast<VkDevice>(vkhandle);
+    return vkhandle;
 }
 
-VkQueue RprPostProcessing::getVkQueue() const noexcept
+RprPpVkQueue RprPostProcessing::getVkQueue() const noexcept
 {
     RprPpError status;
     RprPpVkQueue vkhandle = nullptr;
 
     status = rprppContextGetVkQueue(m_context, &vkhandle);
     RPRPP_CHECK(status);
-    return static_cast<VkQueue>(vkhandle);
+    return vkhandle;
 }
 
 void RprPostProcessing::copyStagingBufferToAovColor()

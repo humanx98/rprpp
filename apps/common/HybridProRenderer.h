@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rprpp/rprpp.h"
 #include <RadeonProRender.h>
 #include <RadeonProRender_Baikal.h>
 #include <filesystem>
@@ -7,14 +8,13 @@
 #include <memory>
 #include <optional>
 #include <vector>
-#include <vulkan/vulkan.h>
 #include <windows.h>
 
 struct HybridProInteropInfo {
-    VkPhysicalDevice physicalDevice;
-    VkDevice device;
+    RprPpVkPhysicalDevice physicalDevice;
+    RprPpVkDevice device;
     uint32_t framesInFlight;
-    VkSemaphore* frameBuffersReleaseSemaphores;
+    RprPpVkSemaphore* frameBuffersReleaseSemaphores;
 };
 
 class HybridProRenderer {
@@ -22,7 +22,7 @@ private:
     uint32_t m_width;
     uint32_t m_height;
     std::optional<HybridProInteropInfo> m_interopInfo;
-    std::vector<VkSemaphore> m_frameBuffersReadySemaphores;
+    std::vector<RprPpVkSemaphore> m_frameBuffersReadySemaphores;
     rprContextFlushFrameBuffers_func rprContextFlushFrameBuffers;
     rpr_context m_context = nullptr;
     rpr_material_system m_matsys = nullptr;
@@ -53,10 +53,10 @@ public:
     void resize(uint32_t width, uint32_t height);
     void render();
     void saveResultTo(const std::filesystem::path& path, rpr_aov aov);
-    std::vector<VkSemaphore> getFrameBuffersReadySemaphores();
+    std::vector<RprPpVkSemaphore> getFrameBuffersReadySemaphores();
     uint32_t getSemaphoreIndex();
     void flushFrameBuffers();
-    VkImage getAovVkImage(rpr_aov aov);
+    RprPpVkImage getAovVkImage(rpr_aov aov);
     void getAov(rpr_aov aov, void* data, size_t size, size_t* retSize) const;
     float getFocalLength();
 

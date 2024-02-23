@@ -20,6 +20,5 @@ target_link_libraries(appcommon PUBLIC
     RadeonProRenderSDK::RPR
     rprpp
     stbimpl
-    Vulkan::Vulkan
- )
+)
 

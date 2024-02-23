@@ -29,11 +29,11 @@ WithAovsInteropApp::~WithAovsInteropApp()
 {
     std::cout << "~WithAovsInteropApp()" << std::endl;
     for (auto f : m_fences) {
-        vkDestroyFence(m_postProcessing->getVkDevice(), f, nullptr);
+        RPRPP_CHECK(rprppVkDestroyFence(m_postProcessing->getVkDevice(), f));
     }
 
     for (auto s : m_frameBuffersReleaseSemaphores) {
-        vkDestroySemaphore(m_postProcessing->getVkDevice(), s, nullptr);
+        RPRPP_CHECK(rprppVkDestroySemaphore(m_postProcessing->getVkDevice(), s));
     }
 
     glfwDestroyWindow(m_window);
@@ -106,26 +106,17 @@ void WithAovsInteropApp::initHybridProAndPostProcessing()
     m_postProcessing = std::make_unique<RprPostProcessing>(m_deviceInfo.index);
 
     for (uint32_t i = 0; i < m_framesInFlight; i++) {
-        VkSemaphore semaphore;
-        VkSemaphoreCreateInfo semaphoreInfo { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-        VK_CHECK(vkCreateSemaphore(m_postProcessing->getVkDevice(), &semaphoreInfo, nullptr, &semaphore));
+        RprPpVkSemaphore semaphore;
+        RPRPP_CHECK(rprppVkCreateSemaphore(m_postProcessing->getVkDevice(), &semaphore));
         m_frameBuffersReleaseSemaphores.push_back(semaphore);
 
-        VkFence fence;
-        VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VK_CHECK(vkCreateFence(m_postProcessing->getVkDevice(), &fenceInfo, nullptr, &fence));
+        RprPpVkFence fence;
+        RPRPP_CHECK(rprppVkCreateFence(m_postProcessing->getVkDevice(), RPRPP_TRUE, &fence));
         m_fences.push_back(fence);
     }
 
     // set frame buffers realese to signal state
-    {
-        VkSubmitInfo submitInfo {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pSignalSemaphores = &m_frameBuffersReleaseSemaphores[1 % m_framesInFlight];
-        submitInfo.signalSemaphoreCount = 1;
-        VK_CHECK(vkQueueSubmit(m_postProcessing->getVkQueue(), 1, &submitInfo, nullptr));
-    }
+    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), nullptr, m_frameBuffersReleaseSemaphores[1 % m_framesInFlight], nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
         .physicalDevice = m_postProcessing->getVkPhysicalDevice(),
@@ -219,28 +210,21 @@ void WithAovsInteropApp::mainLoop()
                 for (unsigned int i = 0; i < m_renderedIterations; i++) {
                     // +1 because we get semaphore before rendering
                     uint32_t semaphoreIndex = (m_hybridproRenderer->getSemaphoreIndex() + 1) % m_framesInFlight;
-                    VkFence fence = m_fences[semaphoreIndex];
-                    VK_CHECK(vkWaitForFences(m_postProcessing->getVkDevice(), 1, &fence, true, UINT64_MAX));
-                    vkResetFences(m_postProcessing->getVkDevice(), 1, &fence);
+                    RprPpVkFence fence = m_fences[semaphoreIndex];
+                    RPRPP_CHECK(rprppVkWaitForFences(m_postProcessing->getVkDevice(), 1, &fence, true, UINT64_MAX));
+                    RPRPP_CHECK(rprppVkResetFences(m_postProcessing->getVkDevice(), 1, &fence));
 
                     m_hybridproRenderer->render();
                     m_hybridproRenderer->flushFrameBuffers();
 
-                    VkSemaphore aovsReadySemaphore = m_frameBuffersReadySemaphores[semaphoreIndex];
-                    VkSemaphore processingFinishedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
+                    RprPpVkSemaphore aovsReadySemaphore = m_frameBuffersReadySemaphores[semaphoreIndex];
+                    RprPpVkSemaphore processingFinishedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
 
                     if (i < m_renderedIterations - 1) {
-                        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-                        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-                        submitInfo.pWaitDstStageMask = &waitStage;
-                        submitInfo.pWaitSemaphores = &aovsReadySemaphore;
-                        submitInfo.waitSemaphoreCount = 1;
-                        submitInfo.pSignalSemaphores = &processingFinishedSemaphore;
-                        submitInfo.signalSemaphoreCount = 1;
-                        vkQueueSubmit(m_postProcessing->getVkQueue(), 1, &submitInfo, fence);
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), aovsReadySemaphore, processingFinishedSemaphore, fence));
                     } else {
                         m_postProcessing->run(aovsReadySemaphore, processingFinishedSemaphore);
-                        vkQueueSubmit(m_postProcessing->getVkQueue(), 0, nullptr, fence);
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), nullptr, nullptr, fence));
                     }
                 }
 

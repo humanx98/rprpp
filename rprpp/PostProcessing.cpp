@@ -409,12 +409,13 @@ void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
         throw InvalidParameter("dx11textureHandle", "Cannot be null");
     }
 
+    // we set vk::ImageUsageFlagBits::eStorage in order to remove warnings in validation layer
     auto externalDx11Image = vk::helper::createImageFromDx11Texture(m_dctx,
         dx11textureHandle,
         m_outputImage->width,
         m_outputImage->height,
         to_vk_format(m_outputImageFormat),
-        vk::ImageUsageFlagBits::eTransferDst);
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 
     transitionImageLayout(externalDx11Image,
         vk::AccessFlagBits::eTransferWrite,

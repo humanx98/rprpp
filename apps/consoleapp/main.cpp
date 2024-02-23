@@ -60,29 +60,20 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
     RprPostProcessing postProcessing(deviceId);
 
-    std::vector<VkFence> fences;
-    std::vector<VkSemaphore> frameBuffersReleaseSemaphores;
+    std::vector<RprPpVkFence> fences;
+    std::vector<RprPpVkSemaphore> frameBuffersReleaseSemaphores;
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        VkSemaphore semaphore;
-        VkSemaphoreCreateInfo semaphoreInfo { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-        VK_CHECK(vkCreateSemaphore(postProcessing.getVkDevice(), &semaphoreInfo, nullptr, &semaphore));
+        RprPpVkSemaphore semaphore;
+        RPRPP_CHECK(rprppVkCreateSemaphore(postProcessing.getVkDevice(), &semaphore));
         frameBuffersReleaseSemaphores.push_back(semaphore);
 
-        VkFence fence;
-        VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        VK_CHECK(vkCreateFence(postProcessing.getVkDevice(), &fenceInfo, nullptr, &fence));
+        RprPpVkFence fence;
+        RPRPP_CHECK(rprppVkCreateFence(postProcessing.getVkDevice(), RPRPP_TRUE, &fence));
         fences.push_back(fence);
     }
 
     // set frame buffers realese to signal state
-    {
-        VkSubmitInfo submitInfo {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pSignalSemaphores = &frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT];
-        submitInfo.signalSemaphoreCount = 1;
-        VK_CHECK(vkQueueSubmit(postProcessing.getVkQueue(), 1, &submitInfo, nullptr));
-    }
+    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(postProcessing.getVkQueue(), nullptr, frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT], nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
         .physicalDevice = postProcessing.getVkPhysicalDevice(),
@@ -111,16 +102,16 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         renderer.render();
         renderer.flushFrameBuffers();
 
-        VkFence fence = fences[currentFrame];
-        VK_CHECK(vkWaitForFences(postProcessing.getVkDevice(), 1, &fence, true, UINT64_MAX));
-        vkResetFences(postProcessing.getVkDevice(), 1, &fence);
+        RprPpVkFence fence = fences[currentFrame];
+        RPRPP_CHECK(rprppVkWaitForFences(postProcessing.getVkDevice(), 1, &fence, true, UINT64_MAX));
+        RPRPP_CHECK(rprppVkResetFences(postProcessing.getVkDevice(), 1, &fence));
 
         uint32_t semaphoreIndex = renderer.getSemaphoreIndex();
-        VkSemaphore aovsReadySemaphore = frameBuffersReadySemaphores[semaphoreIndex];
-        VkSemaphore processingFinishedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
+        RprPpVkSemaphore aovsReadySemaphore = frameBuffersReadySemaphores[semaphoreIndex];
+        RprPpVkSemaphore processingFinishedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
 
         postProcessing.run(aovsReadySemaphore, processingFinishedSemaphore);
-        vkQueueSubmit(postProcessing.getVkQueue(), 0, nullptr, fence);
+        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(postProcessing.getVkQueue(), nullptr, nullptr, fence));
         currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
 
         if (i == 0 || i == ITERATIONS - 1) {
@@ -139,11 +130,11 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     postProcessing.waitQueueIdle();
 
     for (auto f : fences) {
-        vkDestroyFence(postProcessing.getVkDevice(), f, nullptr);
+        RPRPP_CHECK(rprppVkDestroyFence(postProcessing.getVkDevice(), f));
     }
 
     for (auto s : frameBuffersReleaseSemaphores) {
-        vkDestroySemaphore(postProcessing.getVkDevice(), s, nullptr);
+        RPRPP_CHECK(rprppVkDestroySemaphore(postProcessing.getVkDevice(), s));
     }
 }
 

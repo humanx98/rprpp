@@ -37,8 +37,10 @@ typedef enum RprPpImageFormat {
     RPRPP_IMAGE_FROMAT_B8G8R8A8_UNORM = 2,
 } RprPpImageFormat;
 
+typedef uint32_t RprPpBool;
 typedef void* RprPpContext;
 typedef void* RprPpDx11Handle;
+typedef void* RprPpVkFence;
 typedef void* RprPpVkSemaphore;
 typedef void* RprPpVkPhysicalDevice;
 typedef void* RprPpVkDevice;
@@ -96,10 +98,21 @@ RPRPP_API RprPpError rprppContextSetToneMapAperture(RprPpContext context, float 
 RPRPP_API RprPpError rprppContextSetBloomRadius(RprPpContext context, float radius);
 RPRPP_API RprPpError rprppContextSetBloomBrightnessScale(RprPpContext context, float brightnessScale);
 RPRPP_API RprPpError rprppContextSetBloomThreshold(RprPpContext context, float threshold);
-RPRPP_API RprPpError rprppContextSetBloomEnabled(RprPpContext context, uint32_t enabled);
+RPRPP_API RprPpError rprppContextSetBloomEnabled(RprPpContext context, RprPpBool enabled);
 RPRPP_API RprPpError rprppContextSetGamma(RprPpContext context, float gamma);
 RPRPP_API RprPpError rprppContextSetShadowIntensity(RprPpContext context, float shadowIntensity);
-RPRPP_API RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, uint32_t enabled);
+RPRPP_API RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, RprPpBool enabled);
+
+// vk functions
+RPRPP_API RprPpError rprppVkCreateSemaphore(RprPpVkDevice device, RprPpVkSemaphore* outSemaphore);
+RPRPP_API RprPpError rprppVkDestroySemaphore(RprPpVkDevice device, RprPpVkSemaphore semaphore);
+
+RPRPP_API RprPpError rprppVkCreateFence(RprPpVkDevice device, RprPpBool signaled, RprPpVkFence* outFence);
+RPRPP_API RprPpError rprppVkDestroyFence(RprPpVkDevice device, RprPpVkFence fence);
+RPRPP_API RprPpError rprppVkWaitForFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences, RprPpBool waitAll, uint64_t timeout);
+RPRPP_API RprPpError rprppVkResetFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences);
+
+RPRPP_API RprPpError rprppVkQueueSubmitWaitAndSignal(RprPpVkQueue queue, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore signalSemaphore, RprPpVkFence fence);
 
 #ifdef __cplusplus
 }

@@ -40,9 +40,9 @@ private:
     HANDLE m_sharedTextureHandle = nullptr;
     std::unique_ptr<RprPostProcessing> m_postProcessing;
     std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
-    std::vector<VkFence> m_fences;
-    std::vector<VkSemaphore> m_frameBuffersReadySemaphores;
-    std::vector<VkSemaphore> m_frameBuffersReleaseSemaphores;
+    std::vector<RprPpVkFence> m_fences;
+    std::vector<RprPpVkSemaphore> m_frameBuffersReadySemaphores;
+    std::vector<RprPpVkSemaphore> m_frameBuffersReleaseSemaphores;
     void initWindow();
     void findAdapter();
     void intiSwapChain();

@@ -3,8 +3,6 @@
 #include "StagingBuffer.h"
 #include "rpr_helper.h"
 
-#include <vulkan/vulkan.h>
-
 class RprPostProcessing {
 public:
     RprPostProcessing(uint32_t deviceId);
@@ -18,9 +16,9 @@ public:
     void waitQueueIdle();
     void copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandle);
 
-    VkPhysicalDevice getVkPhysicalDevice() const noexcept;
-    VkDevice getVkDevice() const noexcept;
-    VkQueue getVkQueue() const noexcept;
+    RprPpVkPhysicalDevice getVkPhysicalDevice() const noexcept;
+    RprPpVkDevice getVkDevice() const noexcept;
+    RprPpVkQueue getVkQueue() const noexcept;
 
     void copyStagingBufferToAovColor();
     void copyStagingBufferToAovOpacity();
