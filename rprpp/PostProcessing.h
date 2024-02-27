@@ -50,8 +50,8 @@ struct ToneMap {
     float saturation = 1.0f;
     float cm2Factor = 1.0f;
     float filmIso = 100.0f;
-    float cameraShutter = 8.0f;
-    float fNumber = 2.0f;
+    float cameraShutter = 1.0f;
+    float fNumber = 1.0f;
     float focalLength = 1.0f;
     float aperture = 0.024f; // hardcoded in swviz
     // paddings, needed to make a correct memory allignment
@@ -74,12 +74,17 @@ struct UniformBufferObject {
     float invGamma = 1.0f;
 };
 
+struct CommandBuffers {
+    vk::raii::CommandBuffer compute;
+    vk::raii::CommandBuffer readOutput;
+    vk::raii::CommandBuffer secondary;
+};
+
 class PostProcessing {
 public:
     PostProcessing(vk::helper::DeviceContext&& dctx,
         vk::raii::CommandPool&& commandPool,
-        vk::raii::CommandBuffer&& secondaryCommandBuffer,
-        vk::raii::CommandBuffer&& computeCommandBuffer,
+        CommandBuffers&& commandBuffers,
         vk::helper::Buffer&& uboBuffer) noexcept;
 
     PostProcessing(PostProcessing&&) = default;
@@ -153,7 +158,12 @@ private:
     void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void createComputePipeline();
     void recordComputeCommandBuffer(uint32_t width, uint32_t height);
+    void recordReadOutputCommandBuffer();
     void transitionImageLayout(vk::helper::Image& image,
+        vk::AccessFlags dstAccess,
+        vk::ImageLayout dstLayout,
+        vk::PipelineStageFlags dstStage);
+    void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::helper::Image& image,
         vk::AccessFlags dstAccess,
         vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
@@ -171,8 +181,7 @@ private:
     ShaderManager m_shaderManager;
     vk::helper::DeviceContext m_dctx;
     vk::raii::CommandPool m_commandPool;
-    vk::raii::CommandBuffer m_secondaryCommandBuffer;
-    vk::raii::CommandBuffer m_computeCommandBuffer;
+    CommandBuffers m_commandBuffers;
     vk::helper::Buffer m_uboBuffer;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
     std::optional<vk::helper::Buffer> m_stagingBuffer;

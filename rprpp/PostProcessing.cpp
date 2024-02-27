@@ -18,13 +18,11 @@ const int NumComponents = 4;
 
 PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
     vk::raii::CommandPool&& commandPool,
-    vk::raii::CommandBuffer&& secondaryCommandBuffer,
-    vk::raii::CommandBuffer&& computeCommandBuffer,
+    CommandBuffers&& commandBuffers,
     vk::helper::Buffer&& uboBuffer) noexcept
     : m_dctx(std::move(dctx))
     , m_commandPool(std::move(commandPool))
-    , m_secondaryCommandBuffer(std::move(secondaryCommandBuffer))
-    , m_computeCommandBuffer(std::move(computeCommandBuffer))
+    , m_commandBuffers(std::move(commandBuffers))
     , m_uboBuffer(std::move(uboBuffer))
 {
 }
@@ -36,9 +34,9 @@ std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
     vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, dctx.queueFamilyIndex);
     vk::raii::CommandPool commandPool = vk::raii::CommandPool(dctx.device, cmdPoolInfo);
 
-    vk::CommandBufferAllocateInfo allocInfo(*commandPool, vk::CommandBufferLevel::ePrimary, 2);
+    vk::CommandBufferAllocateInfo allocInfo(*commandPool, vk::CommandBufferLevel::ePrimary, 3);
     vk::raii::CommandBuffers commandBuffers(dctx.device, allocInfo);
-    assert(commandBuffers.size() >= 2);
+    assert(commandBuffers.size() >= 3);
 
     vk::helper::Buffer uboBuffer = vk::helper::createBuffer(dctx,
         sizeof(UniformBufferObject),
@@ -48,8 +46,11 @@ std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
     return std::make_unique<PostProcessing>(
         std::move(dctx),
         std::move(commandPool),
-        std::move(commandBuffers[0]),
-        std::move(commandBuffers[1]),
+        CommandBuffers {
+            .compute = std::move(commandBuffers[0]),
+            .readOutput = std::move(commandBuffers[1]),
+            .secondary = std::move(commandBuffers[2]),
+        },
         std::move(uboBuffer));
 }
 
@@ -145,6 +146,20 @@ void PostProcessing::transitionImageLayout(vk::helper::Image& image,
     vk::ImageLayout dstLayout,
     vk::PipelineStageFlags dstStage)
 {
+    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    transitionImageLayout(m_commandBuffers.secondary, image, dstAccess, dstLayout, dstStage);
+    m_commandBuffers.secondary.end();
+
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
+    m_dctx.queue.submit(submitInfo);
+    m_dctx.queue.waitIdle();
+}
+
+void PostProcessing::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::helper::Image& image,
+    vk::AccessFlags dstAccess,
+    vk::ImageLayout dstLayout,
+    vk::PipelineStageFlags dstStage)
+{
     vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
     vk::ImageMemoryBarrier imageMemoryBarrier(image.access,
         dstAccess,
@@ -155,19 +170,12 @@ void PostProcessing::transitionImageLayout(vk::helper::Image& image,
         *image.image,
         subresourceRange);
 
-    m_secondaryCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    m_secondaryCommandBuffer.pipelineBarrier(image.stage,
+    commandBuffer.pipelineBarrier(image.stage,
         dstStage,
         {},
         nullptr,
         nullptr,
         imageMemoryBarrier);
-
-    m_secondaryCommandBuffer.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer);
-    m_dctx.queue.submit(submitInfo);
-    m_dctx.queue.waitIdle();
 
     image.access = dstAccess;
     image.layout = dstLayout;
@@ -228,17 +236,41 @@ void PostProcessing::createComputePipeline()
     m_computePipeline = m_dctx.device.createComputePipeline(nullptr, pipelineInfo);
 }
 
+void PostProcessing::recordReadOutputCommandBuffer()
+{
+    vk::AccessFlags oldAccess = m_outputImage->access;
+    vk::ImageLayout oldLayout = m_outputImage->layout;
+    vk::PipelineStageFlags oldStage = m_outputImage->stage;
+
+    m_commandBuffers.readOutput.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+    transitionImageLayout(m_commandBuffers.readOutput, m_outputImage.value(),
+        vk::AccessFlagBits::eTransferRead,
+        vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eTransfer);
+    {
+        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
+        m_commandBuffers.readOutput.copyImageToBuffer(*m_outputImage->image,
+            vk::ImageLayout::eTransferSrcOptimal,
+            *m_stagingBuffer->buffer,
+            region);
+    }
+
+    transitionImageLayout(m_commandBuffers.readOutput, m_outputImage.value(), oldAccess, oldLayout, oldStage);
+    m_commandBuffers.readOutput.end();
+}
+
 void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
 {
-    m_computeCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
-    m_computeCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
-    m_computeCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+    m_commandBuffers.compute.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+    m_commandBuffers.compute.bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
+    m_commandBuffers.compute.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
         *m_pipelineLayout.value(),
         0,
         *m_descriptorSet.value(),
         nullptr);
-    m_computeCommandBuffer.dispatch((uint32_t)ceil(width / float(WorkgroupSize)), (uint32_t)ceil(height / float(WorkgroupSize)), 1);
-    m_computeCommandBuffer.end();
+    m_commandBuffers.compute.dispatch((uint32_t)ceil(width / float(WorkgroupSize)), (uint32_t)ceil(height / float(WorkgroupSize)), 1);
+    m_commandBuffers.compute.end();
 }
 
 void PostProcessing::copyStagingBufferToAov(vk::helper::Image& image)
@@ -247,30 +279,33 @@ void PostProcessing::copyStagingBufferToAov(vk::helper::Image& image)
     vk::AccessFlags oldAccess = image.access;
     vk::ImageLayout oldLayout = image.layout;
     vk::PipelineStageFlags oldStage = image.stage;
-    transitionImageLayout(image,
+
+    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    transitionImageLayout(m_commandBuffers.secondary,
+        image,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
-        m_secondaryCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
 
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image.width, image.height, 1 });
-        m_secondaryCommandBuffer.copyBufferToImage(*m_stagingBuffer->buffer,
+        m_commandBuffers.secondary.copyBufferToImage(*m_stagingBuffer->buffer,
             *image.image,
             vk::ImageLayout::eTransferDstOptimal,
             region);
-
-        m_secondaryCommandBuffer.end();
-
-        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer);
-        m_dctx.queue.submit(submitInfo);
-        m_dctx.queue.waitIdle();
     }
-    transitionImageLayout(image,
+    transitionImageLayout(m_commandBuffers.secondary,
+        image,
         oldAccess,
         oldLayout,
         oldStage);
+
+    m_commandBuffers.secondary.end();
+
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
+    m_dctx.queue.submit(submitInfo);
+    m_dctx.queue.waitIdle();
 }
 
 void* PostProcessing::mapStagingBuffer(size_t size)
@@ -289,11 +324,11 @@ void PostProcessing::updateUbo()
     std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
     m_stagingBuffer->memory.unmapMemory();
 
-    m_secondaryCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    m_secondaryCommandBuffer.copyBuffer(*m_stagingBuffer->buffer, *m_uboBuffer.buffer, vk::BufferCopy(0, 0, sizeof(UniformBufferObject)));
-    m_secondaryCommandBuffer.end();
+    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    m_commandBuffers.secondary.copyBuffer(*m_stagingBuffer->buffer, *m_uboBuffer.buffer, vk::BufferCopy(0, 0, sizeof(UniformBufferObject)));
+    m_commandBuffers.secondary.end();
 
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer);
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
     m_dctx.queue.submit(submitInfo);
     m_dctx.queue.waitIdle();
 }
@@ -326,6 +361,7 @@ void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format,
         createDescriptorSet();
         createComputePipeline();
         recordComputeCommandBuffer(width, height);
+        recordReadOutputCommandBuffer();
     }
 
     m_width = width;
@@ -341,31 +377,9 @@ void PostProcessing::getOutput(uint8_t* dst, size_t size, size_t* retSize)
     }
 
     if (dst != nullptr && size > 0) {
-        vk::AccessFlags oldAccess = m_outputImage->access;
-        vk::ImageLayout oldLayout = m_outputImage->layout;
-        vk::PipelineStageFlags oldStage = m_outputImage->stage;
-        transitionImageLayout(m_outputImage.value(),
-            vk::AccessFlagBits::eTransferRead,
-            vk::ImageLayout::eTransferSrcOptimal,
-            vk::PipelineStageFlagBits::eTransfer);
-        {
-            m_secondaryCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-
-            vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-            vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
-            m_secondaryCommandBuffer.copyImageToBuffer(*m_outputImage->image,
-                vk::ImageLayout::eTransferSrcOptimal,
-                *m_stagingBuffer->buffer,
-                region);
-
-            m_secondaryCommandBuffer.end();
-
-            vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer);
-            m_dctx.queue.submit(submitInfo);
-            m_dctx.queue.waitIdle();
-        }
-
-        transitionImageLayout(m_outputImage.value(), oldAccess, oldLayout, oldStage);
+        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.readOutput);
+        m_dctx.queue.submit(submitInfo);
+        m_dctx.queue.waitIdle();
 
         void* data = m_stagingBuffer->memory.mapMemory(0, size, {});
         std::memcpy(dst, data, size);
@@ -390,7 +404,7 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
         if (toSignalAfterProcessingSemaphore.has_value()) {
             submitInfo.setSignalSemaphores(toSignalAfterProcessingSemaphore.value());
         }
-        submitInfo.setCommandBuffers(*m_computeCommandBuffer);
+        submitInfo.setCommandBuffers(*m_commandBuffers.compute);
         m_dctx.queue.submit(submitInfo);
     }
 }
@@ -418,7 +432,10 @@ void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
         to_vk_format(m_outputImageFormat),
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 
-    transitionImageLayout(externalDx11Image,
+    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    transitionImageLayout(
+        m_commandBuffers.secondary,
+        externalDx11Image,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
@@ -426,25 +443,23 @@ void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
     vk::AccessFlags oldAccess = m_outputImage->access;
     vk::ImageLayout oldLayout = m_outputImage->layout;
     vk::PipelineStageFlags oldStage = m_outputImage->stage;
-    transitionImageLayout(m_outputImage.value(),
+    transitionImageLayout(
+        m_commandBuffers.secondary,
+        m_outputImage.value(),
         vk::AccessFlagBits::eTransferRead,
         vk::ImageLayout::eTransferSrcOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
-        m_secondaryCommandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
-        m_secondaryCommandBuffer.copyImage(*m_outputImage->image, vk::ImageLayout::eTransferSrcOptimal, *externalDx11Image.image, vk::ImageLayout::eTransferDstOptimal, region);
-
-        m_secondaryCommandBuffer.end();
-
-        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_secondaryCommandBuffer);
-        m_dctx.queue.submit(submitInfo);
-        m_dctx.queue.waitIdle();
+        m_commandBuffers.secondary.copyImage(*m_outputImage->image, vk::ImageLayout::eTransferSrcOptimal, *externalDx11Image.image, vk::ImageLayout::eTransferDstOptimal, region);
     }
+    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
+    m_commandBuffers.secondary.end();
 
-    transitionImageLayout(m_outputImage.value(), oldAccess, oldLayout, oldStage);
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
+    m_dctx.queue.submit(submitInfo);
+    m_dctx.queue.waitIdle();
 }
 
 VkPhysicalDevice PostProcessing::getVkPhysicalDevice() const noexcept

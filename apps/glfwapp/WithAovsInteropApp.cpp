@@ -176,9 +176,6 @@ void WithAovsInteropApp::resize(int width, int height)
 
         float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
         m_postProcessing->setToneMapFocalLength(focalLength);
-        m_postProcessing->setToneMapCm2Factor(1.0f);
-        m_postProcessing->setToneMapCameraShutter(1.0f);
-        m_postProcessing->setToneMapFNumber(1.0f);
         m_width = width;
         m_height = height;
     }
