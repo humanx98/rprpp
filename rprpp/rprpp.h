@@ -103,6 +103,25 @@ RPRPP_API RprPpError rprppContextSetGamma(RprPpContext context, float gamma);
 RPRPP_API RprPpError rprppContextSetShadowIntensity(RprPpContext context, float shadowIntensity);
 RPRPP_API RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, RprPpBool enabled);
 
+RPRPP_API RprPpError rprppContextGetToneMapWhitepoint(RprPpContext context, float* x, float* y, float* z);
+RPRPP_API RprPpError rprppContextGetToneMapVignetting(RprPpContext context, float* vignetting);
+RPRPP_API RprPpError rprppContextGetToneMapCrushBlacks(RprPpContext context, float* crushBlacks);
+RPRPP_API RprPpError rprppContextGetToneMapBurnHighlights(RprPpContext context, float* burnHighlights);
+RPRPP_API RprPpError rprppContextGetToneMapSaturation(RprPpContext context, float* saturation);
+RPRPP_API RprPpError rprppContextGetToneMapCm2Factor(RprPpContext context, float* cm2Factor);
+RPRPP_API RprPpError rprppContextGetToneMapFilmIso(RprPpContext context, float* filmIso);
+RPRPP_API RprPpError rprppContextGetToneMapCameraShutter(RprPpContext context, float* cameraShutter);
+RPRPP_API RprPpError rprppContextGetToneMapFNumber(RprPpContext context, float* fNumber);
+RPRPP_API RprPpError rprppContextGetToneMapFocalLength(RprPpContext context, float* focalLength);
+RPRPP_API RprPpError rprppContextGetToneMapAperture(RprPpContext context, float* aperture);
+RPRPP_API RprPpError rprppContextGetBloomRadius(RprPpContext context, float* radius);
+RPRPP_API RprPpError rprppContextGetBloomBrightnessScale(RprPpContext context, float* brightnessScale);
+RPRPP_API RprPpError rprppContextGetBloomThreshold(RprPpContext context, float* threshold);
+RPRPP_API RprPpError rprppContextGetBloomEnabled(RprPpContext context, RprPpBool* enabled);
+RPRPP_API RprPpError rprppContextGetGamma(RprPpContext context, float* gamma);
+RPRPP_API RprPpError rprppContextGetShadowIntensity(RprPpContext context, float* shadowIntensity);
+RPRPP_API RprPpError rprppContextGetDenoiserEnabled(RprPpContext context, RprPpBool* enabled);
+
 // vk functions
 RPRPP_API RprPpError rprppVkCreateSemaphore(RprPpVkDevice device, RprPpVkSemaphore* outSemaphore);
 RPRPP_API RprPpError rprppVkDestroySemaphore(RprPpVkDevice device, RprPpVkSemaphore semaphore);

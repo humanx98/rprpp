@@ -63,7 +63,7 @@ HybridProRenderer::HybridProRenderer(int deviceId,
 
     RPR_CHECK(rprContextGetFunctionPtr(m_context,
         RPR_CONTEXT_FLUSH_FRAMEBUFFERS_FUNC_NAME,
-        (void**)(&rprContextFlushFrameBuffers)));
+        (void**)(&m_rprContextFlushFrameBuffers)));
 
     RPR_CHECK(rprContextCreateScene(m_context, &m_scene));
     RPR_CHECK(rprContextSetScene(m_context, m_scene));
@@ -307,7 +307,7 @@ void HybridProRenderer::flushFrameBuffers()
         throw std::runtime_error("flushFrameBuffers is unavailable without vulkan interop");
     }
 
-    RPR_CHECK(rprContextFlushFrameBuffers(m_context));
+    RPR_CHECK(m_rprContextFlushFrameBuffers(m_context));
 }
 
 RprPpVkImage HybridProRenderer::getAovVkImage(rpr_aov aov)

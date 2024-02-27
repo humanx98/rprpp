@@ -128,6 +128,25 @@ public:
     void setBloomEnabled(bool enabled) noexcept;
     void setDenoiserEnabled(bool enabled) noexcept;
 
+    float getGamma() const noexcept;
+    float getShadowIntensity() const noexcept;
+    void getToneMapWhitepoint(float& x, float& y, float& z) noexcept;
+    float getToneMapVignetting() const noexcept;
+    float getToneMapCrushBlacks() const noexcept;
+    float getToneMapBurnHighlights() const noexcept;
+    float getToneMapSaturation() const noexcept;
+    float getToneMapCm2Factor() const noexcept;
+    float getToneMapFilmIso() const noexcept;
+    float getToneMapCameraShutter() const noexcept;
+    float getToneMapFNumber() const noexcept;
+    float getToneMapFocalLength() const noexcept;
+    float getToneMapAperture() const noexcept;
+    float getBloomRadius() const noexcept;
+    float getBloomBrightnessScale() const noexcept;
+    float getBloomThreshold() const noexcept;
+    bool getBloomEnabled() const noexcept;
+    bool getDenoiserEnabled() const noexcept;
+
 private:
     void createShaderModule(ImageFormat outputFormat, bool sampledAovs);
     void createDescriptorSet();
@@ -146,6 +165,7 @@ private:
     ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
     std::optional<AovsVkInteropInfo> m_aovsVkInteropInfo;
     bool m_uboDirty = true;
+    bool m_denoiserEnabled = false;
     UniformBufferObject m_ubo;
     std::vector<const char*> m_enabledLayers;
     ShaderManager m_shaderManager;

@@ -1,6 +1,7 @@
 #include "PostProcessing.h"
 #include "DescriptorBuilder.h"
 #include "Error.h"
+#include "rprpp.h"
 #include <algorithm>
 
 template <class... Ts>
@@ -627,12 +628,105 @@ void PostProcessing::setBloomThreshold(float threshold) noexcept
 
 void PostProcessing::setBloomEnabled(bool enabled) noexcept
 {
-    m_ubo.bloom.enabled = enabled ? 1 : 0;
+    m_ubo.bloom.enabled = enabled ? RPRPP_TRUE : RPRPP_FALSE;
     m_uboDirty = true;
 }
 
 void PostProcessing::setDenoiserEnabled(bool enabled) noexcept
 {
+    m_denoiserEnabled = enabled;
+}
+
+float PostProcessing::getGamma() const noexcept
+{
+    return 1.0f / (m_ubo.invGamma > 0.00001f ? m_ubo.invGamma : 1.0f);
+}
+
+float PostProcessing::getShadowIntensity() const noexcept
+{
+    return m_ubo.shadowIntensity;
+}
+
+void PostProcessing::getToneMapWhitepoint(float& x, float& y, float& z) noexcept
+{
+    x = m_ubo.tonemap.whitepoint[0];
+    y = m_ubo.tonemap.whitepoint[1];
+    z = m_ubo.tonemap.whitepoint[2];
+}
+
+float PostProcessing::getToneMapVignetting() const noexcept
+{
+    return m_ubo.tonemap.vignetting;
+}
+
+float PostProcessing::getToneMapCrushBlacks() const noexcept
+{
+    return m_ubo.tonemap.crushBlacks;
+}
+
+float PostProcessing::getToneMapBurnHighlights() const noexcept
+{
+    return m_ubo.tonemap.burnHighlights;
+}
+
+float PostProcessing::getToneMapSaturation() const noexcept
+{
+    return m_ubo.tonemap.saturation;
+}
+
+float PostProcessing::getToneMapCm2Factor() const noexcept
+{
+    return m_ubo.tonemap.cm2Factor;
+}
+
+float PostProcessing::getToneMapFilmIso() const noexcept
+{
+    return m_ubo.tonemap.filmIso;
+}
+
+float PostProcessing::getToneMapCameraShutter() const noexcept
+{
+    return m_ubo.tonemap.cameraShutter;
+}
+
+float PostProcessing::getToneMapFNumber() const noexcept
+{
+    return m_ubo.tonemap.fNumber;
+}
+
+float PostProcessing::getToneMapFocalLength() const noexcept
+{
+    return m_ubo.tonemap.focalLength;
+}
+
+float PostProcessing::getToneMapAperture() const noexcept
+{
+    return m_ubo.tonemap.aperture;
+}
+
+float PostProcessing::getBloomRadius() const noexcept
+{
+    return m_ubo.bloom.radius;
+}
+
+float PostProcessing::getBloomBrightnessScale() const noexcept
+{
+    return m_ubo.bloom.brightnessScale;
+}
+
+float PostProcessing::getBloomThreshold() const noexcept
+{
+    return m_ubo.bloom.threshold;
+}
+
+bool PostProcessing::getBloomEnabled() const noexcept
+{
+    return m_ubo.bloom.enabled == RPRPP_TRUE;
+}
+
+bool PostProcessing::getDenoiserEnabled() const noexcept
+{
+    return m_denoiserEnabled;
 }
 
 }

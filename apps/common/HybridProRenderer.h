@@ -23,7 +23,7 @@ private:
     uint32_t m_height;
     std::optional<HybridProInteropInfo> m_interopInfo;
     std::vector<RprPpVkSemaphore> m_frameBuffersReadySemaphores;
-    rprContextFlushFrameBuffers_func rprContextFlushFrameBuffers;
+    rprContextFlushFrameBuffers_func m_rprContextFlushFrameBuffers;
     rpr_context m_context = nullptr;
     rpr_material_system m_matsys = nullptr;
     rpr_material_node m_teapotMaterial = nullptr;

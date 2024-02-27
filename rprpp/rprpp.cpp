@@ -576,6 +576,304 @@ RprPpError rprppContextSetDenoiserEnabled(RprPpContext context, RprPpBool enable
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppContextGetToneMapWhitepoint(RprPpContext context, float* x, float* y, float* z)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+        float whitepoint[3];
+        pp->getToneMapWhitepoint(whitepoint[0], whitepoint[1], whitepoint[2]);
+
+        if (x != nullptr) {
+            *x = whitepoint[0];
+        }
+
+        if (y != nullptr) {
+            *y = whitepoint[1];
+        }
+
+        if (z != nullptr) {
+            *z = whitepoint[2];
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapVignetting(RprPpContext context, float* vignetting)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (vignetting != nullptr) {
+            *vignetting = pp->getToneMapVignetting();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapCrushBlacks(RprPpContext context, float* crushBlacks)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (crushBlacks != nullptr) {
+            *crushBlacks = pp->getToneMapCrushBlacks();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapBurnHighlights(RprPpContext context, float* burnHighlights)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (burnHighlights != nullptr) {
+            *burnHighlights = pp->getToneMapBurnHighlights();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapSaturation(RprPpContext context, float* saturation)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (saturation != nullptr) {
+            *saturation = pp->getToneMapSaturation();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapCm2Factor(RprPpContext context, float* cm2Factor)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (cm2Factor != nullptr) {
+            *cm2Factor = pp->getToneMapCm2Factor();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapFilmIso(RprPpContext context, float* filmIso)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (filmIso != nullptr) {
+            *filmIso = pp->getToneMapFilmIso();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapCameraShutter(RprPpContext context, float* cameraShutter)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (cameraShutter != nullptr) {
+            *cameraShutter = pp->getToneMapCameraShutter();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapFNumber(RprPpContext context, float* fNumber)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (fNumber != nullptr) {
+            *fNumber = pp->getToneMapFNumber();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapFocalLength(RprPpContext context, float* focalLength)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (focalLength != nullptr) {
+            *focalLength = pp->getToneMapFocalLength();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetToneMapAperture(RprPpContext context, float* aperture)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (aperture != nullptr) {
+            *aperture = pp->getToneMapAperture();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetBloomRadius(RprPpContext context, float* radius)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (radius != nullptr) {
+            *radius = pp->getBloomRadius();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetBloomBrightnessScale(RprPpContext context, float* brightnessScale)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (brightnessScale != nullptr) {
+            *brightnessScale = pp->getBloomBrightnessScale();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetBloomThreshold(RprPpContext context, float* threshold)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (threshold != nullptr) {
+            *threshold = pp->getBloomThreshold();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetBloomEnabled(RprPpContext context, RprPpBool* enabled)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (enabled != nullptr) {
+            *enabled = pp->getBloomEnabled() ? RPRPP_TRUE : RPRPP_FALSE;
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetGamma(RprPpContext context, float* gamma)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (gamma != nullptr) {
+            *gamma = pp->getGamma();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetShadowIntensity(RprPpContext context, float* shadowIntensity)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (shadowIntensity != nullptr) {
+            *shadowIntensity = pp->getShadowIntensity();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextGetDenoiserEnabled(RprPpContext context, RprPpBool* enabled)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(context);
+
+        if (enabled != nullptr) {
+            *enabled = pp->getDenoiserEnabled() ? RPRPP_TRUE : RPRPP_FALSE;
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppVkCreateSemaphore(RprPpVkDevice device, RprPpVkSemaphore* outSemaphore)
 {
     assert(device);
