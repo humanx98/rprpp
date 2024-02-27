@@ -101,11 +101,14 @@ vec4 tonemap(vec4 color, ivec2 pos, ivec2 resolution)
         ubo.tonemap.whitepoint.b > 0.0f ? 1.0f / ubo.tonemap.whitepoint.b : 1.0f
     );
 
-    cm2DivWhitepoint *= ubo.tonemap.filmIso > 0.0f
-        ? (18.0 / (106.0 * 15.4)) * (ubo.tonemap.cm2Factor * ubo.tonemap.filmIso) / (ubo.tonemap.cameraShutter * ubo.tonemap.fNumber * ubo.tonemap.fNumber) 
-        : ubo.tonemap.cm2Factor;
-    
-    cm2DivWhitepoint /= CIE_luminance_RGB(cm2DivWhitepoint);
+    if (ubo.tonemap.filmIso > 0.0f) {
+        float mod = 18.0f / (106.0f * 15.4f);
+        mod *= ubo.tonemap.cm2Factor * ubo.tonemap.filmIso;
+        mod /= ubo.tonemap.cameraShutter * ubo.tonemap.fNumber * ubo.tonemap.fNumber;
+        cm2DivWhitepoint *= mod / CIE_luminance_RGB(cm2DivWhitepoint);
+    } else {
+        cm2DivWhitepoint *= ubo.tonemap.cm2Factor / CIE_luminance_RGB(cm2DivWhitepoint);
+    }
 
     if (vignetting_div2 != 0.0f) {
         float f0 =  pos.x * invResolution.x - 0.5f;

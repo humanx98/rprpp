@@ -2,3 +2,4 @@
 2. denoising
 3. return error messages
 4. handle multi layers iamges (stereo camera)
+5. notRefractiveBackgroundColor

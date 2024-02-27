@@ -176,6 +176,9 @@ void WithAovsInteropApp::resize(int width, int height)
 
         float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
         m_postProcessing->setToneMapFocalLength(focalLength);
+        m_postProcessing->setToneMapCm2Factor(1.0f);
+        m_postProcessing->setToneMapCameraShutter(1.0f);
+        m_postProcessing->setToneMapFNumber(1.0f);
         m_width = width;
         m_height = height;
     }
@@ -218,12 +221,12 @@ void WithAovsInteropApp::mainLoop()
                     m_hybridproRenderer->flushFrameBuffers();
 
                     RprPpVkSemaphore aovsReadySemaphore = m_frameBuffersReadySemaphores[semaphoreIndex];
-                    RprPpVkSemaphore processingFinishedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
+                    RprPpVkSemaphore aovsReleasedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
 
                     if (i < m_renderedIterations - 1) {
-                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), aovsReadySemaphore, processingFinishedSemaphore, fence));
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), aovsReadySemaphore, aovsReleasedSemaphore, fence));
                     } else {
-                        m_postProcessing->run(aovsReadySemaphore, processingFinishedSemaphore);
+                        m_postProcessing->run(aovsReadySemaphore, aovsReleasedSemaphore);
                         RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), nullptr, nullptr, fence));
                     }
                 }
