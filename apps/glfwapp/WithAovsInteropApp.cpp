@@ -29,11 +29,11 @@ WithAovsInteropApp::~WithAovsInteropApp()
 {
     std::cout << "~WithAovsInteropApp()" << std::endl;
     for (auto f : m_fences) {
-        RPRPP_CHECK(rprppVkDestroyFence(m_postProcessing->getVkDevice(), f));
+        RPRPP_CHECK(rprppVkDestroyFence(m_ppContext->getVkDevice(), f));
     }
 
     for (auto s : m_frameBuffersReleaseSemaphores) {
-        RPRPP_CHECK(rprppVkDestroySemaphore(m_postProcessing->getVkDevice(), s));
+        RPRPP_CHECK(rprppVkDestroySemaphore(m_ppContext->getVkDevice(), s));
     }
 
     glfwDestroyWindow(m_window);
@@ -103,24 +103,25 @@ void WithAovsInteropApp::intiSwapChain()
 
 void WithAovsInteropApp::initHybridProAndPostProcessing()
 {
-    m_postProcessing = std::make_unique<RprPostProcessing>(m_deviceInfo.index);
+    m_ppContext = std::make_unique<WRprPpContext>(m_deviceInfo.index);
+    m_postProcessing = std::make_unique<WRprPpPostProcessing>(*m_ppContext);
 
     for (uint32_t i = 0; i < m_framesInFlight; i++) {
         RprPpVkSemaphore semaphore;
-        RPRPP_CHECK(rprppVkCreateSemaphore(m_postProcessing->getVkDevice(), &semaphore));
+        RPRPP_CHECK(rprppVkCreateSemaphore(m_ppContext->getVkDevice(), &semaphore));
         m_frameBuffersReleaseSemaphores.push_back(semaphore);
 
         RprPpVkFence fence;
-        RPRPP_CHECK(rprppVkCreateFence(m_postProcessing->getVkDevice(), RPRPP_TRUE, &fence));
+        RPRPP_CHECK(rprppVkCreateFence(m_ppContext->getVkDevice(), RPRPP_TRUE, &fence));
         m_fences.push_back(fence);
     }
 
     // set frame buffers realese to signal state
-    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), nullptr, m_frameBuffersReleaseSemaphores[1 % m_framesInFlight], nullptr));
+    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), nullptr, m_frameBuffersReleaseSemaphores[1 % m_framesInFlight], nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
-        .physicalDevice = m_postProcessing->getVkPhysicalDevice(),
-        .device = m_postProcessing->getVkDevice(),
+        .physicalDevice = m_ppContext->getVkPhysicalDevice(),
+        .device = m_ppContext->getVkDevice(),
         .framesInFlight = m_framesInFlight,
         .frameBuffersReleaseSemaphores = m_frameBuffersReleaseSemaphores.data(),
     };
@@ -187,17 +188,6 @@ void WithAovsInteropApp::onResize(GLFWwindow* window, int width, int height)
     app->resize(width, height);
 }
 
-void WithAovsInteropApp::copyRprFbToPpStagingBuffer(rpr_aov aov)
-{
-    size_t size;
-    m_hybridproRenderer->getAov(aov, nullptr, 0u, &size);
-
-    StagingBuffer buffer = m_postProcessing->mapStagingBuffer(size);
-    m_hybridproRenderer->getAov(aov, buffer.data(), size, nullptr);
-
-    buffer.unmap();
-}
-
 void WithAovsInteropApp::mainLoop()
 {
     clock_t deltaTime = 0;
@@ -211,8 +201,8 @@ void WithAovsInteropApp::mainLoop()
                     // +1 because we get semaphore before rendering
                     uint32_t semaphoreIndex = (m_hybridproRenderer->getSemaphoreIndex() + 1) % m_framesInFlight;
                     RprPpVkFence fence = m_fences[semaphoreIndex];
-                    RPRPP_CHECK(rprppVkWaitForFences(m_postProcessing->getVkDevice(), 1, &fence, true, UINT64_MAX));
-                    RPRPP_CHECK(rprppVkResetFences(m_postProcessing->getVkDevice(), 1, &fence));
+                    RPRPP_CHECK(rprppVkWaitForFences(m_ppContext->getVkDevice(), 1, &fence, true, UINT64_MAX));
+                    RPRPP_CHECK(rprppVkResetFences(m_ppContext->getVkDevice(), 1, &fence));
 
                     m_hybridproRenderer->render();
                     m_hybridproRenderer->flushFrameBuffers();
@@ -221,10 +211,10 @@ void WithAovsInteropApp::mainLoop()
                     RprPpVkSemaphore aovsReleasedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
 
                     if (i < m_renderedIterations - 1) {
-                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), aovsReadySemaphore, aovsReleasedSemaphore, fence));
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), aovsReadySemaphore, aovsReleasedSemaphore, fence));
                     } else {
                         m_postProcessing->run(aovsReadySemaphore, aovsReleasedSemaphore);
-                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_postProcessing->getVkQueue(), nullptr, nullptr, fence));
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), nullptr, nullptr, fence));
                     }
                 }
 

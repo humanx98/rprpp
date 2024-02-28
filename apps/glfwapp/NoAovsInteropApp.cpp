@@ -20,10 +20,11 @@ NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIteration
     , m_renderedIterations(rendererdIterations)
     , m_paths(paths)
     , m_deviceInfo(deviceInfo)
-    , m_postProcessing(deviceInfo.index)
     , m_hybridproRenderer(deviceInfo.index, std::nullopt, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
 {
     std::cout << "NoAovsInteropApp()" << std::endl;
+    m_ppContext = std::make_unique<WRprPpContext>(deviceInfo.index);
+    m_postProcessing = std::make_unique<WRprPpPostProcessing>(*m_ppContext);
 }
 
 NoAovsInteropApp::~NoAovsInteropApp()
@@ -127,10 +128,11 @@ void NoAovsInteropApp::resize(int width, int height)
         viewport.Height = height;
         m_deviceContex->RSSetViewports(1, &viewport);
 
-        m_postProcessing.resize(width, height, to_rprppformat(FORMAT));
         m_hybridproRenderer.resize(width, height);
-        float focalLength = m_hybridproRenderer.getFocalLength() / 1000.0f;
-        m_postProcessing.setToneMapFocalLength(focalLength);
+        m_postProcessing->resize(width, height, to_rprppformat(FORMAT));
+        m_postProcessing->setToneMapFocalLength(m_hybridproRenderer.getFocalLength() / 1000.0f);
+        m_buffer = std::make_unique<WRprPpHostVisibleBuffer>(*m_ppContext, width * height * 4 * sizeof(float));
+
         m_width = width;
         m_height = height;
     }
@@ -146,11 +148,8 @@ void NoAovsInteropApp::copyRprFbToPpStagingBuffer(rpr_aov aov)
 {
     size_t size;
     m_hybridproRenderer.getAov(aov, nullptr, 0u, &size);
-
-    StagingBuffer buffer = m_postProcessing.mapStagingBuffer(size);
-    m_hybridproRenderer.getAov(aov, buffer.data(), size, nullptr);
-
-    buffer.unmap();
+    m_hybridproRenderer.getAov(aov, m_buffer->map(size), size, nullptr);
+    m_buffer->unmap();
 }
 
 void NoAovsInteropApp::mainLoop()
@@ -165,20 +164,20 @@ void NoAovsInteropApp::mainLoop()
                 m_hybridproRenderer.render();
             }
             copyRprFbToPpStagingBuffer(RPR_AOV_COLOR);
-            m_postProcessing.copyStagingBufferToAovColor();
+            m_postProcessing->copyBufferToAovColor(*m_buffer);
             copyRprFbToPpStagingBuffer(RPR_AOV_OPACITY);
-            m_postProcessing.copyStagingBufferToAovOpacity();
+            m_postProcessing->copyBufferToAovOpacity(*m_buffer);
             copyRprFbToPpStagingBuffer(RPR_AOV_SHADOW_CATCHER);
-            m_postProcessing.copyStagingBufferToAovShadowCatcher();
+            m_postProcessing->copyBufferToAovShadowCatcher(*m_buffer);
             copyRprFbToPpStagingBuffer(RPR_AOV_REFLECTION_CATCHER);
-            m_postProcessing.copyStagingBufferToAovReflectionCatcher();
+            m_postProcessing->copyBufferToAovReflectionCatcher(*m_buffer);
             copyRprFbToPpStagingBuffer(RPR_AOV_MATTE_PASS);
-            m_postProcessing.copyStagingBufferToAovMattePass();
+            m_postProcessing->copyBufferToAovMattePass(*m_buffer);
             copyRprFbToPpStagingBuffer(RPR_AOV_BACKGROUND);
-            m_postProcessing.copyStagingBufferToAovBackground();
-            m_postProcessing.run();
-            m_postProcessing.waitQueueIdle();
-            m_postProcessing.copyOutputToDx11Texture(m_sharedTextureHandle);
+            m_postProcessing->copyBufferToAovBackground(*m_buffer);
+            m_postProcessing->run();
+            m_postProcessing->waitQueueIdle();
+            m_postProcessing->copyOutputToDx11Texture(m_sharedTextureHandle);
 
             IDXGIKeyedMutex* km;
             DX_CHECK(m_sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));

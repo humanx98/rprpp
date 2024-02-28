@@ -58,6 +58,7 @@ inline rpr_creation_flags intToRprCreationFlag(int index)
     }
 }
 
+size_t to_pixel_size(RprPpImageFormat from);
 void ErrorManager(rpr_status errorCode, const char* fileName, int line);
 void ErrorManager(RprPpError errorCode, const char* fileName, int line);
 void CheckNoLeak(rpr_context context);

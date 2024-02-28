@@ -16,42 +16,15 @@ namespace rprpp {
 const int WorkgroupSize = 32;
 const int NumComponents = 4;
 
-PostProcessing::PostProcessing(vk::helper::DeviceContext&& dctx,
+PostProcessing::PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
     vk::raii::CommandPool&& commandPool,
     CommandBuffers&& commandBuffers,
     vk::helper::Buffer&& uboBuffer) noexcept
-    : m_dctx(std::move(dctx))
+    : m_dctx(dctx)
     , m_commandPool(std::move(commandPool))
     , m_commandBuffers(std::move(commandBuffers))
     , m_uboBuffer(std::move(uboBuffer))
 {
-}
-
-std::unique_ptr<PostProcessing> PostProcessing::create(uint32_t deviceId)
-{
-    vk::helper::DeviceContext dctx = vk::helper::createDeviceContext(deviceId);
-
-    vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, dctx.queueFamilyIndex);
-    vk::raii::CommandPool commandPool = vk::raii::CommandPool(dctx.device, cmdPoolInfo);
-
-    vk::CommandBufferAllocateInfo allocInfo(*commandPool, vk::CommandBufferLevel::ePrimary, 3);
-    vk::raii::CommandBuffers commandBuffers(dctx.device, allocInfo);
-    assert(commandBuffers.size() >= 3);
-
-    vk::helper::Buffer uboBuffer = vk::helper::createBuffer(dctx,
-        sizeof(UniformBufferObject),
-        vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-    return std::make_unique<PostProcessing>(
-        std::move(dctx),
-        std::move(commandPool),
-        CommandBuffers {
-            .compute = std::move(commandBuffers[0]),
-            .readOutput = std::move(commandBuffers[1]),
-            .secondary = std::move(commandBuffers[2]),
-        },
-        std::move(uboBuffer));
 }
 
 void PostProcessing::createShaderModule(ImageFormat outputFormat, bool aovsAreSampledImages)
@@ -61,17 +34,11 @@ void PostProcessing::createShaderModule(ImageFormat outputFormat, bool aovsAreSa
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
         { "AOVS_ARE_SAMPLED_IMAGES", aovsAreSampledImages ? "1" : "0" }
     };
-    m_shaderModule = m_shaderManager.get(m_dctx.device, macroDefinitions);
+    m_shaderModule = m_shaderManager.get(m_dctx->device, macroDefinitions);
 }
 
 void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
 {
-    size_t stagingBufferSize = std::max(sizeof(UniformBufferObject), width * height * NumComponents * sizeof(float));
-    m_stagingBuffer = vk::helper::createBuffer(m_dctx,
-        stagingBufferSize,
-        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
     vk::Format aovFormat = vk::Format::eR32G32B32A32Sfloat;
     if (aovsVkInteropInfo.has_value()) {
         vk::ImageViewCreateInfo viewInfo({},
@@ -80,24 +47,24 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
             aovFormat,
             {},
             { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-        vk::raii::ImageView color(m_dctx.device, viewInfo);
+        vk::raii::ImageView color(m_dctx->device, viewInfo);
 
         viewInfo.setImage(aovsVkInteropInfo.value().opacity);
-        vk::raii::ImageView opacity(m_dctx.device, viewInfo);
+        vk::raii::ImageView opacity(m_dctx->device, viewInfo);
 
         viewInfo.setImage(aovsVkInteropInfo.value().shadowCatcher);
-        vk::raii::ImageView shadowCatcher(m_dctx.device, viewInfo);
+        vk::raii::ImageView shadowCatcher(m_dctx->device, viewInfo);
 
         viewInfo.setImage(aovsVkInteropInfo.value().reflectionCatcher);
-        vk::raii::ImageView reflectionCatcher(m_dctx.device, viewInfo);
+        vk::raii::ImageView reflectionCatcher(m_dctx->device, viewInfo);
 
         viewInfo.setImage(aovsVkInteropInfo.value().mattePass);
-        vk::raii::ImageView mattePass(m_dctx.device, viewInfo);
+        vk::raii::ImageView mattePass(m_dctx->device, viewInfo);
 
         viewInfo.setImage(aovsVkInteropInfo.value().background);
-        vk::raii::ImageView background(m_dctx.device, viewInfo);
+        vk::raii::ImageView background(m_dctx->device, viewInfo);
 
-        vk::raii::Sampler sampler(m_dctx.device, vk::SamplerCreateInfo());
+        vk::raii::Sampler sampler(m_dctx->device, vk::SamplerCreateInfo());
 
         m_aovs = InteropAovs {
             .color = std::move(color),
@@ -112,12 +79,12 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
         vk::ImageUsageFlags aovUsage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
         vk::AccessFlags aovAccess = vk::AccessFlagBits::eShaderRead;
         Aovs aovs = {
-            .color = vk::helper::createImage(m_dctx, width, height, aovFormat, aovUsage),
-            .opacity = vk::helper::createImage(m_dctx, width, height, aovFormat, aovUsage),
-            .shadowCatcher = vk::helper::createImage(m_dctx, width, height, aovFormat, aovUsage),
-            .reflectionCatcher = vk::helper::createImage(m_dctx, width, height, aovFormat, aovUsage),
-            .mattePass = vk::helper::createImage(m_dctx, width, height, aovFormat, aovUsage),
-            .background = vk::helper::createImage(m_dctx, width, height, aovFormat, aovUsage),
+            .color = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
+            .opacity = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
+            .shadowCatcher = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
+            .reflectionCatcher = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
+            .mattePass = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
+            .background = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
         };
 
         transitionImageLayout(aovs.color, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
@@ -129,7 +96,7 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
         m_aovs = std::move(aovs);
     }
 
-    m_outputImage = vk::helper::createImage(m_dctx,
+    m_outputImage = vk::helper::createImage(*m_dctx,
         width,
         height,
         to_vk_format(outputFormat),
@@ -151,8 +118,8 @@ void PostProcessing::transitionImageLayout(vk::helper::Image& image,
     m_commandBuffers.secondary.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx.queue.submit(submitInfo);
-    m_dctx.queue.waitIdle();
+    m_dctx->queue.submit(submitInfo);
+    m_dctx->queue.waitIdle();
 }
 
 void PostProcessing::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::helper::Image& image,
@@ -218,46 +185,22 @@ void PostProcessing::createDescriptorSet()
     builder.bindUniformBuffer(&uboDescriptoInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
-    m_descriptorSetLayout = m_dctx.device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
-    m_descriptorPool = m_dctx.device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
-    m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx.device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
+    m_descriptorSetLayout = m_dctx->device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
+    m_descriptorPool = m_dctx->device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
+    m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx->device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
 
     builder.updateDescriptorSet(*m_descriptorSet.value());
-    m_dctx.device.updateDescriptorSets(builder.writes(), nullptr);
+    m_dctx->device.updateDescriptorSets(builder.writes(), nullptr);
 }
 
 void PostProcessing::createComputePipeline()
 {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo({}, *m_descriptorSetLayout.value());
-    m_pipelineLayout = vk::raii::PipelineLayout(m_dctx.device, pipelineLayoutInfo);
+    m_pipelineLayout = vk::raii::PipelineLayout(m_dctx->device, pipelineLayoutInfo);
 
     vk::PipelineShaderStageCreateInfo shaderStageInfo({}, vk::ShaderStageFlagBits::eCompute, *m_shaderModule.value(), "main");
     vk::ComputePipelineCreateInfo pipelineInfo({}, shaderStageInfo, *m_pipelineLayout.value());
-    m_computePipeline = m_dctx.device.createComputePipeline(nullptr, pipelineInfo);
-}
-
-void PostProcessing::recordReadOutputCommandBuffer()
-{
-    vk::AccessFlags oldAccess = m_outputImage->access;
-    vk::ImageLayout oldLayout = m_outputImage->layout;
-    vk::PipelineStageFlags oldStage = m_outputImage->stage;
-
-    m_commandBuffers.readOutput.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
-    transitionImageLayout(m_commandBuffers.readOutput, m_outputImage.value(),
-        vk::AccessFlagBits::eTransferRead,
-        vk::ImageLayout::eTransferSrcOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-    {
-        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
-        m_commandBuffers.readOutput.copyImageToBuffer(*m_outputImage->image,
-            vk::ImageLayout::eTransferSrcOptimal,
-            *m_stagingBuffer->buffer,
-            region);
-    }
-
-    transitionImageLayout(m_commandBuffers.readOutput, m_outputImage.value(), oldAccess, oldLayout, oldStage);
-    m_commandBuffers.readOutput.end();
+    m_computePipeline = m_dctx->device.createComputePipeline(nullptr, pipelineInfo);
 }
 
 void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
@@ -273,30 +216,29 @@ void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
     m_commandBuffers.compute.end();
 }
 
-void PostProcessing::copyStagingBufferToAov(vk::helper::Image& image)
+void PostProcessing::copyBufferToAov(const HostVisibleBuffer& src, vk::helper::Image& dst)
 {
-    // image transitions
-    vk::AccessFlags oldAccess = image.access;
-    vk::ImageLayout oldLayout = image.layout;
-    vk::PipelineStageFlags oldStage = image.stage;
+    vk::AccessFlags oldAccess = dst.access;
+    vk::ImageLayout oldLayout = dst.layout;
+    vk::PipelineStageFlags oldStage = dst.stage;
 
     m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
     transitionImageLayout(m_commandBuffers.secondary,
-        image,
+        dst,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
 
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image.width, image.height, 1 });
-        m_commandBuffers.secondary.copyBufferToImage(*m_stagingBuffer->buffer,
-            *image.image,
+        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { dst.width, dst.height, 1 });
+        m_commandBuffers.secondary.copyBufferToImage(*src.buffer(),
+            *dst.image,
             vk::ImageLayout::eTransferDstOptimal,
             region);
     }
     transitionImageLayout(m_commandBuffers.secondary,
-        image,
+        dst,
         oldAccess,
         oldLayout,
         oldStage);
@@ -304,33 +246,15 @@ void PostProcessing::copyStagingBufferToAov(vk::helper::Image& image)
     m_commandBuffers.secondary.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx.queue.submit(submitInfo);
-    m_dctx.queue.waitIdle();
-}
-
-void* PostProcessing::mapStagingBuffer(size_t size)
-{
-    return m_stagingBuffer->memory.mapMemory(0, size, {});
-}
-
-void PostProcessing::unmapStagingBuffer()
-{
-    m_stagingBuffer->memory.unmapMemory();
+    m_dctx->queue.submit(submitInfo);
+    m_dctx->queue.waitIdle();
 }
 
 void PostProcessing::updateUbo()
 {
-    void* data = m_stagingBuffer->memory.mapMemory(0, sizeof(UniformBufferObject), {});
+    void* data = m_uboBuffer.memory.mapMemory(0, sizeof(UniformBufferObject), {});
     std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
-    m_stagingBuffer->memory.unmapMemory();
-
-    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    m_commandBuffers.secondary.copyBuffer(*m_stagingBuffer->buffer, *m_uboBuffer.buffer, vk::BufferCopy(0, 0, sizeof(UniformBufferObject)));
-    m_commandBuffers.secondary.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx.queue.submit(submitInfo);
-    m_dctx.queue.waitIdle();
+    m_uboBuffer.memory.unmapMemory();
 }
 
 void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
@@ -349,7 +273,6 @@ void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format,
     m_descriptorSetLayout.reset();
     m_aovs.reset();
     m_outputImage.reset();
-    m_stagingBuffer.reset();
 
     if (m_outputImageFormat != format || m_aovsVkInteropInfo.has_value() != aovsVkInteropInfo.has_value() || !m_shaderModule.has_value()) {
         m_shaderModule.reset();
@@ -361,7 +284,6 @@ void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format,
         createDescriptorSet();
         createComputePipeline();
         recordComputeCommandBuffer(width, height);
-        recordReadOutputCommandBuffer();
     }
 
     m_width = width;
@@ -370,21 +292,36 @@ void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format,
     m_aovsVkInteropInfo = aovsVkInteropInfo;
 }
 
-void PostProcessing::getOutput(uint8_t* dst, size_t size, size_t* retSize)
+void PostProcessing::copyOutputTo(HostVisibleBuffer& dst)
 {
-    if (retSize != nullptr) {
-        *retSize = m_width * m_height * to_pixel_size(m_outputImageFormat);
+    size_t size = m_width * m_height * to_pixel_size(m_outputImageFormat);
+    if (dst.size() < size) {
+        throw InvalidParameter("dst", "The provided buffer is smaller than output image");
     }
 
-    if (dst != nullptr && size > 0) {
-        vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.readOutput);
-        m_dctx.queue.submit(submitInfo);
-        m_dctx.queue.waitIdle();
+    vk::AccessFlags oldAccess = m_outputImage->access;
+    vk::ImageLayout oldLayout = m_outputImage->layout;
+    vk::PipelineStageFlags oldStage = m_outputImage->stage;
 
-        void* data = m_stagingBuffer->memory.mapMemory(0, size, {});
-        std::memcpy(dst, data, size);
-        m_stagingBuffer->memory.unmapMemory();
+    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(),
+        vk::AccessFlagBits::eTransferRead,
+        vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eTransfer);
+    {
+        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
+        m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->image,
+            vk::ImageLayout::eTransferSrcOptimal,
+            *dst.buffer(),
+            region);
     }
+    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
+    m_commandBuffers.secondary.end();
+
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
+    m_dctx->queue.submit(submitInfo);
+    m_dctx->queue.waitIdle();
 }
 
 void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore)
@@ -405,13 +342,13 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
             submitInfo.setSignalSemaphores(toSignalAfterProcessingSemaphore.value());
         }
         submitInfo.setCommandBuffers(*m_commandBuffers.compute);
-        m_dctx.queue.submit(submitInfo);
+        m_dctx->queue.submit(submitInfo);
     }
 }
 
 void PostProcessing::waitQueueIdle()
 {
-    m_dctx.queue.waitIdle();
+    m_dctx->queue.waitIdle();
 }
 
 void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
@@ -425,7 +362,7 @@ void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
     }
 
     // we set vk::ImageUsageFlagBits::eStorage in order to remove warnings in validation layer
-    auto externalDx11Image = vk::helper::createImageFromDx11Texture(m_dctx,
+    auto externalDx11Image = vk::helper::createImageFromDx11Texture(*m_dctx,
         dx11textureHandle,
         m_outputImage->width,
         m_outputImage->height,
@@ -458,87 +395,72 @@ void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
     m_commandBuffers.secondary.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx.queue.submit(submitInfo);
-    m_dctx.queue.waitIdle();
+    m_dctx->queue.submit(submitInfo);
+    m_dctx->queue.waitIdle();
 }
 
-VkPhysicalDevice PostProcessing::getVkPhysicalDevice() const noexcept
-{
-    return static_cast<VkPhysicalDevice>(*m_dctx.physicalDevice);
-}
-
-VkDevice PostProcessing::getVkDevice() const noexcept
-{
-    return static_cast<VkDevice>(*m_dctx.device);
-}
-
-VkQueue PostProcessing::getVkQueue() const noexcept
-{
-    return static_cast<VkQueue>(*m_dctx.queue);
-}
-
-void PostProcessing::copyStagingBufferToAovColor()
+void PostProcessing::copyBufferToAovColor(const HostVisibleBuffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
+        throw InvalidOperation("copyBufferToAovColor cannot be called when vkinterop is used");
     }
     std::visit(overload {
-                   [&](Aovs& arg) { copyStagingBufferToAov(arg.color); },
+                   [&](Aovs& arg) { copyBufferToAov(src, arg.color); },
                    [](InteropAovs& args) {} },
         m_aovs.value());
 }
 
-void PostProcessing::copyStagingBufferToAovOpacity()
+void PostProcessing::copyBufferToAovOpacity(const HostVisibleBuffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
+        throw InvalidOperation("copyBufferToAovOpacity cannot be called when vkinterop is used");
     }
     std::visit(overload {
-                   [&](Aovs& arg) { copyStagingBufferToAov(arg.opacity); },
+                   [&](Aovs& arg) { copyBufferToAov(src, arg.opacity); },
                    [](InteropAovs& args) {} },
         m_aovs.value());
 }
 
-void PostProcessing::copyStagingBufferToAovShadowCatcher()
+void PostProcessing::copyBufferToAovShadowCatcher(const HostVisibleBuffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
+        throw InvalidOperation("copyBufferToAovShadowCatcher cannot be called when vkinterop is used");
     }
     std::visit(overload {
-                   [&](Aovs& arg) { copyStagingBufferToAov(arg.shadowCatcher); },
+                   [&](Aovs& arg) { copyBufferToAov(src, arg.shadowCatcher); },
                    [](InteropAovs& args) {} },
         m_aovs.value());
 }
 
-void PostProcessing::copyStagingBufferToAovReflectionCatcher()
+void PostProcessing::copyBufferToAovReflectionCatcher(const HostVisibleBuffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
+        throw InvalidOperation("copyBufferToAovReflectionCatcher cannot be called when vkinterop is used");
     }
     std::visit(overload {
-                   [&](Aovs& arg) { copyStagingBufferToAov(arg.reflectionCatcher); },
+                   [&](Aovs& arg) { copyBufferToAov(src, arg.reflectionCatcher); },
                    [](InteropAovs& args) {} },
         m_aovs.value());
 }
 
-void PostProcessing::copyStagingBufferToAovMattePass()
+void PostProcessing::copyBufferToAovMattePass(const HostVisibleBuffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
+        throw InvalidOperation("copyBufferToAovMattePass cannot be called when vkinterop is used");
     }
     std::visit(overload {
-                   [&](Aovs& arg) { copyStagingBufferToAov(arg.mattePass); },
+                   [&](Aovs& arg) { copyBufferToAov(src, arg.mattePass); },
                    [](InteropAovs& args) {} },
         m_aovs.value());
 }
 
-void PostProcessing::copyStagingBufferToAovBackground()
+void PostProcessing::copyBufferToAovBackground(const HostVisibleBuffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyStagingBuffer cannot be called when vkinterop is used");
+        throw InvalidOperation("copyBufferToAovBackground cannot be called when vkinterop is used");
     }
     std::visit(overload {
-                   [&](Aovs& arg) { copyStagingBufferToAov(arg.background); },
+                   [&](Aovs& arg) { copyBufferToAov(src, arg.background); },
                    [](InteropAovs& args) {} },
         m_aovs.value());
 }

@@ -15,7 +15,8 @@
 #include "dx_helper.h"
 
 #include "../common/HybridProRenderer.h"
-#include "../common/RprPostProcessing.h"
+#include "../common/WRprPpContext.h"
+#include "../common/WRprPpPostProcessing.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -38,7 +39,8 @@ private:
     ComPtr<ID3D11Texture2D> m_sharedTexture;
     ComPtr<IDXGIResource1> m_sharedTextureResource;
     HANDLE m_sharedTextureHandle = nullptr;
-    std::unique_ptr<RprPostProcessing> m_postProcessing;
+    std::unique_ptr<WRprPpContext> m_ppContext;
+    std::unique_ptr<WRprPpPostProcessing> m_postProcessing;
     std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
     std::vector<RprPpVkFence> m_fences;
     std::vector<RprPpVkSemaphore> m_frameBuffersReadySemaphores;
@@ -47,7 +49,6 @@ private:
     void findAdapter();
     void intiSwapChain();
     void initHybridProAndPostProcessing();
-    void copyRprFbToPpStagingBuffer(rpr_aov aov);
     void resize(int width, int height);
     static void onResize(GLFWwindow* window, int width, int height);
     void mainLoop();

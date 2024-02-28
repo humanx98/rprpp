@@ -19,20 +19,27 @@ set(SHADERS
 )
 
 set(HEADERS
+    Context.h
     rprpp.h
     Error.h
     vk_helper.h
     vk.h
     DescriptorBuilder.h
+    Dx11SharedTexture.h
+    HostVisibleBuffer.h
+    ImageFormat.h
     PostProcessing.h
     ShaderManager.h
 )
 
 set(SOURCES
+    Context.cpp
     rprpp.cpp
     Error.cpp
     vk_helper.cpp
     DescriptorBuilder.cpp
+    Dx11SharedTexture.cpp
+    HostVisibleBuffer.cpp
     PostProcessing.cpp
     ShaderManager.cpp
 )

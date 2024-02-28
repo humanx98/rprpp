@@ -1,31 +1,25 @@
 #pragma once
 
-#include "StagingBuffer.h"
+#include "WRprPpHostVisibleBuffer.h"
 #include "rpr_helper.h"
 
-class RprPostProcessing {
+class WRprPpPostProcessing {
 public:
-    RprPostProcessing(uint32_t deviceId);
-    ~RprPostProcessing();
-
-    StagingBuffer mapStagingBuffer(size_t size);
+    WRprPpPostProcessing(const WRprPpContext& context);
+    ~WRprPpPostProcessing();
 
     void resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
-    void getOutput(uint8_t* dst, size_t size, size_t* retSize);
     void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
     void waitQueueIdle();
     void copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandle);
+    void copyOutputTo(WRprPpHostVisibleBuffer& dst);
 
-    RprPpVkPhysicalDevice getVkPhysicalDevice() const noexcept;
-    RprPpVkDevice getVkDevice() const noexcept;
-    RprPpVkQueue getVkQueue() const noexcept;
-
-    void copyStagingBufferToAovColor();
-    void copyStagingBufferToAovOpacity();
-    void copyStagingBufferToAovShadowCatcher();
-    void copyStagingBufferToAovReflectionCatcher();
-    void copyStagingBufferToAovMattePass();
-    void copyStagingBufferToAovBackground();
+    void copyBufferToAovColor(const WRprPpHostVisibleBuffer& src);
+    void copyBufferToAovOpacity(const WRprPpHostVisibleBuffer& src);
+    void copyBufferToAovShadowCatcher(const WRprPpHostVisibleBuffer& src);
+    void copyBufferToAovReflectionCatcher(const WRprPpHostVisibleBuffer& src);
+    void copyBufferToAovMattePass(const WRprPpHostVisibleBuffer& src);
+    void copyBufferToAovBackground(const WRprPpHostVisibleBuffer& src);
 
     void setGamma(float gamma);
     void setShadowIntensity(float shadowIntensity);
@@ -46,9 +40,10 @@ public:
     void setBloomEnabled(bool enabled);
     void setDenoiserEnabled(bool enabled);
 
-    RprPostProcessing(const RprPostProcessing&) = delete;
-    RprPostProcessing& operator=(const RprPostProcessing&) = delete;
+    WRprPpPostProcessing(const WRprPpPostProcessing&) = delete;
+    WRprPpPostProcessing& operator=(const WRprPpPostProcessing&) = delete;
 
 private:
     RprPpContext m_context;
+    RprPpPostProcessing m_postProcessing;
 };

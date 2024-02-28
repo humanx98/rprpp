@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HostVisibleBuffer.h"
 #include "ImageFormat.h"
 #include "ShaderManager.h"
 #include "vk_helper.h"
@@ -76,13 +77,12 @@ struct UniformBufferObject {
 
 struct CommandBuffers {
     vk::raii::CommandBuffer compute;
-    vk::raii::CommandBuffer readOutput;
     vk::raii::CommandBuffer secondary;
 };
 
 class PostProcessing {
 public:
-    PostProcessing(vk::helper::DeviceContext&& dctx,
+    PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
         vk::raii::CommandPool&& commandPool,
         CommandBuffers&& commandBuffers,
         vk::helper::Buffer&& uboBuffer) noexcept;
@@ -93,26 +93,18 @@ public:
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
 
-    static std::unique_ptr<PostProcessing> create(uint32_t deviceId);
-
-    void* mapStagingBuffer(size_t size);
-    void unmapStagingBuffer();
     void resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
-    void getOutput(uint8_t* dst, size_t size, size_t* retSize);
+    void copyOutputTo(HostVisibleBuffer& dst);
     void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
     void waitQueueIdle();
     void copyOutputToDx11Texture(HANDLE dx11textureHandle);
 
-    VkPhysicalDevice getVkPhysicalDevice() const noexcept;
-    VkDevice getVkDevice() const noexcept;
-    VkQueue getVkQueue() const noexcept;
-
-    void copyStagingBufferToAovColor();
-    void copyStagingBufferToAovOpacity();
-    void copyStagingBufferToAovShadowCatcher();
-    void copyStagingBufferToAovReflectionCatcher();
-    void copyStagingBufferToAovMattePass();
-    void copyStagingBufferToAovBackground();
+    void copyBufferToAovColor(const HostVisibleBuffer& src);
+    void copyBufferToAovOpacity(const HostVisibleBuffer& src);
+    void copyBufferToAovShadowCatcher(const HostVisibleBuffer& src);
+    void copyBufferToAovReflectionCatcher(const HostVisibleBuffer& src);
+    void copyBufferToAovMattePass(const HostVisibleBuffer& src);
+    void copyBufferToAovBackground(const HostVisibleBuffer& src);
 
     void setGamma(float gamma) noexcept;
     void setShadowIntensity(float shadowIntensity) noexcept;
@@ -158,7 +150,6 @@ private:
     void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void createComputePipeline();
     void recordComputeCommandBuffer(uint32_t width, uint32_t height);
-    void recordReadOutputCommandBuffer();
     void transitionImageLayout(vk::helper::Image& image,
         vk::AccessFlags dstAccess,
         vk::ImageLayout dstLayout,
@@ -167,7 +158,7 @@ private:
         vk::AccessFlags dstAccess,
         vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
-    void copyStagingBufferToAov(vk::helper::Image& image);
+    void copyBufferToAov(const HostVisibleBuffer& src, vk::helper::Image& dst);
     void updateUbo();
 
     uint32_t m_width = 0;
@@ -179,12 +170,11 @@ private:
     UniformBufferObject m_ubo;
     std::vector<const char*> m_enabledLayers;
     ShaderManager m_shaderManager;
-    vk::helper::DeviceContext m_dctx;
+    std::shared_ptr<vk::helper::DeviceContext> m_dctx;
     vk::raii::CommandPool m_commandPool;
     CommandBuffers m_commandBuffers;
     vk::helper::Buffer m_uboBuffer;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
-    std::optional<vk::helper::Buffer> m_stagingBuffer;
     std::optional<vk::helper::Image> m_outputImage;
     std::optional<std::variant<Aovs, InteropAovs>> m_aovs;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;

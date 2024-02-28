@@ -3,7 +3,9 @@
 #include <stb/stb_image_write.h>
 
 #include "common/HybridProRenderer.h"
-#include "common/RprPostProcessing.h"
+#include "common/WRprPpContext.h"
+#include "common/WRprPpHostVisibleBuffer.h"
+#include "common/WRprPpPostProcessing.h"
 #include <filesystem>
 #include <iostream>
 
@@ -16,8 +18,8 @@
 #define FRAMES_IN_FLIGHT 3
 #define ITERATIONS 100
 
-void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, RprPpImageFormat format);
-void copyRprFbToPpStagingBuffer(HybridProRenderer& r, RprPostProcessing& pp, rpr_aov aov);
+void savePngImage(const char* filename, void* img, uint32_t width, uint32_t height, RprPpImageFormat format);
+void copyRprFbToBuffer(HybridProRenderer& r, WRprPpHostVisibleBuffer& buffer, rpr_aov aov);
 void runWithInterop(const std::filesystem::path& exeDirPath, int device_id);
 void runWithoutInterop(const std::filesystem::path& exeDirPath, int device_id);
 
@@ -58,26 +60,28 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     std::filesystem::path assetsDir = exeDirPath;
 
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
-    RprPostProcessing postProcessing(deviceId);
+    WRprPpContext ppContext(deviceId);
+    WRprPpPostProcessing postProcessing(ppContext);
+    WRprPpHostVisibleBuffer buffer(ppContext, WIDTH * HEIGHT * to_pixel_size(format));
 
     std::vector<RprPpVkFence> fences;
     std::vector<RprPpVkSemaphore> frameBuffersReleaseSemaphores;
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
         RprPpVkSemaphore semaphore;
-        RPRPP_CHECK(rprppVkCreateSemaphore(postProcessing.getVkDevice(), &semaphore));
+        RPRPP_CHECK(rprppVkCreateSemaphore(ppContext.getVkDevice(), &semaphore));
         frameBuffersReleaseSemaphores.push_back(semaphore);
 
         RprPpVkFence fence;
-        RPRPP_CHECK(rprppVkCreateFence(postProcessing.getVkDevice(), RPRPP_TRUE, &fence));
+        RPRPP_CHECK(rprppVkCreateFence(ppContext.getVkDevice(), RPRPP_TRUE, &fence));
         fences.push_back(fence);
     }
 
     // set frame buffers realese to signal state
-    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(postProcessing.getVkQueue(), nullptr, frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT], nullptr));
+    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), nullptr, frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT], nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
-        .physicalDevice = postProcessing.getVkPhysicalDevice(),
-        .device = postProcessing.getVkDevice(),
+        .physicalDevice = ppContext.getVkPhysicalDevice(),
+        .device = ppContext.getVkDevice(),
         .framesInFlight = FRAMES_IN_FLIGHT,
         .frameBuffersReleaseSemaphores = frameBuffersReleaseSemaphores.data(),
     };
@@ -96,45 +100,43 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     };
     postProcessing.resize(WIDTH, HEIGHT, format, &aovsVkInteropInfo);
 
-    std::vector<uint8_t> output;
     uint32_t currentFrame = 0;
     for (size_t i = 0; i < ITERATIONS; i++) {
         renderer.render();
         renderer.flushFrameBuffers();
 
         RprPpVkFence fence = fences[currentFrame];
-        RPRPP_CHECK(rprppVkWaitForFences(postProcessing.getVkDevice(), 1, &fence, true, UINT64_MAX));
-        RPRPP_CHECK(rprppVkResetFences(postProcessing.getVkDevice(), 1, &fence));
+        RPRPP_CHECK(rprppVkWaitForFences(ppContext.getVkDevice(), 1, &fence, true, UINT64_MAX));
+        RPRPP_CHECK(rprppVkResetFences(ppContext.getVkDevice(), 1, &fence));
 
         uint32_t semaphoreIndex = renderer.getSemaphoreIndex();
         RprPpVkSemaphore aovsReadySemaphore = frameBuffersReadySemaphores[semaphoreIndex];
         RprPpVkSemaphore processingFinishedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
 
         postProcessing.run(aovsReadySemaphore, processingFinishedSemaphore);
-        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(postProcessing.getVkQueue(), nullptr, nullptr, fence));
+        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), nullptr, nullptr, fence));
         currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
 
         if (i == 0 || i == ITERATIONS - 1) {
             postProcessing.waitQueueIdle();
             size_t size;
-            postProcessing.getOutput(nullptr, 0, &size);
-            output.resize(size);
-            postProcessing.getOutput(output.data(), size, nullptr);
+            postProcessing.copyOutputTo(buffer);
 
             auto resultPath = exeDirPath / ("result_with_interop_" + std::to_string(i) + ".png");
             std::filesystem::remove(resultPath);
-            savePngImage(resultPath.string().c_str(), output.data(), WIDTH, HEIGHT, format);
+            savePngImage(resultPath.string().c_str(), buffer.map(buffer.size()), WIDTH, HEIGHT, format);
+            buffer.unmap();
         }
     }
 
     postProcessing.waitQueueIdle();
 
     for (auto f : fences) {
-        RPRPP_CHECK(rprppVkDestroyFence(postProcessing.getVkDevice(), f));
+        RPRPP_CHECK(rprppVkDestroyFence(ppContext.getVkDevice(), f));
     }
 
     for (auto s : frameBuffersReleaseSemaphores) {
-        RPRPP_CHECK(rprppVkDestroySemaphore(postProcessing.getVkDevice(), s));
+        RPRPP_CHECK(rprppVkDestroySemaphore(ppContext.getVkDevice(), s));
     }
 }
 
@@ -144,55 +146,52 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     std::filesystem::path hybridproCacheDir = exeDirPath / "hybridpro_cache";
     std::filesystem::path assetsDir = exeDirPath;
 
-    RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
-    RprPostProcessing postProcessing(deviceId);
+    RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
+    WRprPpContext ppContext(deviceId);
+    WRprPpPostProcessing postProcessing(ppContext);
+    // this buffer should handle hdr for aovs and hdr/ldr for output
+    WRprPpHostVisibleBuffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
+
     postProcessing.resize(WIDTH, HEIGHT, format);
 
     HybridProRenderer renderer(deviceId, std::nullopt, hybridproDll, hybridproCacheDir, assetsDir);
     renderer.resize(WIDTH, HEIGHT);
 
-    std::vector<uint8_t> output;
     for (size_t i = 0; i < ITERATIONS; i++) {
         renderer.render();
 
-        copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_COLOR);
-        postProcessing.copyStagingBufferToAovColor();
-        copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_OPACITY);
-        postProcessing.copyStagingBufferToAovOpacity();
-        copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_SHADOW_CATCHER);
-        postProcessing.copyStagingBufferToAovShadowCatcher();
-        copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_REFLECTION_CATCHER);
-        postProcessing.copyStagingBufferToAovReflectionCatcher();
-        copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_MATTE_PASS);
-        postProcessing.copyStagingBufferToAovMattePass();
-        copyRprFbToPpStagingBuffer(renderer, postProcessing, RPR_AOV_BACKGROUND);
-        postProcessing.copyStagingBufferToAovBackground();
+        copyRprFbToBuffer(renderer, buffer, RPR_AOV_COLOR);
+        postProcessing.copyBufferToAovColor(buffer);
+        copyRprFbToBuffer(renderer, buffer, RPR_AOV_OPACITY);
+        postProcessing.copyBufferToAovOpacity(buffer);
+        copyRprFbToBuffer(renderer, buffer, RPR_AOV_SHADOW_CATCHER);
+        postProcessing.copyBufferToAovShadowCatcher(buffer);
+        copyRprFbToBuffer(renderer, buffer, RPR_AOV_REFLECTION_CATCHER);
+        postProcessing.copyBufferToAovReflectionCatcher(buffer);
+        copyRprFbToBuffer(renderer, buffer, RPR_AOV_MATTE_PASS);
+        postProcessing.copyBufferToAovMattePass(buffer);
+        copyRprFbToBuffer(renderer, buffer, RPR_AOV_BACKGROUND);
+        postProcessing.copyBufferToAovBackground(buffer);
 
         postProcessing.run();
         postProcessing.waitQueueIdle();
 
         if (i == 0 || i == ITERATIONS - 1) {
-            size_t size;
-            postProcessing.getOutput(nullptr, 0, &size);
-            output.resize(size);
-            postProcessing.getOutput(output.data(), size, nullptr);
+            postProcessing.copyOutputTo(buffer);
 
             auto resultPath = exeDirPath / ("result_without_interop_" + std::to_string(i) + ".png");
             std::filesystem::remove(resultPath);
-            savePngImage(resultPath.string().c_str(), output.data(), WIDTH, HEIGHT, format);
+            savePngImage(resultPath.string().c_str(), buffer.map(to_pixel_size(format) * WIDTH * HEIGHT), WIDTH, HEIGHT, format);
+            buffer.unmap();
         }
     }
 }
 
-void copyRprFbToPpStagingBuffer(HybridProRenderer& r, RprPostProcessing& pp, rpr_aov aov)
+void copyRprFbToBuffer(HybridProRenderer& r, WRprPpHostVisibleBuffer& buffer, rpr_aov aov)
 {
     size_t size;
     r.getAov(aov, nullptr, 0u, &size);
-
-    StagingBuffer buffer = pp.mapStagingBuffer(size);
-
-    r.getAov(aov, buffer.data(), size, nullptr);
-
+    r.getAov(aov, buffer.map(size), size, nullptr);
     buffer.unmap();
 }
 
@@ -207,16 +206,17 @@ inline uint8_t floatToByte(float value)
     return roundf(value * 255.0f);
 }
 
-void savePngImage(const char* filename, uint8_t* img, uint32_t width, uint32_t height, RprPpImageFormat format)
+void savePngImage(const char* filename, void* img, uint32_t width, uint32_t height, RprPpImageFormat format)
 {
     size_t numComponents = 4;
-    uint8_t* dst = img;
+    uint8_t* dst = (uint8_t*)img;
     std::vector<uint8_t> vDst;
     if (format != RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM) {
-        vDst.resize(width * height * numComponents);
-        dst = vDst.data();
         switch (format) {
         case RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT: {
+            vDst.resize(width * height * numComponents);
+            dst = vDst.data();
+
             float* hdrImg = (float*)img;
             for (size_t i = 0; i < width * height * numComponents; i++) {
                 dst[i] = floatToByte(hdrImg[i]);

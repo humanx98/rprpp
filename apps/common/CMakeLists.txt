@@ -1,13 +1,15 @@
 set(HEADERS
-    StagingBuffer.h
     HybridProRenderer.h
-    RprPostProcessing.h
+    WRprPpContext.h
+    WRprPpHostVisibleBuffer.h
+    WRprPpPostProcessing.h
     rpr_helper.h
 )
 set(SOURCES
-    StagingBuffer.cpp
     HybridProRenderer.cpp
-    RprPostProcessing.cpp
+    WRprPpContext.cpp
+    WRprPpHostVisibleBuffer.cpp
+    WRprPpPostProcessing.cpp
     rpr_helper.cpp
 )
 
