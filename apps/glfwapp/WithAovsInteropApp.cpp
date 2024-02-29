@@ -223,7 +223,7 @@ void WithAovsInteropApp::mainLoop()
                     }
                 }
 
-                m_postProcessing->waitQueueIdle();
+                m_ppContext->waitQueueIdle();
                 m_postProcessing->copyOutputTo(*m_dx11output);
             }
 

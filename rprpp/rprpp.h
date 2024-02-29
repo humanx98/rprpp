@@ -83,11 +83,11 @@ RPRPP_API RprPpError rprppContextDestroyImage(RprPpContext context, RprPpImage i
 RPRPP_API RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysicalDevice* physicalDevice);
 RPRPP_API RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkDevice* device);
 RPRPP_API RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue);
+RPRPP_API RprPpError rprppContextWaitQueueIdle(RprPpContext context);
 
 // post processing functions
 RPRPP_API RprPpError rprppPostProcessingResize(RprPpPostProcessing processing, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo);
 RPRPP_API RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore);
-RPRPP_API RprPpError rprppPostProcessingWaitQueueIdle(RprPpPostProcessing processing);
 RPRPP_API RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, RprPpImage dst);
 RPRPP_API RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpBuffer dst);
 

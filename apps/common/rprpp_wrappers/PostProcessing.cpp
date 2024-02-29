@@ -35,14 +35,6 @@ void PostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore t
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::waitQueueIdle()
-{
-    RprPpError status;
-
-    status = rprppPostProcessingWaitQueueIdle(m_postProcessing);
-    RPRPP_CHECK(status);
-}
-
 void PostProcessing::copyOutputTo(Image& dst)
 {
     RprPpError status;

@@ -118,7 +118,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
 
         if (i == 0 || i == ITERATIONS - 1) {
-            postProcessing.waitQueueIdle();
+            ppContext.waitQueueIdle();
             size_t size;
             postProcessing.copyOutputTo(buffer);
 
@@ -129,7 +129,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         }
     }
 
-    postProcessing.waitQueueIdle();
+    ppContext.waitQueueIdle();
 
     for (auto f : fences) {
         RPRPP_CHECK(rprppVkDestroyFence(ppContext.getVkDevice(), f));
@@ -174,7 +174,7 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
         postProcessing.copyBufferToAovBackground(buffer);
 
         postProcessing.run();
-        postProcessing.waitQueueIdle();
+        ppContext.waitQueueIdle();
 
         if (i == 0 || i == ITERATIONS - 1) {
             postProcessing.copyOutputTo(buffer);

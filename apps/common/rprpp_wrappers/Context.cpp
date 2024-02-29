@@ -48,6 +48,14 @@ RprPpVkQueue Context::getVkQueue() const noexcept
     return vkhandle;
 }
 
+void Context::waitQueueIdle()
+{
+    RprPpError status;
+
+    status = rprppContextWaitQueueIdle(m_context);
+    RPRPP_CHECK(status);
+}
+
 RprPpContext Context::get() const noexcept
 {
     return m_context;

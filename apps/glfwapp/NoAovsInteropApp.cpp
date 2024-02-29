@@ -182,7 +182,7 @@ void NoAovsInteropApp::mainLoop()
             copyRprFbToPpStagingBuffer(RPR_AOV_BACKGROUND);
             m_postProcessing->copyBufferToAovBackground(*m_buffer);
             m_postProcessing->run();
-            m_postProcessing->waitQueueIdle();
+            m_ppContext->waitQueueIdle();
             m_postProcessing->copyOutputTo(*m_dx11output);
 
             IDXGIKeyedMutex* km;

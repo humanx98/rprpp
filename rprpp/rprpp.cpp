@@ -226,6 +226,19 @@ RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue)
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppContextWaitQueueIdle(RprPpContext context)
+{
+    assert(context);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        ctx->waitQueueIdle();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppPostProcessingResize(RprPpPostProcessing processing, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* pAovsVkInterop)
 {
     assert(processing);
@@ -270,19 +283,6 @@ RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemapho
         }
 
         pp->run(aovsReadySemaphore, toSignalAfterProcessingSemaphore);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingWaitQueueIdle(RprPpPostProcessing processing)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->waitQueueIdle();
     });
     check(result);
 

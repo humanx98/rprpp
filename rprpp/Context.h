@@ -25,6 +25,7 @@ public:
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
     VkDevice getVkDevice() const noexcept;
     VkQueue getVkQueue() const noexcept;
+    void waitQueueIdle();
 
     PostProcessing* createPostProcessing();
     void destroyPostProcessing(PostProcessing* pp);

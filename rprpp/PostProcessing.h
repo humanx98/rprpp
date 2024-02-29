@@ -98,7 +98,6 @@ public:
     void copyOutputTo(Buffer& dst);
     void copyOutputTo(Image& image);
     void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
-    void waitQueueIdle();
 
     void copyBufferToAovColor(const Buffer& src);
     void copyBufferToAovOpacity(const Buffer& src);

@@ -13,6 +13,7 @@ public:
     RprPpVkPhysicalDevice getVkPhysicalDevice() const noexcept;
     RprPpVkDevice getVkDevice() const noexcept;
     RprPpVkQueue getVkQueue() const noexcept;
+    void waitQueueIdle();
     RprPpContext get() const noexcept;
 
     Context(const Context&) = delete;

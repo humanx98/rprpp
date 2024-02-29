@@ -97,4 +97,9 @@ VkQueue Context::getVkQueue() const noexcept
     return static_cast<VkQueue>(*m_deviceContext->queue);
 }
 
+void Context::waitQueueIdle()
+{
+    m_deviceContext->queue.waitIdle();
+}
+
 }

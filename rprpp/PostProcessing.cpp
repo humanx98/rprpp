@@ -374,11 +374,6 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
     }
 }
 
-void PostProcessing::waitQueueIdle()
-{
-    m_dctx->queue.waitIdle();
-}
-
 void PostProcessing::copyBufferToAovColor(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
