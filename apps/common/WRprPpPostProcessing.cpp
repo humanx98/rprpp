@@ -49,7 +49,7 @@ void WRprPpPostProcessing::copyOutputTo(WRprPpImage& dst)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyOutputTo(WRprPpHostVisibleBuffer& dst)
+void WRprPpPostProcessing::copyOutputTo(WRprPpBuffer& dst)
 {
     RprPpError status;
 
@@ -57,7 +57,7 @@ void WRprPpPostProcessing::copyOutputTo(WRprPpHostVisibleBuffer& dst)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovColor(const WRprPpHostVisibleBuffer& src)
+void WRprPpPostProcessing::copyBufferToAovColor(const WRprPpBuffer& src)
 {
     RprPpError status;
 
@@ -65,7 +65,7 @@ void WRprPpPostProcessing::copyBufferToAovColor(const WRprPpHostVisibleBuffer& s
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovOpacity(const WRprPpHostVisibleBuffer& src)
+void WRprPpPostProcessing::copyBufferToAovOpacity(const WRprPpBuffer& src)
 {
     RprPpError status;
 
@@ -73,7 +73,7 @@ void WRprPpPostProcessing::copyBufferToAovOpacity(const WRprPpHostVisibleBuffer&
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovShadowCatcher(const WRprPpHostVisibleBuffer& src)
+void WRprPpPostProcessing::copyBufferToAovShadowCatcher(const WRprPpBuffer& src)
 {
     RprPpError status;
 
@@ -81,7 +81,7 @@ void WRprPpPostProcessing::copyBufferToAovShadowCatcher(const WRprPpHostVisibleB
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovReflectionCatcher(const WRprPpHostVisibleBuffer& src)
+void WRprPpPostProcessing::copyBufferToAovReflectionCatcher(const WRprPpBuffer& src)
 {
     RprPpError status;
 
@@ -89,7 +89,7 @@ void WRprPpPostProcessing::copyBufferToAovReflectionCatcher(const WRprPpHostVisi
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovMattePass(const WRprPpHostVisibleBuffer& src)
+void WRprPpPostProcessing::copyBufferToAovMattePass(const WRprPpBuffer& src)
 {
     RprPpError status;
 
@@ -97,7 +97,7 @@ void WRprPpPostProcessing::copyBufferToAovMattePass(const WRprPpHostVisibleBuffe
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovBackground(const WRprPpHostVisibleBuffer& src)
+void WRprPpPostProcessing::copyBufferToAovBackground(const WRprPpBuffer& src)
 {
     RprPpError status;
 

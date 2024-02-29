@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WRprPpHostVisibleBuffer.h"
+#include "WRprPpBuffer.h"
 #include "WRprPpImage.h"
 #include "rpr_helper.h"
 
@@ -13,14 +13,14 @@ public:
     void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
     void waitQueueIdle();
     void copyOutputTo(WRprPpImage& dst);
-    void copyOutputTo(WRprPpHostVisibleBuffer& dst);
+    void copyOutputTo(WRprPpBuffer& dst);
 
-    void copyBufferToAovColor(const WRprPpHostVisibleBuffer& src);
-    void copyBufferToAovOpacity(const WRprPpHostVisibleBuffer& src);
-    void copyBufferToAovShadowCatcher(const WRprPpHostVisibleBuffer& src);
-    void copyBufferToAovReflectionCatcher(const WRprPpHostVisibleBuffer& src);
-    void copyBufferToAovMattePass(const WRprPpHostVisibleBuffer& src);
-    void copyBufferToAovBackground(const WRprPpHostVisibleBuffer& src);
+    void copyBufferToAovColor(const WRprPpBuffer& src);
+    void copyBufferToAovOpacity(const WRprPpBuffer& src);
+    void copyBufferToAovShadowCatcher(const WRprPpBuffer& src);
+    void copyBufferToAovReflectionCatcher(const WRprPpBuffer& src);
+    void copyBufferToAovMattePass(const WRprPpBuffer& src);
+    void copyBufferToAovBackground(const WRprPpBuffer& src);
 
     void setGamma(float gamma);
     void setShadowIntensity(float shadowIntensity);

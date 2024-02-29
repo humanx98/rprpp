@@ -216,7 +216,7 @@ void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
     m_commandBuffers.compute.end();
 }
 
-void PostProcessing::copyBufferToAov(const HostVisibleBuffer& src, vk::helper::Image& dst)
+void PostProcessing::copyBufferToAov(const Buffer& src, vk::helper::Image& dst)
 {
     vk::AccessFlags oldAccess = dst.access;
     vk::ImageLayout oldLayout = dst.layout;
@@ -292,7 +292,7 @@ void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format,
     m_aovsVkInteropInfo = aovsVkInteropInfo;
 }
 
-void PostProcessing::copyOutputTo(HostVisibleBuffer& dst)
+void PostProcessing::copyOutputTo(Buffer& dst)
 {
     size_t size = m_width * m_height * to_pixel_size(m_outputImageFormat);
     if (dst.size() < size) {
@@ -387,7 +387,7 @@ void PostProcessing::waitQueueIdle()
     m_dctx->queue.waitIdle();
 }
 
-void PostProcessing::copyBufferToAovColor(const HostVisibleBuffer& src)
+void PostProcessing::copyBufferToAovColor(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
         throw InvalidOperation("copyBufferToAovColor cannot be called when vkinterop is used");
@@ -398,7 +398,7 @@ void PostProcessing::copyBufferToAovColor(const HostVisibleBuffer& src)
         m_aovs.value());
 }
 
-void PostProcessing::copyBufferToAovOpacity(const HostVisibleBuffer& src)
+void PostProcessing::copyBufferToAovOpacity(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
         throw InvalidOperation("copyBufferToAovOpacity cannot be called when vkinterop is used");
@@ -409,7 +409,7 @@ void PostProcessing::copyBufferToAovOpacity(const HostVisibleBuffer& src)
         m_aovs.value());
 }
 
-void PostProcessing::copyBufferToAovShadowCatcher(const HostVisibleBuffer& src)
+void PostProcessing::copyBufferToAovShadowCatcher(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
         throw InvalidOperation("copyBufferToAovShadowCatcher cannot be called when vkinterop is used");
@@ -420,7 +420,7 @@ void PostProcessing::copyBufferToAovShadowCatcher(const HostVisibleBuffer& src)
         m_aovs.value());
 }
 
-void PostProcessing::copyBufferToAovReflectionCatcher(const HostVisibleBuffer& src)
+void PostProcessing::copyBufferToAovReflectionCatcher(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
         throw InvalidOperation("copyBufferToAovReflectionCatcher cannot be called when vkinterop is used");
@@ -431,7 +431,7 @@ void PostProcessing::copyBufferToAovReflectionCatcher(const HostVisibleBuffer& s
         m_aovs.value());
 }
 
-void PostProcessing::copyBufferToAovMattePass(const HostVisibleBuffer& src)
+void PostProcessing::copyBufferToAovMattePass(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
         throw InvalidOperation("copyBufferToAovMattePass cannot be called when vkinterop is used");
@@ -442,7 +442,7 @@ void PostProcessing::copyBufferToAovMattePass(const HostVisibleBuffer& src)
         m_aovs.value());
 }
 
-void PostProcessing::copyBufferToAovBackground(const HostVisibleBuffer& src)
+void PostProcessing::copyBufferToAovBackground(const Buffer& src)
 {
     if (m_aovsVkInteropInfo.has_value()) {
         throw InvalidOperation("copyBufferToAovBackground cannot be called when vkinterop is used");

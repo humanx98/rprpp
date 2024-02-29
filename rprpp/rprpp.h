@@ -40,7 +40,7 @@ typedef enum RprPpImageFormat {
 typedef uint32_t RprPpBool;
 typedef void* RprPpContext;
 typedef void* RprPpPostProcessing;
-typedef void* RprPpHostVisibleBuffer;
+typedef void* RprPpBuffer;
 typedef void* RprPpImage;
 typedef void* RprPpDx11Handle;
 typedef void* RprPpVkFence;
@@ -76,8 +76,8 @@ RPRPP_API RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outCont
 RPRPP_API RprPpError rprppDestroyContext(RprPpContext context);
 RPRPP_API RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprPpPostProcessing* outpp);
 RPRPP_API RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProcessing pp);
-RPRPP_API RprPpError rprppContextCreateHostVisibleBuffer(RprPpContext context, size_t size, RprPpHostVisibleBuffer* outBuffer);
-RPRPP_API RprPpError rprppContextDestroyHostVisibleBuffer(RprPpContext context, RprPpHostVisibleBuffer buffer);
+RPRPP_API RprPpError rprppContextCreateBuffer(RprPpContext context, size_t size, RprPpBuffer* outBuffer);
+RPRPP_API RprPpError rprppContextDestroyBuffer(RprPpContext context, RprPpBuffer buffer);
 RPRPP_API RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle, RprPpImageDescription description, RprPpImage* outImage);
 RPRPP_API RprPpError rprppContextDestroyImage(RprPpContext context, RprPpImage image);
 RPRPP_API RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysicalDevice* physicalDevice);
@@ -89,14 +89,14 @@ RPRPP_API RprPpError rprppPostProcessingResize(RprPpPostProcessing processing, u
 RPRPP_API RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore);
 RPRPP_API RprPpError rprppPostProcessingWaitQueueIdle(RprPpPostProcessing processing);
 RPRPP_API RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, RprPpImage dst);
-RPRPP_API RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpHostVisibleBuffer dst);
+RPRPP_API RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpBuffer dst);
 
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovOpacity(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovShadowCatcher(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovReflectionCatcher(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovMattePass(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovBackground(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
+RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpBuffer src);
+RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovOpacity(RprPpPostProcessing processing, RprPpBuffer src);
+RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovShadowCatcher(RprPpPostProcessing processing, RprPpBuffer src);
+RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovReflectionCatcher(RprPpPostProcessing processing, RprPpBuffer src);
+RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovMattePass(RprPpPostProcessing processing, RprPpBuffer src);
+RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovBackground(RprPpPostProcessing processing, RprPpBuffer src);
 
 RPRPP_API RprPpError rprppPostProcessingSetToneMapWhitepoint(RprPpPostProcessing processing, float x, float y, float z);
 RPRPP_API RprPpError rprppPostProcessingSetToneMapVignetting(RprPpPostProcessing processing, float vignetting);
@@ -136,9 +136,9 @@ RPRPP_API RprPpError rprppPostProcessingGetGamma(RprPpPostProcessing processing,
 RPRPP_API RprPpError rprppPostProcessingGetShadowIntensity(RprPpPostProcessing processing, float* shadowIntensity);
 RPRPP_API RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool* enabled);
 
-// host visible buffer functions
-RPRPP_API RprPpError rprppHostVisibleBufferMap(RprPpHostVisibleBuffer buffer, size_t size, void** outdata);
-RPRPP_API RprPpError rprppHostVisibleBufferUnmap(RprPpHostVisibleBuffer buffer);
+// buffer functions
+RPRPP_API RprPpError rprppBufferMap(RprPpBuffer buffer, size_t size, void** outdata);
+RPRPP_API RprPpError rprppBufferUnmap(RprPpBuffer buffer);
 
 // vk functions
 RPRPP_API RprPpError rprppVkCreateSemaphore(RprPpVkDevice device, RprPpVkSemaphore* outSemaphore);

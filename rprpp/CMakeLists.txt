@@ -25,7 +25,7 @@ set(HEADERS
     vk_helper.h
     vk.h
     DescriptorBuilder.h
-    HostVisibleBuffer.h
+    Buffer.h
     Image.h
     ImageFormat.h
     PostProcessing.h
@@ -38,7 +38,7 @@ set(SOURCES
     Error.cpp
     vk_helper.cpp
     DescriptorBuilder.cpp
-    HostVisibleBuffer.cpp
+    Buffer.cpp
     Image.cpp
     PostProcessing.cpp
     ShaderManager.cpp

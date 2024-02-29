@@ -1,25 +1,25 @@
-#include "HostVisibleBuffer.h"
+#include "Buffer.h"
 #include "Error.h"
 
 namespace rprpp {
 
-HostVisibleBuffer::HostVisibleBuffer(vk::helper::Buffer&& buffer, size_t size) noexcept
+Buffer::Buffer(vk::helper::Buffer&& buffer, size_t size) noexcept
     : m_buffer(std::move(buffer))
     , m_size(size)
 {
 }
 
-size_t HostVisibleBuffer::size() const noexcept
+size_t Buffer::size() const noexcept
 {
     return m_size;
 }
 
-const vk::helper::Buffer& HostVisibleBuffer::get() const noexcept
+const vk::helper::Buffer& Buffer::get() const noexcept
 {
     return m_buffer;
 }
 
-void* HostVisibleBuffer::map(size_t size)
+void* Buffer::map(size_t size)
 {
     if (size > m_size) {
         throw InvalidParameter("size", "the buffer is smaller than " + std::to_string(size));
@@ -28,7 +28,7 @@ void* HostVisibleBuffer::map(size_t size)
     return m_buffer.memory.mapMemory(0, size, {});
 }
 
-void HostVisibleBuffer::unmap()
+void Buffer::unmap()
 {
     m_buffer.memory.unmapMemory();
 }

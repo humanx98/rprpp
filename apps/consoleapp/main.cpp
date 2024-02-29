@@ -4,7 +4,7 @@
 
 #include "common/HybridProRenderer.h"
 #include "common/WRprPpContext.h"
-#include "common/WRprPpHostVisibleBuffer.h"
+#include "common/WRprPpBuffer.h"
 #include "common/WRprPpPostProcessing.h"
 #include <filesystem>
 #include <iostream>
@@ -19,7 +19,7 @@
 #define ITERATIONS 100
 
 void savePngImage(const char* filename, void* img, uint32_t width, uint32_t height, RprPpImageFormat format);
-void copyRprFbToBuffer(HybridProRenderer& r, WRprPpHostVisibleBuffer& buffer, rpr_aov aov);
+void copyRprFbToBuffer(HybridProRenderer& r, WRprPpBuffer& buffer, rpr_aov aov);
 void runWithInterop(const std::filesystem::path& exeDirPath, int device_id);
 void runWithoutInterop(const std::filesystem::path& exeDirPath, int device_id);
 
@@ -62,7 +62,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
     WRprPpContext ppContext(deviceId);
     WRprPpPostProcessing postProcessing(ppContext);
-    WRprPpHostVisibleBuffer buffer(ppContext, WIDTH * HEIGHT * to_pixel_size(format));
+    WRprPpBuffer buffer(ppContext, WIDTH * HEIGHT * to_pixel_size(format));
 
     std::vector<RprPpVkFence> fences;
     std::vector<RprPpVkSemaphore> frameBuffersReleaseSemaphores;
@@ -150,7 +150,7 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     WRprPpContext ppContext(deviceId);
     WRprPpPostProcessing postProcessing(ppContext);
     // this buffer should handle hdr for aovs and hdr/ldr for output
-    WRprPpHostVisibleBuffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
+    WRprPpBuffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
 
     postProcessing.resize(WIDTH, HEIGHT, format);
 
@@ -187,7 +187,7 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     }
 }
 
-void copyRprFbToBuffer(HybridProRenderer& r, WRprPpHostVisibleBuffer& buffer, rpr_aov aov)
+void copyRprFbToBuffer(HybridProRenderer& r, WRprPpBuffer& buffer, rpr_aov aov)
 {
     size_t size;
     r.getAov(aov, nullptr, 0u, &size);

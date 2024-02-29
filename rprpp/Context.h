@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HostVisibleBuffer.h"
+#include "Buffer.h"
 #include "Image.h"
 #include "PostProcessing.h"
 #include "vk_helper.h"
@@ -29,8 +29,8 @@ public:
     PostProcessing* createPostProcessing();
     void destroyPostProcessing(PostProcessing* pp);
 
-    HostVisibleBuffer* createHostVisibleBuffer(size_t size);
-    void destroyHostVisibleBuffer(HostVisibleBuffer* buffer);
+    Buffer* createBuffer(size_t size);
+    void destroyBuffer(Buffer* buffer);
 
     Image* createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc);
     void destroyImage(Image* image);
@@ -38,7 +38,7 @@ public:
 private:
     std::shared_ptr<vk::helper::DeviceContext> m_deviceContext;
     map<PostProcessing> m_postProcessings;
-    map<HostVisibleBuffer> m_hostVisibleBuffers;
+    map<Buffer> m_buffers;
     map<Image> m_images;
 };
 

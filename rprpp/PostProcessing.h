@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HostVisibleBuffer.h"
+#include "Buffer.h"
 #include "Image.h"
 #include "ImageFormat.h"
 #include "ShaderManager.h"
@@ -95,17 +95,17 @@ public:
     PostProcessing& operator=(const PostProcessing&) = delete;
 
     void resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
-    void copyOutputTo(HostVisibleBuffer& dst);
+    void copyOutputTo(Buffer& dst);
     void copyOutputTo(Image& image);
     void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
     void waitQueueIdle();
 
-    void copyBufferToAovColor(const HostVisibleBuffer& src);
-    void copyBufferToAovOpacity(const HostVisibleBuffer& src);
-    void copyBufferToAovShadowCatcher(const HostVisibleBuffer& src);
-    void copyBufferToAovReflectionCatcher(const HostVisibleBuffer& src);
-    void copyBufferToAovMattePass(const HostVisibleBuffer& src);
-    void copyBufferToAovBackground(const HostVisibleBuffer& src);
+    void copyBufferToAovColor(const Buffer& src);
+    void copyBufferToAovOpacity(const Buffer& src);
+    void copyBufferToAovShadowCatcher(const Buffer& src);
+    void copyBufferToAovReflectionCatcher(const Buffer& src);
+    void copyBufferToAovMattePass(const Buffer& src);
+    void copyBufferToAovBackground(const Buffer& src);
 
     void setGamma(float gamma) noexcept;
     void setShadowIntensity(float shadowIntensity) noexcept;
@@ -159,7 +159,7 @@ private:
         vk::AccessFlags dstAccess,
         vk::ImageLayout dstLayout,
         vk::PipelineStageFlags dstStage);
-    void copyBufferToAov(const HostVisibleBuffer& src, vk::helper::Image& dst);
+    void copyBufferToAov(const Buffer& src, vk::helper::Image& dst);
     void updateUbo();
 
     uint32_t m_width = 0;

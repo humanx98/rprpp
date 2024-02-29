@@ -124,28 +124,28 @@ RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProc
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppContextCreateHostVisibleBuffer(RprPpContext context, size_t size, RprPpHostVisibleBuffer* outBuffer)
+RprPpError rprppContextCreateBuffer(RprPpContext context, size_t size, RprPpBuffer* outBuffer)
 {
     assert(context);
     assert(outBuffer);
 
     auto result = safeCall([&] {
         rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
-        *outBuffer = ctx->createHostVisibleBuffer(size);
+        *outBuffer = ctx->createBuffer(size);
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppContextDestroyHostVisibleBuffer(RprPpContext context, RprPpHostVisibleBuffer buffer)
+RprPpError rprppContextDestroyBuffer(RprPpContext context, RprPpBuffer buffer)
 {
     assert(context);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
-        ctx->destroyHostVisibleBuffer(static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        ctx->destroyBuffer(static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
@@ -302,98 +302,98 @@ RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpHostVisibleBuffer dst)
+RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpBuffer dst)
 {
     assert(processing);
     assert(dst);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyOutputTo(*static_cast<rprpp::HostVisibleBuffer*>(dst));
+        pp->copyOutputTo(*static_cast<rprpp::Buffer*>(dst));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpHostVisibleBuffer buffer)
+RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpBuffer buffer)
 {
     assert(processing);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovColor(*static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        pp->copyBufferToAovColor(*static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovOpacity(RprPpPostProcessing processing, RprPpHostVisibleBuffer buffer)
+RprPpError rprppPostProcessingCopyBufferToAovOpacity(RprPpPostProcessing processing, RprPpBuffer buffer)
 {
     assert(processing);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovOpacity(*static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        pp->copyBufferToAovOpacity(*static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovShadowCatcher(RprPpPostProcessing processing, RprPpHostVisibleBuffer buffer)
+RprPpError rprppPostProcessingCopyBufferToAovShadowCatcher(RprPpPostProcessing processing, RprPpBuffer buffer)
 {
     assert(processing);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovShadowCatcher(*static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        pp->copyBufferToAovShadowCatcher(*static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovReflectionCatcher(RprPpPostProcessing processing, RprPpHostVisibleBuffer buffer)
+RprPpError rprppPostProcessingCopyBufferToAovReflectionCatcher(RprPpPostProcessing processing, RprPpBuffer buffer)
 {
     assert(processing);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovReflectionCatcher(*static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        pp->copyBufferToAovReflectionCatcher(*static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovMattePass(RprPpPostProcessing processing, RprPpHostVisibleBuffer buffer)
+RprPpError rprppPostProcessingCopyBufferToAovMattePass(RprPpPostProcessing processing, RprPpBuffer buffer)
 {
     assert(processing);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovMattePass(*static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        pp->copyBufferToAovMattePass(*static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovBackground(RprPpPostProcessing processing, RprPpHostVisibleBuffer buffer)
+RprPpError rprppPostProcessingCopyBufferToAovBackground(RprPpPostProcessing processing, RprPpBuffer buffer)
 {
     assert(processing);
     assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovBackground(*static_cast<rprpp::HostVisibleBuffer*>(buffer));
+        pp->copyBufferToAovBackground(*static_cast<rprpp::Buffer*>(buffer));
     });
     check(result);
 
@@ -932,12 +932,12 @@ RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing,
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppHostVisibleBufferMap(RprPpHostVisibleBuffer buffer, size_t size, void** outdata)
+RprPpError rprppBufferMap(RprPpBuffer buffer, size_t size, void** outdata)
 {
     assert(buffer);
 
     auto result = safeCall([&] {
-        rprpp::HostVisibleBuffer* buff = static_cast<rprpp::HostVisibleBuffer*>(buffer);
+        rprpp::Buffer* buff = static_cast<rprpp::Buffer*>(buffer);
 
         if (outdata != nullptr) {
             *outdata = buff->map(size);
@@ -948,12 +948,12 @@ RprPpError rprppHostVisibleBufferMap(RprPpHostVisibleBuffer buffer, size_t size,
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppHostVisibleBufferUnmap(RprPpHostVisibleBuffer buffer)
+RprPpError rprppBufferUnmap(RprPpBuffer buffer)
 {
     assert(buffer);
 
     auto result = safeCall([&] {
-        rprpp::HostVisibleBuffer* buff = static_cast<rprpp::HostVisibleBuffer*>(buffer);
+        rprpp::Buffer* buff = static_cast<rprpp::Buffer*>(buffer);
         buff->unmap();
     });
     check(result);

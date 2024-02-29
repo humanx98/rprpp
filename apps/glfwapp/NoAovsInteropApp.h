@@ -14,7 +14,7 @@
 
 #include "../common/HybridProRenderer.h"
 #include "../common/WRprPpContext.h"
-#include "../common/WRprPpHostVisibleBuffer.h"
+#include "../common/WRprPpBuffer.h"
 #include "../common/WRprPpImage.h"
 #include "../common/WRprPpPostProcessing.h"
 
@@ -39,7 +39,7 @@ private:
     ComPtr<IDXGIResource1> m_sharedTextureResource;
     std::unique_ptr<WRprPpContext> m_ppContext;
     std::unique_ptr<WRprPpPostProcessing> m_postProcessing;
-    std::unique_ptr<WRprPpHostVisibleBuffer> m_buffer;
+    std::unique_ptr<WRprPpBuffer> m_buffer;
     std::unique_ptr<WRprPpImage> m_dx11output;
     HybridProRenderer m_hybridproRenderer;
     void initWindow();

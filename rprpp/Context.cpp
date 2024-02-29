@@ -46,22 +46,22 @@ void Context::destroyPostProcessing(PostProcessing* pp)
     m_postProcessings.erase(pp);
 }
 
-HostVisibleBuffer* Context::createHostVisibleBuffer(size_t size)
+Buffer* Context::createBuffer(size_t size)
 {
     auto usage = vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst;
     auto props = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-    auto buffer = std::make_unique<HostVisibleBuffer>(
+    auto buffer = std::make_unique<Buffer>(
         vk::helper::createBuffer(*m_deviceContext, size, usage, props),
         size);
 
-    HostVisibleBuffer* ptr = buffer.get();
-    m_hostVisibleBuffers.emplace(ptr, std::move(buffer));
+    Buffer* ptr = buffer.get();
+    m_buffers.emplace(ptr, std::move(buffer));
     return ptr;
 }
 
-void Context::destroyHostVisibleBuffer(HostVisibleBuffer* buffer)
+void Context::destroyBuffer(Buffer* buffer)
 {
-    m_hostVisibleBuffers.erase(buffer);
+    m_buffers.erase(buffer);
 }
 
 Image* Context::createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc)

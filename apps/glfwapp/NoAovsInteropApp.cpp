@@ -131,7 +131,7 @@ void NoAovsInteropApp::resize(int width, int height)
         m_hybridproRenderer.resize(width, height);
         m_postProcessing->resize(width, height, to_rprppformat(FORMAT));
         m_postProcessing->setToneMapFocalLength(m_hybridproRenderer.getFocalLength() / 1000.0f);
-        m_buffer = std::make_unique<WRprPpHostVisibleBuffer>(*m_ppContext, width * height * 4 * sizeof(float));
+        m_buffer = std::make_unique<WRprPpBuffer>(*m_ppContext, width * height * 4 * sizeof(float));
         RprPpImageDescription desc = {
             .width = (uint32_t)width,
             .height = (uint32_t)height,
