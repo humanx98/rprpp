@@ -1,6 +1,8 @@
-#include "WRprPpPostProcessing.h"
+#include "PostProcessing.h"
 
-WRprPpPostProcessing::WRprPpPostProcessing(const WRprPpContext& context)
+namespace rprpp::wrappers {
+
+PostProcessing::PostProcessing(const Context& context)
     : m_context(context.get())
 {
     RprPpError status;
@@ -9,7 +11,7 @@ WRprPpPostProcessing::WRprPpPostProcessing(const WRprPpContext& context)
     RPRPP_CHECK(status);
 }
 
-WRprPpPostProcessing::~WRprPpPostProcessing()
+PostProcessing::~PostProcessing()
 {
     RprPpError status;
 
@@ -17,7 +19,7 @@ WRprPpPostProcessing::~WRprPpPostProcessing()
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
+void PostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
 {
     RprPpError status;
 
@@ -25,7 +27,7 @@ void WRprPpPostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFor
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
+void PostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
 {
     RprPpError status;
 
@@ -33,7 +35,7 @@ void WRprPpPostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemap
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::waitQueueIdle()
+void PostProcessing::waitQueueIdle()
 {
     RprPpError status;
 
@@ -41,7 +43,7 @@ void WRprPpPostProcessing::waitQueueIdle()
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyOutputTo(WRprPpImage& dst)
+void PostProcessing::copyOutputTo(Image& dst)
 {
     RprPpError status;
 
@@ -49,7 +51,7 @@ void WRprPpPostProcessing::copyOutputTo(WRprPpImage& dst)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyOutputTo(WRprPpBuffer& dst)
+void PostProcessing::copyOutputTo(Buffer& dst)
 {
     RprPpError status;
 
@@ -57,7 +59,7 @@ void WRprPpPostProcessing::copyOutputTo(WRprPpBuffer& dst)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovColor(const WRprPpBuffer& src)
+void PostProcessing::copyBufferToAovColor(const Buffer& src)
 {
     RprPpError status;
 
@@ -65,7 +67,7 @@ void WRprPpPostProcessing::copyBufferToAovColor(const WRprPpBuffer& src)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovOpacity(const WRprPpBuffer& src)
+void PostProcessing::copyBufferToAovOpacity(const Buffer& src)
 {
     RprPpError status;
 
@@ -73,7 +75,7 @@ void WRprPpPostProcessing::copyBufferToAovOpacity(const WRprPpBuffer& src)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovShadowCatcher(const WRprPpBuffer& src)
+void PostProcessing::copyBufferToAovShadowCatcher(const Buffer& src)
 {
     RprPpError status;
 
@@ -81,7 +83,7 @@ void WRprPpPostProcessing::copyBufferToAovShadowCatcher(const WRprPpBuffer& src)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovReflectionCatcher(const WRprPpBuffer& src)
+void PostProcessing::copyBufferToAovReflectionCatcher(const Buffer& src)
 {
     RprPpError status;
 
@@ -89,7 +91,7 @@ void WRprPpPostProcessing::copyBufferToAovReflectionCatcher(const WRprPpBuffer& 
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovMattePass(const WRprPpBuffer& src)
+void PostProcessing::copyBufferToAovMattePass(const Buffer& src)
 {
     RprPpError status;
 
@@ -97,7 +99,7 @@ void WRprPpPostProcessing::copyBufferToAovMattePass(const WRprPpBuffer& src)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyBufferToAovBackground(const WRprPpBuffer& src)
+void PostProcessing::copyBufferToAovBackground(const Buffer& src)
 {
     RprPpError status;
 
@@ -105,7 +107,7 @@ void WRprPpPostProcessing::copyBufferToAovBackground(const WRprPpBuffer& src)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setGamma(float gamma)
+void PostProcessing::setGamma(float gamma)
 {
     RprPpError status;
 
@@ -113,7 +115,7 @@ void WRprPpPostProcessing::setGamma(float gamma)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setShadowIntensity(float shadowIntensity)
+void PostProcessing::setShadowIntensity(float shadowIntensity)
 {
     RprPpError status;
 
@@ -121,7 +123,7 @@ void WRprPpPostProcessing::setShadowIntensity(float shadowIntensity)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapWhitepoint(float x, float y, float z)
+void PostProcessing::setToneMapWhitepoint(float x, float y, float z)
 {
     RprPpError status;
 
@@ -129,7 +131,7 @@ void WRprPpPostProcessing::setToneMapWhitepoint(float x, float y, float z)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapVignetting(float vignetting)
+void PostProcessing::setToneMapVignetting(float vignetting)
 {
     RprPpError status;
 
@@ -137,7 +139,7 @@ void WRprPpPostProcessing::setToneMapVignetting(float vignetting)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapCrushBlacks(float crushBlacks)
+void PostProcessing::setToneMapCrushBlacks(float crushBlacks)
 {
     RprPpError status;
 
@@ -145,7 +147,7 @@ void WRprPpPostProcessing::setToneMapCrushBlacks(float crushBlacks)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapBurnHighlights(float burnHighlights)
+void PostProcessing::setToneMapBurnHighlights(float burnHighlights)
 {
     RprPpError status;
 
@@ -153,7 +155,7 @@ void WRprPpPostProcessing::setToneMapBurnHighlights(float burnHighlights)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapSaturation(float saturation)
+void PostProcessing::setToneMapSaturation(float saturation)
 {
     RprPpError status;
 
@@ -161,7 +163,7 @@ void WRprPpPostProcessing::setToneMapSaturation(float saturation)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapCm2Factor(float cm2Factor)
+void PostProcessing::setToneMapCm2Factor(float cm2Factor)
 {
     RprPpError status;
 
@@ -169,7 +171,7 @@ void WRprPpPostProcessing::setToneMapCm2Factor(float cm2Factor)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapFilmIso(float filmIso)
+void PostProcessing::setToneMapFilmIso(float filmIso)
 {
     RprPpError status;
 
@@ -177,7 +179,7 @@ void WRprPpPostProcessing::setToneMapFilmIso(float filmIso)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapCameraShutter(float cameraShutter)
+void PostProcessing::setToneMapCameraShutter(float cameraShutter)
 {
     RprPpError status;
 
@@ -185,7 +187,7 @@ void WRprPpPostProcessing::setToneMapCameraShutter(float cameraShutter)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapFNumber(float fNumber)
+void PostProcessing::setToneMapFNumber(float fNumber)
 {
     RprPpError status;
 
@@ -193,7 +195,7 @@ void WRprPpPostProcessing::setToneMapFNumber(float fNumber)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapFocalLength(float focalLength)
+void PostProcessing::setToneMapFocalLength(float focalLength)
 {
     RprPpError status;
 
@@ -201,7 +203,7 @@ void WRprPpPostProcessing::setToneMapFocalLength(float focalLength)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setToneMapAperture(float aperture)
+void PostProcessing::setToneMapAperture(float aperture)
 {
     RprPpError status;
 
@@ -209,7 +211,7 @@ void WRprPpPostProcessing::setToneMapAperture(float aperture)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setBloomRadius(float radius)
+void PostProcessing::setBloomRadius(float radius)
 {
     RprPpError status;
 
@@ -217,7 +219,7 @@ void WRprPpPostProcessing::setBloomRadius(float radius)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setBloomBrightnessScale(float brightnessScale)
+void PostProcessing::setBloomBrightnessScale(float brightnessScale)
 {
     RprPpError status;
 
@@ -225,7 +227,7 @@ void WRprPpPostProcessing::setBloomBrightnessScale(float brightnessScale)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setBloomThreshold(float threshold)
+void PostProcessing::setBloomThreshold(float threshold)
 {
     RprPpError status;
 
@@ -233,7 +235,7 @@ void WRprPpPostProcessing::setBloomThreshold(float threshold)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setBloomEnabled(bool enabled)
+void PostProcessing::setBloomEnabled(bool enabled)
 {
     RprPpError status;
 
@@ -241,10 +243,12 @@ void WRprPpPostProcessing::setBloomEnabled(bool enabled)
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::setDenoiserEnabled(bool enabled)
+void PostProcessing::setDenoiserEnabled(bool enabled)
 {
     RprPpError status;
 
     status = rprppPostProcessingSetDenoiserEnabled(m_postProcessing, enabled ? RPRPP_TRUE : RPRPP_FALSE);
     RPRPP_CHECK(status);
+}
+
 }

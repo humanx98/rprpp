@@ -1,17 +1,20 @@
 set(HEADERS
     HybridProRenderer.h
-    WRprPpContext.h
-    WRprPpBuffer.h
-    WRprPpImage.h
-    WRprPpPostProcessing.h
+    rprpp_wrappers/helper.h
+    rprpp_wrappers/Context.h
+    rprpp_wrappers/Buffer.h
+    rprpp_wrappers/Image.h
+    rprpp_wrappers/PostProcessing.h
+    rprpp_wrappers/PostProcessing.h
     rpr_helper.h
 )
 set(SOURCES
     HybridProRenderer.cpp
-    WRprPpContext.cpp
-    WRprPpBuffer.cpp
-    WRprPpImage.cpp
-    WRprPpPostProcessing.cpp
+    rprpp_wrappers/helper.cpp
+    rprpp_wrappers/Context.cpp
+    rprpp_wrappers/Buffer.cpp
+    rprpp_wrappers/Image.cpp
+    rprpp_wrappers/PostProcessing.cpp
     rpr_helper.cpp
 )
 

@@ -1,26 +1,28 @@
 #pragma once
 
-#include "WRprPpBuffer.h"
-#include "WRprPpImage.h"
-#include "rpr_helper.h"
+#include "Buffer.h"
+#include "Image.h"
+#include "helper.h"
 
-class WRprPpPostProcessing {
+namespace rprpp::wrappers {
+
+class PostProcessing {
 public:
-    WRprPpPostProcessing(const WRprPpContext& context);
-    ~WRprPpPostProcessing();
+    PostProcessing(const Context& context);
+    ~PostProcessing();
 
     void resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
     void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
     void waitQueueIdle();
-    void copyOutputTo(WRprPpImage& dst);
-    void copyOutputTo(WRprPpBuffer& dst);
+    void copyOutputTo(Image& dst);
+    void copyOutputTo(Buffer& dst);
 
-    void copyBufferToAovColor(const WRprPpBuffer& src);
-    void copyBufferToAovOpacity(const WRprPpBuffer& src);
-    void copyBufferToAovShadowCatcher(const WRprPpBuffer& src);
-    void copyBufferToAovReflectionCatcher(const WRprPpBuffer& src);
-    void copyBufferToAovMattePass(const WRprPpBuffer& src);
-    void copyBufferToAovBackground(const WRprPpBuffer& src);
+    void copyBufferToAovColor(const Buffer& src);
+    void copyBufferToAovOpacity(const Buffer& src);
+    void copyBufferToAovShadowCatcher(const Buffer& src);
+    void copyBufferToAovReflectionCatcher(const Buffer& src);
+    void copyBufferToAovMattePass(const Buffer& src);
+    void copyBufferToAovBackground(const Buffer& src);
 
     void setGamma(float gamma);
     void setShadowIntensity(float shadowIntensity);
@@ -41,10 +43,12 @@ public:
     void setBloomEnabled(bool enabled);
     void setDenoiserEnabled(bool enabled);
 
-    WRprPpPostProcessing(const WRprPpPostProcessing&) = delete;
-    WRprPpPostProcessing& operator=(const WRprPpPostProcessing&) = delete;
+    PostProcessing(const PostProcessing&) = delete;
+    PostProcessing& operator=(const PostProcessing&) = delete;
 
 private:
     RprPpContext m_context;
     RprPpPostProcessing m_postProcessing;
 };
+
+}

@@ -1,6 +1,8 @@
-#include "WRprPpImage.h"
+#include "Image.h"
 
-WRprPpImage::WRprPpImage(const WRprPpContext& context, RprPpDx11Handle dx11textureHandle, const RprPpImageDescription& description)
+namespace rprpp::wrappers {
+
+Image::Image(const Context& context, RprPpDx11Handle dx11textureHandle, const RprPpImageDescription& description)
     : m_context(context.get())
     , m_description(description)
 {
@@ -10,7 +12,7 @@ WRprPpImage::WRprPpImage(const WRprPpContext& context, RprPpDx11Handle dx11textu
     RPRPP_CHECK(status);
 }
 
-WRprPpImage::~WRprPpImage()
+Image::~Image()
 {
     RprPpError status;
 
@@ -18,12 +20,14 @@ WRprPpImage::~WRprPpImage()
     RPRPP_CHECK(status);
 }
 
-RprPpImage WRprPpImage::get() const noexcept
+RprPpImage Image::get() const noexcept
 {
     return m_image;
 }
 
-const RprPpImageDescription& WRprPpImage::description() const noexcept
+const RprPpImageDescription& Image::description() const noexcept
 {
     return m_description;
+}
+
 }

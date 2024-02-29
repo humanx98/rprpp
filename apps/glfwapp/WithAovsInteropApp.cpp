@@ -103,8 +103,8 @@ void WithAovsInteropApp::intiSwapChain()
 
 void WithAovsInteropApp::initHybridProAndPostProcessing()
 {
-    m_ppContext = std::make_unique<WRprPpContext>(m_deviceInfo.index);
-    m_postProcessing = std::make_unique<WRprPpPostProcessing>(*m_ppContext);
+    m_ppContext = std::make_unique<rprpp::wrappers::Context>(m_deviceInfo.index);
+    m_postProcessing = std::make_unique<rprpp::wrappers::PostProcessing>(*m_ppContext);
 
     for (uint32_t i = 0; i < m_framesInFlight; i++) {
         RprPpVkSemaphore semaphore;
@@ -180,7 +180,7 @@ void WithAovsInteropApp::resize(int width, int height)
             .height = (uint32_t)height,
             .format = to_rprppformat(FORMAT),
         };
-        m_dx11output = std::make_unique<WRprPpImage>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
+        m_dx11output = std::make_unique<rprpp::wrappers::Image>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
 
         m_width = width;
         m_height = height;

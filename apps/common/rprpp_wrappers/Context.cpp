@@ -1,6 +1,8 @@
-#include "WRprPpContext.h"
+#include "Context.h"
 
-WRprPpContext::WRprPpContext(uint32_t deviceId)
+namespace rprpp::wrappers {
+
+Context::Context(uint32_t deviceId)
 {
     RprPpError status;
 
@@ -8,7 +10,7 @@ WRprPpContext::WRprPpContext(uint32_t deviceId)
     RPRPP_CHECK(status);
 }
 
-WRprPpContext::~WRprPpContext()
+Context::~Context()
 {
     RprPpError status;
 
@@ -16,7 +18,7 @@ WRprPpContext::~WRprPpContext()
     RPRPP_CHECK(status);
 }
 
-RprPpVkPhysicalDevice WRprPpContext::getVkPhysicalDevice() const noexcept
+RprPpVkPhysicalDevice Context::getVkPhysicalDevice() const noexcept
 {
     RprPpError status;
     RprPpVkPhysicalDevice vkhandle = nullptr;
@@ -26,7 +28,7 @@ RprPpVkPhysicalDevice WRprPpContext::getVkPhysicalDevice() const noexcept
     return vkhandle;
 }
 
-RprPpVkDevice WRprPpContext::getVkDevice() const noexcept
+RprPpVkDevice Context::getVkDevice() const noexcept
 {
     RprPpError status;
     RprPpVkDevice vkhandle = nullptr;
@@ -36,7 +38,7 @@ RprPpVkDevice WRprPpContext::getVkDevice() const noexcept
     return vkhandle;
 }
 
-RprPpVkQueue WRprPpContext::getVkQueue() const noexcept
+RprPpVkQueue Context::getVkQueue() const noexcept
 {
     RprPpError status;
     RprPpVkQueue vkhandle = nullptr;
@@ -46,7 +48,9 @@ RprPpVkQueue WRprPpContext::getVkQueue() const noexcept
     return vkhandle;
 }
 
-RprPpContext WRprPpContext::get() const noexcept
+RprPpContext Context::get() const noexcept
 {
     return m_context;
+}
+
 }

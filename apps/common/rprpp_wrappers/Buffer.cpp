@@ -1,6 +1,8 @@
-#include "WRprPpBuffer.h"
+#include "Buffer.h"
 
-WRprPpBuffer::WRprPpBuffer(const WRprPpContext& context, size_t size)
+namespace rprpp::wrappers {
+
+Buffer::Buffer(const Context& context, size_t size)
     : m_context(context.get())
     , m_size(size)
 {
@@ -10,7 +12,7 @@ WRprPpBuffer::WRprPpBuffer(const WRprPpContext& context, size_t size)
     RPRPP_CHECK(status);
 }
 
-WRprPpBuffer::~WRprPpBuffer()
+Buffer::~Buffer()
 {
     RprPpError status;
 
@@ -18,7 +20,7 @@ WRprPpBuffer::~WRprPpBuffer()
     RPRPP_CHECK(status);
 }
 
-void* WRprPpBuffer::map(size_t size)
+void* Buffer::map(size_t size)
 {
     void* mapped = nullptr;
     RprPpError status;
@@ -28,7 +30,7 @@ void* WRprPpBuffer::map(size_t size)
     return mapped;
 }
 
-void WRprPpBuffer::unmap()
+void Buffer::unmap()
 {
     RprPpError status;
 
@@ -36,12 +38,14 @@ void WRprPpBuffer::unmap()
     RPRPP_CHECK(status);
 }
 
-size_t WRprPpBuffer::size() const noexcept
+size_t Buffer::size() const noexcept
 {
     return m_size;
 }
 
-RprPpBuffer WRprPpBuffer::get() const noexcept
+RprPpBuffer Buffer::get() const noexcept
 {
     return m_buffer;
+}
+
 }

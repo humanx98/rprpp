@@ -1,21 +1,25 @@
 #pragma once
 
-#include "rpr_helper.h"
+#include "helper.h"
 #include "rprpp/rprpp.h"
 
-class WRprPpContext {
+namespace rprpp::wrappers {
+
+class Context {
 public:
-    WRprPpContext(uint32_t deviceId);
-    ~WRprPpContext();
+    Context(uint32_t deviceId);
+    ~Context();
 
     RprPpVkPhysicalDevice getVkPhysicalDevice() const noexcept;
     RprPpVkDevice getVkDevice() const noexcept;
     RprPpVkQueue getVkQueue() const noexcept;
     RprPpContext get() const noexcept;
 
-    WRprPpContext(const WRprPpContext&) = delete;
-    WRprPpContext& operator=(const WRprPpContext&) = delete;
+    Context(const Context&) = delete;
+    Context& operator=(const Context&) = delete;
 
 private:
     RprPpContext m_context;
 };
+
+}

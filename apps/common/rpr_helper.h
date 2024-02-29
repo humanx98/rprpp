@@ -1,19 +1,11 @@
 #pragma once
 
-#include "rprpp/rprpp.h"
 #include <RadeonProRender.h>
 #include <string>
 
 #define RPR_CHECK(x)                             \
     {                                            \
         if ((x) != RPR_SUCCESS) {                \
-            ErrorManager(x, __FILE__, __LINE__); \
-        }                                        \
-    }
-
-#define RPRPP_CHECK(x)                           \
-    {                                            \
-        if ((x) != RPRPP_SUCCESS) {              \
             ErrorManager(x, __FILE__, __LINE__); \
         }                                        \
     }
@@ -58,8 +50,6 @@ inline rpr_creation_flags intToRprCreationFlag(int index)
     }
 }
 
-size_t to_pixel_size(RprPpImageFormat from);
 void ErrorManager(rpr_status errorCode, const char* fileName, int line);
-void ErrorManager(RprPpError errorCode, const char* fileName, int line);
 void CheckNoLeak(rpr_context context);
 rpr_shape ImportOBJ(const std::string& file, rpr_context ctx);

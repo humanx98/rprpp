@@ -3,9 +3,9 @@
 #include <stb/stb_image_write.h>
 
 #include "common/HybridProRenderer.h"
-#include "common/WRprPpBuffer.h"
-#include "common/WRprPpContext.h"
-#include "common/WRprPpPostProcessing.h"
+#include "common/rprpp_wrappers/Buffer.h"
+#include "common/rprpp_wrappers/Context.h"
+#include "common/rprpp_wrappers/PostProcessing.h"
 #include <filesystem>
 #include <iostream>
 
@@ -19,7 +19,7 @@
 #define ITERATIONS 100
 
 void savePngImage(const char* filename, void* img, uint32_t width, uint32_t height, RprPpImageFormat format);
-void copyRprFbToBuffer(HybridProRenderer& r, WRprPpBuffer& buffer, rpr_aov aov);
+void copyRprFbToBuffer(HybridProRenderer& r, rprpp::wrappers::Buffer& buffer, rpr_aov aov);
 void runWithInterop(const std::filesystem::path& exeDirPath, int device_id);
 void runWithoutInterop(const std::filesystem::path& exeDirPath, int device_id);
 
@@ -60,9 +60,9 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     std::filesystem::path assetsDir = exeDirPath;
 
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
-    WRprPpContext ppContext(deviceId);
-    WRprPpPostProcessing postProcessing(ppContext);
-    WRprPpBuffer buffer(ppContext, WIDTH * HEIGHT * to_pixel_size(format));
+    rprpp::wrappers::Context ppContext(deviceId);
+    rprpp::wrappers::PostProcessing postProcessing(ppContext);
+    rprpp::wrappers::Buffer buffer(ppContext, WIDTH * HEIGHT * rprpp::wrappers::to_pixel_size(format));
 
     std::vector<RprPpVkFence> fences;
     std::vector<RprPpVkSemaphore> frameBuffersReleaseSemaphores;
@@ -147,10 +147,10 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     std::filesystem::path assetsDir = exeDirPath;
 
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
-    WRprPpContext ppContext(deviceId);
-    WRprPpPostProcessing postProcessing(ppContext);
+    rprpp::wrappers::Context ppContext(deviceId);
+    rprpp::wrappers::PostProcessing postProcessing(ppContext);
     // this buffer should handle hdr for aovs and hdr/ldr for output
-    WRprPpBuffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
+    rprpp::wrappers::Buffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
 
     postProcessing.resize(WIDTH, HEIGHT, format);
 
@@ -181,13 +181,13 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
 
             auto resultPath = exeDirPath / ("result_without_interop_" + std::to_string(i) + ".png");
             std::filesystem::remove(resultPath);
-            savePngImage(resultPath.string().c_str(), buffer.map(to_pixel_size(format) * WIDTH * HEIGHT), WIDTH, HEIGHT, format);
+            savePngImage(resultPath.string().c_str(), buffer.map(rprpp::wrappers::to_pixel_size(format) * WIDTH * HEIGHT), WIDTH, HEIGHT, format);
             buffer.unmap();
         }
     }
 }
 
-void copyRprFbToBuffer(HybridProRenderer& r, WRprPpBuffer& buffer, rpr_aov aov)
+void copyRprFbToBuffer(HybridProRenderer& r, rprpp::wrappers::Buffer& buffer, rpr_aov aov)
 {
     size_t size;
     r.getAov(aov, nullptr, 0u, &size);

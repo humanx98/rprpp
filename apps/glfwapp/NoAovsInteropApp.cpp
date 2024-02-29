@@ -23,8 +23,8 @@ NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIteration
     , m_hybridproRenderer(deviceInfo.index, std::nullopt, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
 {
     std::cout << "NoAovsInteropApp()" << std::endl;
-    m_ppContext = std::make_unique<WRprPpContext>(deviceInfo.index);
-    m_postProcessing = std::make_unique<WRprPpPostProcessing>(*m_ppContext);
+    m_ppContext = std::make_unique<rprpp::wrappers::Context>(deviceInfo.index);
+    m_postProcessing = std::make_unique<rprpp::wrappers::PostProcessing>(*m_ppContext);
 }
 
 NoAovsInteropApp::~NoAovsInteropApp()
@@ -131,13 +131,13 @@ void NoAovsInteropApp::resize(int width, int height)
         m_hybridproRenderer.resize(width, height);
         m_postProcessing->resize(width, height, to_rprppformat(FORMAT));
         m_postProcessing->setToneMapFocalLength(m_hybridproRenderer.getFocalLength() / 1000.0f);
-        m_buffer = std::make_unique<WRprPpBuffer>(*m_ppContext, width * height * 4 * sizeof(float));
+        m_buffer = std::make_unique<rprpp::wrappers::Buffer>(*m_ppContext, width * height * 4 * sizeof(float));
         RprPpImageDescription desc = {
             .width = (uint32_t)width,
             .height = (uint32_t)height,
             .format = to_rprppformat(FORMAT),
         };
-        m_dx11output = std::make_unique<WRprPpImage>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
+        m_dx11output = std::make_unique<rprpp::wrappers::Image>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
 
         m_width = width;
         m_height = height;
