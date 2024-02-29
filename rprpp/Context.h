@@ -1,8 +1,8 @@
 #pragma once
 
 #include "HostVisibleBuffer.h"
-#include "PostProcessing.h"
 #include "Image.h"
+#include "PostProcessing.h"
 #include "vk_helper.h"
 
 #include <unordered_map>
@@ -25,7 +25,7 @@ public:
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
     VkDevice getVkDevice() const noexcept;
     VkQueue getVkQueue() const noexcept;
-    
+
     PostProcessing* createPostProcessing();
     void destroyPostProcessing(PostProcessing* pp);
 

@@ -160,10 +160,10 @@ RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx1
     auto result = safeCall([&] {
         rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
         *outImage = ctx->createImageFromDx11Texture(dx11textureHandle, {
-            .width = description.width,
-            .height = description.height,
-            .format = static_cast<rprpp::ImageFormat>(description.format),
-        });
+                                                                           .width = description.width,
+                                                                           .height = description.height,
+                                                                           .format = static_cast<rprpp::ImageFormat>(description.format),
+                                                                       });
     });
     check(result);
 

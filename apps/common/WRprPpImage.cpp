@@ -10,7 +10,6 @@ WRprPpImage::WRprPpImage(const WRprPpContext& context, RprPpDx11Handle dx11textu
     RPRPP_CHECK(status);
 }
 
-
 WRprPpImage::~WRprPpImage()
 {
     RprPpError status;

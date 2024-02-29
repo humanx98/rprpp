@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vk_helper.h"
 #include "ImageFormat.h"
+#include "vk_helper.h"
 
 namespace rprpp {
 
