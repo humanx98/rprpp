@@ -36,12 +36,12 @@ struct InteropAovs {
 };
 
 struct Aovs {
-    vk::helper::Image color;
-    vk::helper::Image opacity;
-    vk::helper::Image shadowCatcher;
-    vk::helper::Image reflectionCatcher;
-    vk::helper::Image mattePass;
-    vk::helper::Image background;
+    Image color;
+    Image opacity;
+    Image shadowCatcher;
+    Image reflectionCatcher;
+    Image mattePass;
+    Image background;
 };
 
 struct ToneMap {
@@ -151,15 +151,9 @@ private:
     void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void createComputePipeline();
     void recordComputeCommandBuffer(uint32_t width, uint32_t height);
-    void transitionImageLayout(vk::helper::Image& image,
-        vk::AccessFlags dstAccess,
-        vk::ImageLayout dstLayout,
-        vk::PipelineStageFlags dstStage);
-    void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::helper::Image& image,
-        vk::AccessFlags dstAccess,
-        vk::ImageLayout dstLayout,
-        vk::PipelineStageFlags dstStage);
-    void copyBufferToAov(const Buffer& src, vk::helper::Image& dst);
+    void transitionImageLayout(Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage);
+    void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage);
+    void copyBufferToAov(const Buffer& src, Image& dst);
     void updateUbo();
 
     uint32_t m_width = 0;
@@ -176,7 +170,7 @@ private:
     CommandBuffers m_commandBuffers;
     vk::helper::Buffer m_uboBuffer;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
-    std::optional<vk::helper::Image> m_outputImage;
+    std::optional<Image> m_outputImage;
     std::optional<std::variant<Aovs, InteropAovs>> m_aovs;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
     std::optional<vk::raii::DescriptorPool> m_descriptorPool;

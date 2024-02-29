@@ -71,14 +71,8 @@ Image* Context::createImageFromDx11Texture(HANDLE dx11textureHandle, const Image
     }
 
     // we set vk::ImageUsageFlagBits::eStorage in order to remove warnings in validation layer
-    auto image = std::make_unique<Image>(
-        vk::helper::createImageFromDx11Texture(*m_deviceContext,
-            dx11textureHandle,
-            desc.width,
-            desc.height,
-            to_vk_format(desc.format),
-            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage),
-        desc);
+    auto usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
+    auto image = std::make_unique<Image>(Image::createFromDx11Texture(*m_deviceContext, dx11textureHandle, desc, usage));
 
     Image* ptr = image.get();
     m_images.emplace(ptr, std::move(image));

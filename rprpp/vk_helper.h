@@ -26,34 +26,11 @@ struct Buffer {
     vk::raii::DeviceMemory memory;
 };
 
-struct Image {
-    vk::raii::Image image;
-    vk::raii::DeviceMemory memory;
-    vk::raii::ImageView view;
-    uint32_t width;
-    uint32_t height;
-    vk::AccessFlags access;
-    vk::ImageLayout layout;
-    vk::PipelineStageFlags stage;
-};
-
 void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet);
 uint32_t getDeviceCount();
 
+uint32_t findMemoryType(const vk::raii::PhysicalDevice& physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 DeviceContext createDeviceContext(uint32_t deviceId);
-
-Image createImage(const DeviceContext& dctx,
-    uint32_t width,
-    uint32_t height,
-    vk::Format format,
-    vk::ImageUsageFlags usage);
-
-Image createImageFromDx11Texture(const DeviceContext& dctx,
-    HANDLE sharedDx11TextureHandle,
-    uint32_t width,
-    uint32_t height,
-    vk::Format format,
-    vk::ImageUsageFlags usage);
 
 Buffer createBuffer(const DeviceContext& dctx,
     vk::DeviceSize size,

@@ -39,12 +39,12 @@ void PostProcessing::createShaderModule(ImageFormat outputFormat, bool aovsAreSa
 
 void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
 {
-    vk::Format aovFormat = vk::Format::eR32G32B32A32Sfloat;
+    ImageFormat aovFormat = ImageFormat::eR32G32B32A32Sfloat;
     if (aovsVkInteropInfo.has_value()) {
         vk::ImageViewCreateInfo viewInfo({},
             aovsVkInteropInfo.value().color,
             vk::ImageViewType::e2D,
-            aovFormat,
+            to_vk_format(aovFormat),
             {},
             { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
         vk::raii::ImageView color(m_dctx->device, viewInfo);
@@ -78,13 +78,18 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
     } else {
         vk::ImageUsageFlags aovUsage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
         vk::AccessFlags aovAccess = vk::AccessFlagBits::eShaderRead;
+        ImageDescription desc = {
+            .width = width,
+            .height = height,
+            .format = aovFormat,
+        };
         Aovs aovs = {
-            .color = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
-            .opacity = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
-            .shadowCatcher = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
-            .reflectionCatcher = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
-            .mattePass = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
-            .background = vk::helper::createImage(*m_dctx, width, height, aovFormat, aovUsage),
+            .color = Image::create(*m_dctx, desc, aovUsage),
+            .opacity = Image::create(*m_dctx, desc, aovUsage),
+            .shadowCatcher = Image::create(*m_dctx, desc, aovUsage),
+            .reflectionCatcher = Image::create(*m_dctx, desc, aovUsage),
+            .mattePass = Image::create(*m_dctx, desc, aovUsage),
+            .background = Image::create(*m_dctx, desc, aovUsage),
         };
 
         transitionImageLayout(aovs.color, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
@@ -96,11 +101,12 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
         m_aovs = std::move(aovs);
     }
 
-    m_outputImage = vk::helper::createImage(*m_dctx,
-        width,
-        height,
-        to_vk_format(outputFormat),
-        vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage);
+    ImageDescription outputDesc = {
+        .width = width,
+        .height = height,
+        .format = outputFormat,
+    };
+    m_outputImage = Image::create(*m_dctx, outputDesc, vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage);
 
     transitionImageLayout(m_outputImage.value(),
         vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
@@ -108,10 +114,7 @@ void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat o
         vk::PipelineStageFlagBits::eComputeShader);
 }
 
-void PostProcessing::transitionImageLayout(vk::helper::Image& image,
-    vk::AccessFlags dstAccess,
-    vk::ImageLayout dstLayout,
-    vk::PipelineStageFlags dstStage)
+void PostProcessing::transitionImageLayout(Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage)
 {
     m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
     transitionImageLayout(m_commandBuffers.secondary, image, dstAccess, dstLayout, dstStage);
@@ -122,48 +125,45 @@ void PostProcessing::transitionImageLayout(vk::helper::Image& image,
     m_dctx->queue.waitIdle();
 }
 
-void PostProcessing::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::helper::Image& image,
-    vk::AccessFlags dstAccess,
-    vk::ImageLayout dstLayout,
-    vk::PipelineStageFlags dstStage)
+void PostProcessing::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage)
 {
     vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
-    vk::ImageMemoryBarrier imageMemoryBarrier(image.access,
+    vk::ImageMemoryBarrier imageMemoryBarrier(image.getAccess(),
         dstAccess,
-        image.layout,
+        image.getLayout(),
         dstLayout,
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
-        *image.image,
+        *image.get(),
         subresourceRange);
 
-    commandBuffer.pipelineBarrier(image.stage,
+    commandBuffer.pipelineBarrier(image.getPipelineStages(),
         dstStage,
         {},
         nullptr,
         nullptr,
         imageMemoryBarrier);
 
-    image.access = dstAccess;
-    image.layout = dstLayout;
-    image.stage = dstStage;
+    image.setAccess(dstAccess);
+    image.setLayout(dstLayout);
+    image.setPipelineStages(dstStage);
 }
 
 void PostProcessing::createDescriptorSet()
 {
     DescriptorBuilder builder;
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_outputImage->view, vk::ImageLayout::eGeneral); // binding 0
+    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_outputImage->view(), vk::ImageLayout::eGeneral); // binding 0
     builder.bindStorageImage(&outputDescriptorInfo);
 
     std::vector<vk::DescriptorImageInfo> descriptorImageInfos;
     std::visit(overload {
                    [&](const Aovs& arg) {
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.color.view, vk::ImageLayout::eGeneral)); // binding 1
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.opacity.view, vk::ImageLayout::eGeneral)); // binding 2
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.shadowCatcher.view, vk::ImageLayout::eGeneral)); // binding 3
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.reflectionCatcher.view, vk::ImageLayout::eGeneral)); // binding 4
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.mattePass.view, vk::ImageLayout::eGeneral)); // binding 5
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.background.view, vk::ImageLayout::eGeneral)); // binding 6
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.color.view(), vk::ImageLayout::eGeneral)); // binding 1
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.opacity.view(), vk::ImageLayout::eGeneral)); // binding 2
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.shadowCatcher.view(), vk::ImageLayout::eGeneral)); // binding 3
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.reflectionCatcher.view(), vk::ImageLayout::eGeneral)); // binding 4
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.mattePass.view(), vk::ImageLayout::eGeneral)); // binding 5
+                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.background.view(), vk::ImageLayout::eGeneral)); // binding 6
                        for (auto& dii : descriptorImageInfos) {
                            builder.bindStorageImage(&dii);
                        }
@@ -216,11 +216,11 @@ void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
     m_commandBuffers.compute.end();
 }
 
-void PostProcessing::copyBufferToAov(const Buffer& src, vk::helper::Image& dst)
+void PostProcessing::copyBufferToAov(const Buffer& src, Image& dst)
 {
-    vk::AccessFlags oldAccess = dst.access;
-    vk::ImageLayout oldLayout = dst.layout;
-    vk::PipelineStageFlags oldStage = dst.stage;
+    vk::AccessFlags oldAccess = dst.getAccess();
+    vk::ImageLayout oldLayout = dst.getLayout();
+    vk::PipelineStageFlags oldStage = dst.getPipelineStages();
 
     m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
     transitionImageLayout(m_commandBuffers.secondary,
@@ -231,9 +231,9 @@ void PostProcessing::copyBufferToAov(const Buffer& src, vk::helper::Image& dst)
     {
 
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { dst.width, dst.height, 1 });
+        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { dst.description().width, dst.description().height, 1 });
         m_commandBuffers.secondary.copyBufferToImage(*src.get().buffer,
-            *dst.image,
+            *dst.get(),
             vk::ImageLayout::eTransferDstOptimal,
             region);
     }
@@ -299,9 +299,9 @@ void PostProcessing::copyOutputTo(Buffer& dst)
         throw InvalidParameter("dst", "The provided buffer is smaller than output image");
     }
 
-    vk::AccessFlags oldAccess = m_outputImage->access;
-    vk::ImageLayout oldLayout = m_outputImage->layout;
-    vk::PipelineStageFlags oldStage = m_outputImage->stage;
+    vk::AccessFlags oldAccess = m_outputImage->getAccess();
+    vk::ImageLayout oldLayout = m_outputImage->getLayout();
+    vk::PipelineStageFlags oldStage = m_outputImage->getPipelineStages();
 
     m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
     transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(),
@@ -310,8 +310,8 @@ void PostProcessing::copyOutputTo(Buffer& dst)
         vk::PipelineStageFlagBits::eTransfer);
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
-        m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->image,
+        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->description().width, m_outputImage->description().height, 1 });
+        m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->get(),
             vk::ImageLayout::eTransferSrcOptimal,
             *dst.get().buffer,
             region);
@@ -333,14 +333,14 @@ void PostProcessing::copyOutputTo(Image& image)
     m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
     transitionImageLayout(
         m_commandBuffers.secondary,
-        image.get(),
+        image,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
 
-    vk::AccessFlags oldAccess = m_outputImage->access;
-    vk::ImageLayout oldLayout = m_outputImage->layout;
-    vk::PipelineStageFlags oldStage = m_outputImage->stage;
+    vk::AccessFlags oldAccess = m_outputImage->getAccess();
+    vk::ImageLayout oldLayout = m_outputImage->getLayout();
+    vk::PipelineStageFlags oldStage = m_outputImage->getPipelineStages();
     transitionImageLayout(
         m_commandBuffers.secondary,
         m_outputImage.value(),
@@ -349,8 +349,8 @@ void PostProcessing::copyOutputTo(Image& image)
         vk::PipelineStageFlagBits::eTransfer);
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
-        m_commandBuffers.secondary.copyImage(*m_outputImage->image, vk::ImageLayout::eTransferSrcOptimal, *image.get().image, vk::ImageLayout::eTransferDstOptimal, region);
+        vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->description().width, m_outputImage->description().height, 1 });
+        m_commandBuffers.secondary.copyImage(*m_outputImage->get(), vk::ImageLayout::eTransferSrcOptimal, *image.get(), vk::ImageLayout::eTransferDstOptimal, region);
     }
     transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
     m_commandBuffers.secondary.end();
