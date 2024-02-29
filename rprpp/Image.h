@@ -14,7 +14,6 @@ struct ImageDescription {
 class Image {
 public:
     Image(vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii::ImageView&& view, const ImageDescription& desc) noexcept;
-
     Image(Image&&) = default;
     Image& operator=(Image&&) = default;
 

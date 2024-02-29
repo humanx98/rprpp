@@ -19,7 +19,7 @@ const int NumComponents = 4;
 PostProcessing::PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
     vk::raii::CommandPool&& commandPool,
     CommandBuffers&& commandBuffers,
-    vk::helper::Buffer&& uboBuffer) noexcept
+    Buffer&& uboBuffer) noexcept
     : m_dctx(dctx)
     , m_commandPool(std::move(commandPool))
     , m_commandBuffers(std::move(commandBuffers))
@@ -181,7 +181,7 @@ void PostProcessing::createDescriptorSet()
                    } },
         m_aovs.value());
 
-    vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer.buffer, 0, sizeof(UniformBufferObject)); // binding 7
+    vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer.get(), 0, sizeof(UniformBufferObject)); // binding 7
     builder.bindUniformBuffer(&uboDescriptoInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
@@ -229,20 +229,15 @@ void PostProcessing::copyBufferToAov(const Buffer& src, Image& dst)
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
-
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { dst.description().width, dst.description().height, 1 });
-        m_commandBuffers.secondary.copyBufferToImage(*src.get().buffer,
-            *dst.get(),
-            vk::ImageLayout::eTransferDstOptimal,
-            region);
+        m_commandBuffers.secondary.copyBufferToImage(*src.get(), *dst.get(), vk::ImageLayout::eTransferDstOptimal, region);
     }
     transitionImageLayout(m_commandBuffers.secondary,
         dst,
         oldAccess,
         oldLayout,
         oldStage);
-
     m_commandBuffers.secondary.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
@@ -252,9 +247,9 @@ void PostProcessing::copyBufferToAov(const Buffer& src, Image& dst)
 
 void PostProcessing::updateUbo()
 {
-    void* data = m_uboBuffer.memory.mapMemory(0, sizeof(UniformBufferObject), {});
+    void* data = m_uboBuffer.map(sizeof(UniformBufferObject));
     std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
-    m_uboBuffer.memory.unmapMemory();
+    m_uboBuffer.unmap();
 }
 
 void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
@@ -311,10 +306,7 @@ void PostProcessing::copyOutputTo(Buffer& dst)
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->description().width, m_outputImage->description().height, 1 });
-        m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->get(),
-            vk::ImageLayout::eTransferSrcOptimal,
-            *dst.get().buffer,
-            region);
+        m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->get(), vk::ImageLayout::eTransferSrcOptimal, *dst.get(), region);
     }
     transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
     m_commandBuffers.secondary.end();

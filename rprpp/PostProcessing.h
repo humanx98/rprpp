@@ -86,7 +86,7 @@ public:
     PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
         vk::raii::CommandPool&& commandPool,
         CommandBuffers&& commandBuffers,
-        vk::helper::Buffer&& uboBuffer) noexcept;
+        Buffer&& uboBuffer) noexcept;
 
     PostProcessing(PostProcessing&&) = default;
     PostProcessing& operator=(PostProcessing&&) = default;
@@ -168,7 +168,7 @@ private:
     std::shared_ptr<vk::helper::DeviceContext> m_dctx;
     vk::raii::CommandPool m_commandPool;
     CommandBuffers m_commandBuffers;
-    vk::helper::Buffer m_uboBuffer;
+    Buffer m_uboBuffer;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
     std::optional<Image> m_outputImage;
     std::optional<std::variant<Aovs, InteropAovs>> m_aovs;

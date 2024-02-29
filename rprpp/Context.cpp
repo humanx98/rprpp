@@ -22,7 +22,7 @@ PostProcessing* Context::createPostProcessing()
     vk::raii::CommandBuffers commandBuffers(m_deviceContext->device, allocInfo);
     assert(commandBuffers.size() >= 2);
 
-    vk::helper::Buffer uboBuffer = vk::helper::createBuffer(*m_deviceContext,
+    Buffer uboBuffer = Buffer::create(*m_deviceContext,
         sizeof(UniformBufferObject),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -50,9 +50,7 @@ Buffer* Context::createBuffer(size_t size)
 {
     auto usage = vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst;
     auto props = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-    auto buffer = std::make_unique<Buffer>(
-        vk::helper::createBuffer(*m_deviceContext, size, usage, props),
-        size);
+    auto buffer = std::make_unique<Buffer>(Buffer::create(*m_deviceContext, size, usage, props));
 
     Buffer* ptr = buffer.get();
     m_buffers.emplace(ptr, std::move(buffer));

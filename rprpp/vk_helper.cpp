@@ -336,20 +336,4 @@ DeviceContext createDeviceContext(uint32_t deviceId)
     };
 }
 
-Buffer createBuffer(const DeviceContext& dctx,
-    vk::DeviceSize size,
-    vk::BufferUsageFlags usage,
-    vk::MemoryPropertyFlags properties)
-{
-    vk::raii::Buffer buffer(dctx.device, vk::BufferCreateInfo({}, size, usage, vk::SharingMode::eExclusive));
-
-    vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();
-    uint32_t memoryType = findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, properties);
-    auto memory = dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-
-    buffer.bindMemory(*memory, 0);
-
-    return { std::move(buffer), std::move(memory) };
-}
-
 }
