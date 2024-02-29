@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HostVisibleBuffer.h"
+#include "Image.h"
 #include "ImageFormat.h"
 #include "ShaderManager.h"
 #include "vk_helper.h"
@@ -95,9 +96,9 @@ public:
 
     void resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void copyOutputTo(HostVisibleBuffer& dst);
+    void copyOutputTo(Image& image);
     void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
     void waitQueueIdle();
-    void copyOutputToDx11Texture(HANDLE dx11textureHandle);
 
     void copyBufferToAovColor(const HostVisibleBuffer& src);
     void copyBufferToAovOpacity(const HostVisibleBuffer& src);

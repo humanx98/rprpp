@@ -2,6 +2,7 @@
 
 #include "HostVisibleBuffer.h"
 #include "PostProcessing.h"
+#include "Image.h"
 #include "vk_helper.h"
 
 #include <unordered_map>
@@ -24,16 +25,21 @@ public:
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
     VkDevice getVkDevice() const noexcept;
     VkQueue getVkQueue() const noexcept;
+    
     PostProcessing* createPostProcessing();
     void destroyPostProcessing(PostProcessing* pp);
 
     HostVisibleBuffer* createHostVisibleBuffer(size_t size);
     void destroyHostVisibleBuffer(HostVisibleBuffer* buffer);
 
+    Image* createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc);
+    void destroyImage(Image* image);
+
 private:
     std::shared_ptr<vk::helper::DeviceContext> m_deviceContext;
     map<PostProcessing> m_postProcessings;
     map<HostVisibleBuffer> m_hostVisibleBuffers;
+    map<Image> m_images;
 };
 
 }

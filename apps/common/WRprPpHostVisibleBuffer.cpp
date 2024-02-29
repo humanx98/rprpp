@@ -1,10 +1,10 @@
 #include "WRprPpHostVisibleBuffer.h"
 
 WRprPpHostVisibleBuffer::WRprPpHostVisibleBuffer(const WRprPpContext& context, size_t size)
+    : m_context(context.get())
+    , m_size(size)
 {
     RprPpError status;
-    m_context = context.get();
-    m_size = size;
 
     status = rprppContextCreateHostVisibleBuffer(m_context, size, &m_buffer);
     RPRPP_CHECK(status);

@@ -152,6 +152,38 @@ RprPpError rprppContextDestroyHostVisibleBuffer(RprPpContext context, RprPpHostV
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle, RprPpImageDescription description, RprPpImage* outImage)
+{
+    assert(context);
+    assert(outImage);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outImage = ctx->createImageFromDx11Texture(dx11textureHandle, {
+            .width = description.width,
+            .height = description.height,
+            .format = static_cast<rprpp::ImageFormat>(description.format),
+        });
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextDestroyImage(RprPpContext context, RprPpImage image)
+{
+    assert(context);
+    assert(image);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        ctx->destroyImage(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysicalDevice* physicalDevice)
 {
     assert(context);
@@ -257,13 +289,13 @@ RprPpError rprppPostProcessingWaitQueueIdle(RprPpPostProcessing processing)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyOutputToDx11Texture(RprPpPostProcessing processing, RprPpDx11Handle dx11textureHandle)
+RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, RprPpImage dst)
 {
     assert(processing);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyOutputToDx11Texture(dx11textureHandle);
+        pp->copyOutputTo(*static_cast<rprpp::Image*>(dst));
     });
     check(result);
 

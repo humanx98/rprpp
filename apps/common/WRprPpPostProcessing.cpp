@@ -1,8 +1,8 @@
 #include "WRprPpPostProcessing.h"
 
 WRprPpPostProcessing::WRprPpPostProcessing(const WRprPpContext& context)
+    : m_context(context.get())
 {
-    m_context = context.get();
     RprPpError status;
 
     status = rprppContextCreatePostProcessing(m_context, &m_postProcessing);
@@ -41,11 +41,11 @@ void WRprPpPostProcessing::waitQueueIdle()
     RPRPP_CHECK(status);
 }
 
-void WRprPpPostProcessing::copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandle)
+void WRprPpPostProcessing::copyOutputTo(WRprPpImage& dst)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyOutputToDx11Texture(m_postProcessing, dx11textureHandle);
+    status = rprppPostProcessingCopyOutputToImage(m_postProcessing, dst.get());
     RPRPP_CHECK(status);
 }
 

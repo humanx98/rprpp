@@ -25,8 +25,8 @@ set(HEADERS
     vk_helper.h
     vk.h
     DescriptorBuilder.h
-    Dx11SharedTexture.h
     HostVisibleBuffer.h
+    Image.h
     ImageFormat.h
     PostProcessing.h
     ShaderManager.h
@@ -38,8 +38,8 @@ set(SOURCES
     Error.cpp
     vk_helper.cpp
     DescriptorBuilder.cpp
-    Dx11SharedTexture.cpp
     HostVisibleBuffer.cpp
+    Image.cpp
     PostProcessing.cpp
     ShaderManager.cpp
 )

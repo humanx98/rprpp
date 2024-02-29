@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WRprPpHostVisibleBuffer.h"
+#include "WRprPpImage.h"
 #include "rpr_helper.h"
 
 class WRprPpPostProcessing {
@@ -11,7 +12,7 @@ public:
     void resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
     void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
     void waitQueueIdle();
-    void copyOutputToDx11Texture(RprPpDx11Handle dx11textureHandle);
+    void copyOutputTo(WRprPpImage& dst);
     void copyOutputTo(WRprPpHostVisibleBuffer& dst);
 
     void copyBufferToAovColor(const WRprPpHostVisibleBuffer& src);

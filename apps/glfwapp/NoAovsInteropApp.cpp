@@ -98,7 +98,6 @@ void NoAovsInteropApp::resize(int width, int height)
 {
     if (m_width != width || m_height != height || m_backBuffer.Get() == nullptr) {
         m_deviceContex->OMSetRenderTargets(0, nullptr, nullptr);
-        m_sharedTextureHandle = nullptr;
         m_sharedTextureResource.Reset();
         m_sharedTexture.Reset();
         m_renderTargetView.Reset();
@@ -119,7 +118,8 @@ void NoAovsInteropApp::resize(int width, int height)
         sharedTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
         DX_CHECK(m_device->CreateTexture2D(&sharedTextureDesc, nullptr, &m_sharedTexture));
         DX_CHECK(m_sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void**)&m_sharedTextureResource));
-        DX_CHECK(m_sharedTextureResource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &m_sharedTextureHandle));
+        HANDLE sharedTextureHandle;
+        DX_CHECK(m_sharedTextureResource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &sharedTextureHandle));
 
         D3D11_VIEWPORT viewport;
         ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
@@ -132,6 +132,12 @@ void NoAovsInteropApp::resize(int width, int height)
         m_postProcessing->resize(width, height, to_rprppformat(FORMAT));
         m_postProcessing->setToneMapFocalLength(m_hybridproRenderer.getFocalLength() / 1000.0f);
         m_buffer = std::make_unique<WRprPpHostVisibleBuffer>(*m_ppContext, width * height * 4 * sizeof(float));
+        RprPpImageDescription desc = {
+            .width = (uint32_t)width,
+            .height = (uint32_t)height,
+            .format = to_rprppformat(FORMAT),
+        };
+        m_dx11output = std::make_unique<WRprPpImage>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
 
         m_width = width;
         m_height = height;
@@ -177,7 +183,7 @@ void NoAovsInteropApp::mainLoop()
             m_postProcessing->copyBufferToAovBackground(*m_buffer);
             m_postProcessing->run();
             m_postProcessing->waitQueueIdle();
-            m_postProcessing->copyOutputToDx11Texture(m_sharedTextureHandle);
+            m_postProcessing->copyOutputTo(*m_dx11output);
 
             IDXGIKeyedMutex* km;
             DX_CHECK(m_sharedTextureResource->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&km));

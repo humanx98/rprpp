@@ -2,6 +2,7 @@ set(HEADERS
     HybridProRenderer.h
     WRprPpContext.h
     WRprPpHostVisibleBuffer.h
+    WRprPpImage.h
     WRprPpPostProcessing.h
     rpr_helper.h
 )
@@ -9,6 +10,7 @@ set(SOURCES
     HybridProRenderer.cpp
     WRprPpContext.cpp
     WRprPpHostVisibleBuffer.cpp
+    WRprPpImage.cpp
     WRprPpPostProcessing.cpp
     rpr_helper.cpp
 )

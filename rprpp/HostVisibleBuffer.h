@@ -15,7 +15,7 @@ public:
     HostVisibleBuffer& operator=(const HostVisibleBuffer&) = delete;
 
     size_t size() const noexcept;
-    const vk::raii::Buffer& buffer() const noexcept;
+    const vk::helper::Buffer& get() const noexcept;
     void* map(size_t size);
     void unmap();
 

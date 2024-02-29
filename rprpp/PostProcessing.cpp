@@ -232,7 +232,7 @@ void PostProcessing::copyBufferToAov(const HostVisibleBuffer& src, vk::helper::I
 
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { dst.width, dst.height, 1 });
-        m_commandBuffers.secondary.copyBufferToImage(*src.buffer(),
+        m_commandBuffers.secondary.copyBufferToImage(*src.get().buffer,
             *dst.image,
             vk::ImageLayout::eTransferDstOptimal,
             region);
@@ -313,8 +313,44 @@ void PostProcessing::copyOutputTo(HostVisibleBuffer& dst)
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
         m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->image,
             vk::ImageLayout::eTransferSrcOptimal,
-            *dst.buffer(),
+            *dst.get().buffer,
             region);
+    }
+    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
+    m_commandBuffers.secondary.end();
+
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
+    m_dctx->queue.submit(submitInfo);
+    m_dctx->queue.waitIdle();
+}
+
+void PostProcessing::copyOutputTo(Image& image)
+{
+    if (!m_outputImage.has_value()) {
+        return;
+    }
+
+    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    transitionImageLayout(
+        m_commandBuffers.secondary,
+        image.get(),
+        vk::AccessFlagBits::eTransferWrite,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::PipelineStageFlagBits::eTransfer);
+
+    vk::AccessFlags oldAccess = m_outputImage->access;
+    vk::ImageLayout oldLayout = m_outputImage->layout;
+    vk::PipelineStageFlags oldStage = m_outputImage->stage;
+    transitionImageLayout(
+        m_commandBuffers.secondary,
+        m_outputImage.value(),
+        vk::AccessFlagBits::eTransferRead,
+        vk::ImageLayout::eTransferSrcOptimal,
+        vk::PipelineStageFlagBits::eTransfer);
+    {
+        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+        vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
+        m_commandBuffers.secondary.copyImage(*m_outputImage->image, vk::ImageLayout::eTransferSrcOptimal, *image.get().image, vk::ImageLayout::eTransferDstOptimal, region);
     }
     transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
     m_commandBuffers.secondary.end();
@@ -348,54 +384,6 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
 
 void PostProcessing::waitQueueIdle()
 {
-    m_dctx->queue.waitIdle();
-}
-
-void PostProcessing::copyOutputToDx11Texture(HANDLE dx11textureHandle)
-{
-    if (!m_outputImage.has_value()) {
-        return;
-    }
-
-    if (dx11textureHandle == nullptr) {
-        throw InvalidParameter("dx11textureHandle", "Cannot be null");
-    }
-
-    // we set vk::ImageUsageFlagBits::eStorage in order to remove warnings in validation layer
-    auto externalDx11Image = vk::helper::createImageFromDx11Texture(*m_dctx,
-        dx11textureHandle,
-        m_outputImage->width,
-        m_outputImage->height,
-        to_vk_format(m_outputImageFormat),
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
-
-    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(
-        m_commandBuffers.secondary,
-        externalDx11Image,
-        vk::AccessFlagBits::eTransferWrite,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-
-    vk::AccessFlags oldAccess = m_outputImage->access;
-    vk::ImageLayout oldLayout = m_outputImage->layout;
-    vk::PipelineStageFlags oldStage = m_outputImage->stage;
-    transitionImageLayout(
-        m_commandBuffers.secondary,
-        m_outputImage.value(),
-        vk::AccessFlagBits::eTransferRead,
-        vk::ImageLayout::eTransferSrcOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-    {
-        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->width, m_outputImage->height, 1 });
-        m_commandBuffers.secondary.copyImage(*m_outputImage->image, vk::ImageLayout::eTransferSrcOptimal, *externalDx11Image.image, vk::ImageLayout::eTransferDstOptimal, region);
-    }
-    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
-    m_commandBuffers.secondary.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx->queue.submit(submitInfo);
     m_dctx->queue.waitIdle();
 }
 

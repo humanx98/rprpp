@@ -1,4 +1,5 @@
 #include "Context.h"
+#include "Error.h"
 
 namespace rprpp {
 
@@ -61,6 +62,32 @@ HostVisibleBuffer* Context::createHostVisibleBuffer(size_t size)
 void Context::destroyHostVisibleBuffer(HostVisibleBuffer* buffer)
 {
     m_hostVisibleBuffers.erase(buffer);
+}
+
+Image* Context::createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc)
+{
+    if (dx11textureHandle == nullptr) {
+        throw InvalidParameter("dx11textureHandle", "Cannot be null");
+    }
+
+    // we set vk::ImageUsageFlagBits::eStorage in order to remove warnings in validation layer
+    auto image = std::make_unique<Image>(
+        vk::helper::createImageFromDx11Texture(*m_deviceContext,
+            dx11textureHandle,
+            desc.width,
+            desc.height,
+            to_vk_format(desc.format),
+            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage),
+        desc);
+
+    Image* ptr = image.get();
+    m_images.emplace(ptr, std::move(image));
+    return ptr;
+}
+
+void Context::destroyImage(Image* image)
+{
+    m_images.erase(image);
 }
 
 VkPhysicalDevice Context::getVkPhysicalDevice() const noexcept

@@ -134,7 +134,6 @@ void WithAovsInteropApp::resize(int width, int height)
 {
     if (m_width != width || m_height != height || m_backBuffer.Get() == nullptr) {
         m_deviceContex->OMSetRenderTargets(0, nullptr, nullptr);
-        m_sharedTextureHandle = nullptr;
         m_sharedTextureResource.Reset();
         m_sharedTexture.Reset();
         m_renderTargetView.Reset();
@@ -155,7 +154,8 @@ void WithAovsInteropApp::resize(int width, int height)
         sharedTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
         DX_CHECK(m_device->CreateTexture2D(&sharedTextureDesc, nullptr, &m_sharedTexture));
         DX_CHECK(m_sharedTexture->QueryInterface(__uuidof(IDXGIResource1), (void**)&m_sharedTextureResource));
-        DX_CHECK(m_sharedTextureResource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &m_sharedTextureHandle));
+        HANDLE sharedTextureHandle;
+        DX_CHECK(m_sharedTextureResource->CreateSharedHandle(nullptr, GENERIC_ALL, nullptr, &sharedTextureHandle));
 
         D3D11_VIEWPORT viewport;
         ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
@@ -174,9 +174,14 @@ void WithAovsInteropApp::resize(int width, int height)
             .background = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND),
         };
         m_postProcessing->resize(width, height, to_rprppformat(FORMAT), &aovsVkInteropInfo);
+        m_postProcessing->setToneMapFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
+        RprPpImageDescription desc = {
+            .width = (uint32_t)width,
+            .height = (uint32_t)height,
+            .format = to_rprppformat(FORMAT),
+        };
+        m_dx11output = std::make_unique<WRprPpImage>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
 
-        float focalLength = m_hybridproRenderer->getFocalLength() / 1000.0f;
-        m_postProcessing->setToneMapFocalLength(focalLength);
         m_width = width;
         m_height = height;
     }
@@ -219,7 +224,7 @@ void WithAovsInteropApp::mainLoop()
                 }
 
                 m_postProcessing->waitQueueIdle();
-                m_postProcessing->copyOutputToDx11Texture(m_sharedTextureHandle);
+                m_postProcessing->copyOutputTo(*m_dx11output);
             }
 
             IDXGIKeyedMutex* km;

@@ -15,6 +15,7 @@
 #include "../common/HybridProRenderer.h"
 #include "../common/WRprPpContext.h"
 #include "../common/WRprPpHostVisibleBuffer.h"
+#include "../common/WRprPpImage.h"
 #include "../common/WRprPpPostProcessing.h"
 
 using Microsoft::WRL::ComPtr;
@@ -36,10 +37,10 @@ private:
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     ComPtr<ID3D11Texture2D> m_sharedTexture;
     ComPtr<IDXGIResource1> m_sharedTextureResource;
-    HANDLE m_sharedTextureHandle = nullptr;
     std::unique_ptr<WRprPpContext> m_ppContext;
     std::unique_ptr<WRprPpPostProcessing> m_postProcessing;
     std::unique_ptr<WRprPpHostVisibleBuffer> m_buffer;
+    std::unique_ptr<WRprPpImage> m_dx11output;
     HybridProRenderer m_hybridproRenderer;
     void initWindow();
     void findAdapter();

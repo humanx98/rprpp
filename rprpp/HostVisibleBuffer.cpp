@@ -14,9 +14,9 @@ size_t HostVisibleBuffer::size() const noexcept
     return m_size;
 }
 
-const vk::raii::Buffer& HostVisibleBuffer::buffer() const noexcept
+const vk::helper::Buffer& HostVisibleBuffer::get() const noexcept
 {
-    return m_buffer.buffer;
+    return m_buffer;
 }
 
 void* HostVisibleBuffer::map(size_t size)

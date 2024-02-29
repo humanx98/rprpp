@@ -41,6 +41,7 @@ typedef uint32_t RprPpBool;
 typedef void* RprPpContext;
 typedef void* RprPpPostProcessing;
 typedef void* RprPpHostVisibleBuffer;
+typedef void* RprPpImage;
 typedef void* RprPpDx11Handle;
 typedef void* RprPpVkFence;
 typedef void* RprPpVkSemaphore;
@@ -58,6 +59,12 @@ typedef struct RprPpAovsVkInteropInfo {
     RprPpVkImage background;
 } RprPpVkInteropAovs;
 
+typedef struct RprPpImageDescription {
+    uint32_t width;
+    uint32_t height;
+    RprPpImageFormat format;
+} RprPpImageDescription;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,6 +78,8 @@ RPRPP_API RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprP
 RPRPP_API RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProcessing pp);
 RPRPP_API RprPpError rprppContextCreateHostVisibleBuffer(RprPpContext context, size_t size, RprPpHostVisibleBuffer* outBuffer);
 RPRPP_API RprPpError rprppContextDestroyHostVisibleBuffer(RprPpContext context, RprPpHostVisibleBuffer buffer);
+RPRPP_API RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle, RprPpImageDescription description, RprPpImage* outImage);
+RPRPP_API RprPpError rprppContextDestroyImage(RprPpContext context, RprPpImage image);
 RPRPP_API RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysicalDevice* physicalDevice);
 RPRPP_API RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkDevice* device);
 RPRPP_API RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue);
@@ -79,7 +88,7 @@ RPRPP_API RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* 
 RPRPP_API RprPpError rprppPostProcessingResize(RprPpPostProcessing processing, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo);
 RPRPP_API RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore);
 RPRPP_API RprPpError rprppPostProcessingWaitQueueIdle(RprPpPostProcessing processing);
-RPRPP_API RprPpError rprppPostProcessingCopyOutputToDx11Texture(RprPpPostProcessing processing, RprPpDx11Handle dx11textureHandle);
+RPRPP_API RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, RprPpImage dst);
 RPRPP_API RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpHostVisibleBuffer dst);
 
 RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpHostVisibleBuffer src);
