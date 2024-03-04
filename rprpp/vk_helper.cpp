@@ -105,7 +105,7 @@ namespace {
         const std::vector<const char*>& enabledLayers,
         const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
     {
-        static std::vector<const char*> requiredExtensions {
+        std::vector<const char*> requiredExtensions {
             VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
             // VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME, // we don't use it right now
             VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
