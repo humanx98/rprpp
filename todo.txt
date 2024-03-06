@@ -1,5 +1,6 @@
-1. bloom
-2. denoising
-3. return error messages
-4. handle multi layers iamges (stereo camera)
-5. notRefractiveBackgroundColor
+1. tile rendering
+2. bloom
+3. notRefractiveBackgroundColor
+4. denoising
+5. return error messages
+6. handle multi layers iamges (stereo camera)

@@ -141,23 +141,31 @@ namespace {
             requiredExtensions.insert(requiredExtensions.end(), rayTracingExtensions.begin(), rayTracingExtensions.end());
         }
 
+        auto supportedFeatures = physicalDevice.getFeatures2<
+            vk::PhysicalDeviceFeatures2,
+            vk::PhysicalDeviceVulkan11Features,
+            vk::PhysicalDeviceVulkan12Features,
+            vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
+            vk::PhysicalDeviceRayQueryFeaturesKHR
+        >();
+        
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
-        accelerationStructureFeatures.accelerationStructure = vk::True;
+        accelerationStructureFeatures.accelerationStructure = supportedFeatures.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>().accelerationStructure;
 
         vk::PhysicalDeviceRayQueryFeaturesKHR rayQueryFetures;
-        rayQueryFetures.rayQuery = vk::True;
+        rayQueryFetures.rayQuery = supportedFeatures.get<vk::PhysicalDeviceRayQueryFeaturesKHR>().rayQuery;
 
         vk::PhysicalDeviceVulkan12Features features12;
         features12.drawIndirectCount = vk::True;
-        features12.shaderFloat16 = vk::True;
+        features12.shaderFloat16 = supportedFeatures.get<vk::PhysicalDeviceVulkan12Features>().shaderFloat16;
         features12.descriptorIndexing = vk::True;
         features12.shaderSampledImageArrayNonUniformIndexing = vk::True;
         features12.shaderStorageBufferArrayNonUniformIndexing = vk::True;
-        features12.samplerFilterMinmax = vk::True;
+        features12.samplerFilterMinmax = supportedFeatures.get<vk::PhysicalDeviceVulkan12Features>().samplerFilterMinmax;
         features12.bufferDeviceAddress = vk::True;
 
         vk::PhysicalDeviceVulkan11Features features11;
-        features11.storageBuffer16BitAccess = vk::True;
+        features11.storageBuffer16BitAccess = supportedFeatures.get<vk::PhysicalDeviceVulkan11Features>().storageBuffer16BitAccess;
 
         vk::PhysicalDeviceFeatures2 features2;
         features2.features.independentBlend = vk::True;
@@ -169,7 +177,7 @@ namespace {
         features2.features.fragmentStoresAndAtomics = vk::True;
         features2.features.shaderStorageImageExtendedFormats = vk::True;
         features2.features.shaderFloat64 = vk::True;
-        features2.features.shaderInt64 = vk::True;
+        features2.features.shaderInt64 = supportedFeatures.get<vk::PhysicalDeviceFeatures2>().features.shaderInt64;
         features2.features.shaderInt16 = vk::True;
 
         accelerationStructureFeatures.pNext = &rayQueryFetures;
@@ -182,7 +190,7 @@ namespace {
             enabledLayers,
             requiredExtensions,
             nullptr,
-            supportHardwareRT ? (void*)&accelerationStructureFeatures : (void*)&features12);
+            &accelerationStructureFeatures);
         return physicalDevice.createDevice(deviceCreateInfo);
     }
 } // namespace
