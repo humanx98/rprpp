@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rprpp.h"
+#include "rprpp/rprpp.h"
 #include "vk.h"
 
 namespace vk::helper {
@@ -19,6 +19,11 @@ struct DeviceContext {
     vk::raii::Device device;
     vk::raii::Queue queue;
     uint32_t queueFamilyIndex;
+    std::vector<vk::raii::CommandPool> commandPools;
+    std::vector<vk::raii::CommandBuffer> commandBuffers;
+
+    vk::raii::CommandBuffer takeCommandBuffer();
+    void returnCommandBuffer(vk::raii::CommandBuffer buffer);
 };
 
 void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet);

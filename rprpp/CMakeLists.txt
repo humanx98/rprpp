@@ -19,29 +19,29 @@ set(SHADERS
 )
 
 set(HEADERS
+    vk/DescriptorBuilder.h
+    vk/DeviceContext.h
+    vk/ShaderManager.h
+    vk/vk.h
     Context.h
     rprpp.h
     Error.h
-    vk_helper.h
-    vk.h
-    DescriptorBuilder.h
     Buffer.h
     Image.h
     ImageFormat.h
     PostProcessing.h
-    ShaderManager.h
 )
 
 set(SOURCES
+    vk/DescriptorBuilder.cpp
+    vk/DeviceContext.cpp
+    vk/ShaderManager.cpp
     Context.cpp
     rprpp.cpp
     Error.cpp
-    vk_helper.cpp
-    DescriptorBuilder.cpp
     Buffer.cpp
     Image.cpp
     PostProcessing.cpp
-    ShaderManager.cpp
 )
 
 add_library(rprpp SHARED 

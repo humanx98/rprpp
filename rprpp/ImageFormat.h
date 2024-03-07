@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rprpp.h"
-#include "vk.h"
+#include "vk/vk.h"
 
 namespace rprpp {
 

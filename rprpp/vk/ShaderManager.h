@@ -3,7 +3,7 @@
 #include "vk.h"
 #include <unordered_map>
 
-namespace rprpp {
+namespace vk::helper {
 
 class ShaderManager {
 public:

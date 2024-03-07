@@ -41,6 +41,13 @@ private:
     std::unique_ptr<rprpp::wrappers::PostProcessing> m_postProcessing;
     std::unique_ptr<rprpp::wrappers::Buffer> m_buffer;
     std::unique_ptr<rprpp::wrappers::Image> m_dx11output;
+    std::unique_ptr<rprpp::wrappers::Image> m_output;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovColor;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovOpacity;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovShadowCatcher;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovReflectionCatcher;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovMattePass;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovBackground;
     HybridProRenderer m_hybridproRenderer;
     void initWindow();
     void findAdapter();

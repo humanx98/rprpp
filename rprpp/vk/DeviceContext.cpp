@@ -1,5 +1,5 @@
-#include "vk_helper.h"
-#include "Error.h"
+#include "DeviceContext.h"
+#include "rprpp/Error.h"
 #include <iostream>
 
 namespace vk::helper {
@@ -146,9 +146,8 @@ namespace {
             vk::PhysicalDeviceVulkan11Features,
             vk::PhysicalDeviceVulkan12Features,
             vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
-            vk::PhysicalDeviceRayQueryFeaturesKHR
-        >();
-        
+            vk::PhysicalDeviceRayQueryFeaturesKHR>();
+
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures;
         accelerationStructureFeatures.accelerationStructure = supportedFeatures.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>().accelerationStructure;
 
@@ -294,7 +293,6 @@ DeviceContext createDeviceContext(uint32_t deviceId)
 
     vk::raii::Context context;
     VulkanInstance vulkanInstance = createInstance(context, enableValidationLayers);
-    // auto enabledLayers = std::move(instanceAndValidationLayers.second);
     std::optional<vk::raii::DebugUtilsMessengerEXT> debugUtilMessenger;
     if (enableValidationLayers) {
         debugUtilMessenger = vulkanInstance.instance.createDebugUtilsMessengerEXT(makeDebugUtilsMessengerCreateInfoEXT());
@@ -344,4 +342,26 @@ DeviceContext createDeviceContext(uint32_t deviceId)
     };
 }
 
+vk::raii::CommandBuffer DeviceContext::takeCommandBuffer()
+{
+    constexpr uint32_t numberOfPreallocatedBuffers = 8;
+    if (commandBuffers.empty()) {
+        vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndex);
+        vk::raii::CommandPool pool(device, cmdPoolInfo);
+
+        vk::CommandBufferAllocateInfo allocInfo(*pool, vk::CommandBufferLevel::ePrimary, numberOfPreallocatedBuffers);
+        vk::raii::CommandBuffers buffers(device, allocInfo);
+        commandBuffers.insert(commandBuffers.end(), std::move_iterator(buffers.begin()), std::move_iterator(buffers.end()));
+        commandPools.push_back(std::move(pool));
+    }
+
+    vk::raii::CommandBuffer buf = std::move(commandBuffers.back());
+    commandBuffers.pop_back();
+    return buf;
+}
+
+void DeviceContext::returnCommandBuffer(vk::raii::CommandBuffer buffer)
+{
+    commandBuffers.push_back(std::move(buffer));
+}
 }

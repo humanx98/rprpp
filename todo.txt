@@ -3,4 +3,4 @@
 3. notRefractiveBackgroundColor
 4. denoising
 5. return error messages
-6. handle multi layers iamges (stereo camera)
+6. handle multi layers images (stereo camera)

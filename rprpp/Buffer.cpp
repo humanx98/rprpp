@@ -28,9 +28,9 @@ size_t Buffer::size() const noexcept
     return m_size;
 }
 
-const vk::raii::Buffer& Buffer::get() const noexcept
+vk::Buffer Buffer::get() const noexcept
 {
-    return m_buffer;
+    return *m_buffer;
 }
 
 void* Buffer::map(size_t size)

@@ -61,4 +61,28 @@ RprPpContext Context::get() const noexcept
     return m_context;
 }
 
+void Context::copyImageToBuffer(RprPpImage image, RprPpBuffer buffer)
+{
+    RprPpError status;
+
+    status = rprppContextCopyImageToBuffer(m_context, image, buffer);
+    RPRPP_CHECK(status);
+}
+
+void Context::copyBufferToImage(RprPpBuffer buffer, RprPpImage image)
+{
+    RprPpError status;
+
+    status = rprppContextCopyBufferToImage(m_context, buffer, image);
+    RPRPP_CHECK(status);
+}
+
+void Context::copyImage(RprPpImage src, RprPpImage dst)
+{
+    RprPpError status;
+
+    status = rprppContextCopyImage(m_context, src, dst);
+    RPRPP_CHECK(status);
+}
+
 }

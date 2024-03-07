@@ -19,14 +19,6 @@ PostProcessing::~PostProcessing()
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo)
-{
-    RprPpError status;
-
-    status = rprppPostProcessingResize(m_postProcessing, width, height, format, aovsVkInteropInfo);
-    RPRPP_CHECK(status);
-}
-
 void PostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore)
 {
     RprPpError status;
@@ -35,67 +27,59 @@ void PostProcessing::run(RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore t
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyOutputTo(Image& dst)
+void PostProcessing::setOutput(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyOutputToImage(m_postProcessing, dst.get());
+    status = rprppPostProcessingSetOutput(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyOutputTo(Buffer& dst)
+void PostProcessing::setAovColor(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyOutputToBuffer(m_postProcessing, dst.get());
+    status = rprppPostProcessingSetAovColor(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyBufferToAovColor(const Buffer& src)
+void PostProcessing::setAovOpacity(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyBufferToAovColor(m_postProcessing, src.get());
+    status = rprppPostProcessingSetAovOpacity(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyBufferToAovOpacity(const Buffer& src)
+void PostProcessing::setAovShadowCatcher(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyBufferToAovOpacity(m_postProcessing, src.get());
+    status = rprppPostProcessingSetAovShadowCatcher(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyBufferToAovShadowCatcher(const Buffer& src)
+void PostProcessing::setAovReflectionCatcher(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyBufferToAovShadowCatcher(m_postProcessing, src.get());
+    status = rprppPostProcessingSetAovReflectionCatcher(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyBufferToAovReflectionCatcher(const Buffer& src)
+void PostProcessing::setAovMattePass(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyBufferToAovReflectionCatcher(m_postProcessing, src.get());
+    status = rprppPostProcessingSetAovMattePass(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 
-void PostProcessing::copyBufferToAovMattePass(const Buffer& src)
+void PostProcessing::setAovBackground(const Image& img)
 {
     RprPpError status;
 
-    status = rprppPostProcessingCopyBufferToAovMattePass(m_postProcessing, src.get());
-    RPRPP_CHECK(status);
-}
-
-void PostProcessing::copyBufferToAovBackground(const Buffer& src)
-{
-    RprPpError status;
-
-    status = rprppPostProcessingCopyBufferToAovBackground(m_postProcessing, src.get());
+    status = rprppPostProcessingSetAovBackground(m_postProcessing, img.get());
     RPRPP_CHECK(status);
 }
 

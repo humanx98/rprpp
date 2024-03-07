@@ -165,22 +165,35 @@ void WithAovsInteropApp::resize(int width, int height)
         m_deviceContex->RSSetViewports(1, &viewport);
 
         m_hybridproRenderer->resize(width, height);
-        RprPpAovsVkInteropInfo aovsVkInteropInfo = {
-            .color = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_COLOR),
-            .opacity = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_OPACITY),
-            .shadowCatcher = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_SHADOW_CATCHER),
-            .reflectionCatcher = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_REFLECTION_CATCHER),
-            .mattePass = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS),
-            .background = (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND),
-        };
-        m_postProcessing->resize(width, height, to_rprppformat(FORMAT), &aovsVkInteropInfo);
-        m_postProcessing->setToneMapFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
-        RprPpImageDescription desc = {
-            .width = (uint32_t)width,
-            .height = (uint32_t)height,
-            .format = to_rprppformat(FORMAT),
-        };
-        m_dx11output = std::make_unique<rprpp::wrappers::Image>(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), desc);
+        // post processing
+        {
+            RprPpImageDescription outputDesc = {
+                .width = (uint32_t)width,
+                .height = (uint32_t)height,
+                .format = to_rprppformat(FORMAT),
+            };
+            m_output = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, outputDesc));
+            m_dx11output = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createImageFromDx11Texture(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), outputDesc));
+            RprPpImageDescription aovsDesc = {
+                .width = (uint32_t)width,
+                .height = (uint32_t)height,
+                .format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT,
+            };
+            m_aovColor = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_COLOR), aovsDesc));
+            m_aovOpacity = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_OPACITY), aovsDesc));
+            m_aovShadowCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_SHADOW_CATCHER), aovsDesc));
+            m_aovReflectionCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_REFLECTION_CATCHER), aovsDesc));
+            m_aovMattePass = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS), aovsDesc));
+            m_aovBackground = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND), aovsDesc));
+            m_postProcessing->setOutput(*m_output);
+            m_postProcessing->setAovColor(*m_aovColor);
+            m_postProcessing->setAovOpacity(*m_aovOpacity);
+            m_postProcessing->setAovShadowCatcher(*m_aovShadowCatcher);
+            m_postProcessing->setAovReflectionCatcher(*m_aovReflectionCatcher);
+            m_postProcessing->setAovMattePass(*m_aovMattePass);
+            m_postProcessing->setAovBackground(*m_aovBackground);
+            m_postProcessing->setToneMapFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
+        }
 
         m_width = width;
         m_height = height;
@@ -224,7 +237,7 @@ void WithAovsInteropApp::mainLoop()
                 }
 
                 m_ppContext->waitQueueIdle();
-                m_postProcessing->copyOutputTo(*m_dx11output);
+                m_ppContext->copyImage(m_output->get(), m_dx11output->get());
             }
 
             IDXGIKeyedMutex* km;

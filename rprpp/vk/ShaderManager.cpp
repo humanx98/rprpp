@@ -1,10 +1,10 @@
 #include "ShaderManager.h"
-#include "Error.h"
+#include "rprpp/Error.h"
 #include <mutex>
 #include <rprpp_config.h>
 #include <shaderc/shaderc.hpp>
 
-namespace rprpp {
+namespace vk::helper {
 
 vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
 {
@@ -32,7 +32,7 @@ vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device, const 
             options);
 
         if (spv.GetCompilationStatus() != shaderc_compilation_status_success) {
-            throw ShaderCompilationError("Shader compilation failed with: " + spv.GetErrorMessage());
+            throw rprpp::ShaderCompilationError("Shader compilation failed with: " + spv.GetErrorMessage());
         }
 
         compiledShaders[key] = std::move(std::vector(spv.cbegin(), spv.cend()));

@@ -1,187 +1,64 @@
 #include "PostProcessing.h"
-#include "DescriptorBuilder.h"
 #include "Error.h"
 #include "rprpp.h"
-#include <algorithm>
-
-template <class... Ts>
-struct overload : Ts... {
-    using Ts::operator()...;
-};
-template <class... Ts>
-overload(Ts...) -> overload<Ts...>; // line not needed in
+#include "vk/DescriptorBuilder.h"
 
 namespace rprpp {
 
-const int WorkgroupSize = 32;
-const int NumComponents = 4;
+constexpr int WorkgroupSize = 32;
+constexpr int NumComponents = 4;
 
-PostProcessing::PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
-    vk::raii::CommandPool&& commandPool,
-    CommandBuffers&& commandBuffers,
-    Buffer&& uboBuffer) noexcept
+PostProcessing::PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx, Buffer&& uboBuffer, vk::raii::Sampler&& sampler) noexcept
     : m_dctx(dctx)
-    , m_commandPool(std::move(commandPool))
-    , m_commandBuffers(std::move(commandBuffers))
     , m_uboBuffer(std::move(uboBuffer))
+    , m_sampler(std::move(sampler))
+    , m_commandBuffer(dctx->takeCommandBuffer())
 {
 }
 
-void PostProcessing::createShaderModule(ImageFormat outputFormat, bool aovsAreSampledImages)
+PostProcessing::~PostProcessing()
+{
+    m_dctx->returnCommandBuffer(std::move(m_commandBuffer));
+}
+
+void PostProcessing::createShaderModule()
 {
     const std::unordered_map<std::string, std::string> macroDefinitions = {
-        { "OUTPUT_FORMAT", to_glslformat(outputFormat) },
+        { "OUTPUT_FORMAT", to_glslformat(m_output->description().format) },
+        { "AOVS_FORMAT", to_glslformat(m_aovColor->description().format) },
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
-        { "AOVS_ARE_SAMPLED_IMAGES", aovsAreSampledImages ? "1" : "0" }
+        { "AOVS_ARE_SAMPLED_IMAGES", m_aovColor->IsSampled() ? "1" : "0" }
     };
     m_shaderModule = m_shaderManager.get(m_dctx->device, macroDefinitions);
 }
 
-void PostProcessing::createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
-{
-    ImageFormat aovFormat = ImageFormat::eR32G32B32A32Sfloat;
-    if (aovsVkInteropInfo.has_value()) {
-        vk::ImageViewCreateInfo viewInfo({},
-            aovsVkInteropInfo.value().color,
-            vk::ImageViewType::e2D,
-            to_vk_format(aovFormat),
-            {},
-            { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-        vk::raii::ImageView color(m_dctx->device, viewInfo);
-
-        viewInfo.setImage(aovsVkInteropInfo.value().opacity);
-        vk::raii::ImageView opacity(m_dctx->device, viewInfo);
-
-        viewInfo.setImage(aovsVkInteropInfo.value().shadowCatcher);
-        vk::raii::ImageView shadowCatcher(m_dctx->device, viewInfo);
-
-        viewInfo.setImage(aovsVkInteropInfo.value().reflectionCatcher);
-        vk::raii::ImageView reflectionCatcher(m_dctx->device, viewInfo);
-
-        viewInfo.setImage(aovsVkInteropInfo.value().mattePass);
-        vk::raii::ImageView mattePass(m_dctx->device, viewInfo);
-
-        viewInfo.setImage(aovsVkInteropInfo.value().background);
-        vk::raii::ImageView background(m_dctx->device, viewInfo);
-
-        vk::raii::Sampler sampler(m_dctx->device, vk::SamplerCreateInfo());
-
-        m_aovs = InteropAovs {
-            .color = std::move(color),
-            .opacity = std::move(opacity),
-            .shadowCatcher = std::move(shadowCatcher),
-            .reflectionCatcher = std::move(reflectionCatcher),
-            .mattePass = std::move(mattePass),
-            .background = std::move(background),
-            .sampler = std::move(sampler),
-        };
-    } else {
-        vk::ImageUsageFlags aovUsage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
-        vk::AccessFlags aovAccess = vk::AccessFlagBits::eShaderRead;
-        ImageDescription desc = {
-            .width = width,
-            .height = height,
-            .format = aovFormat,
-        };
-        Aovs aovs = {
-            .color = Image::create(*m_dctx, desc, aovUsage),
-            .opacity = Image::create(*m_dctx, desc, aovUsage),
-            .shadowCatcher = Image::create(*m_dctx, desc, aovUsage),
-            .reflectionCatcher = Image::create(*m_dctx, desc, aovUsage),
-            .mattePass = Image::create(*m_dctx, desc, aovUsage),
-            .background = Image::create(*m_dctx, desc, aovUsage),
-        };
-
-        transitionImageLayout(aovs.color, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-        transitionImageLayout(aovs.opacity, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-        transitionImageLayout(aovs.shadowCatcher, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-        transitionImageLayout(aovs.reflectionCatcher, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-        transitionImageLayout(aovs.mattePass, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-        transitionImageLayout(aovs.background, aovAccess, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-        m_aovs = std::move(aovs);
-    }
-
-    ImageDescription outputDesc = {
-        .width = width,
-        .height = height,
-        .format = outputFormat,
-    };
-    m_outputImage = Image::create(*m_dctx, outputDesc, vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage);
-
-    transitionImageLayout(m_outputImage.value(),
-        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-        vk::ImageLayout::eGeneral,
-        vk::PipelineStageFlagBits::eComputeShader);
-}
-
-void PostProcessing::transitionImageLayout(Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage)
-{
-    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(m_commandBuffers.secondary, image, dstAccess, dstLayout, dstStage);
-    m_commandBuffers.secondary.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx->queue.submit(submitInfo);
-    m_dctx->queue.waitIdle();
-}
-
-void PostProcessing::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage)
-{
-    vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
-    vk::ImageMemoryBarrier imageMemoryBarrier(image.getAccess(),
-        dstAccess,
-        image.getLayout(),
-        dstLayout,
-        VK_QUEUE_FAMILY_IGNORED,
-        VK_QUEUE_FAMILY_IGNORED,
-        *image.get(),
-        subresourceRange);
-
-    commandBuffer.pipelineBarrier(image.getPipelineStages(),
-        dstStage,
-        {},
-        nullptr,
-        nullptr,
-        imageMemoryBarrier);
-
-    image.setAccess(dstAccess);
-    image.setLayout(dstLayout);
-    image.setPipelineStages(dstStage);
-}
-
 void PostProcessing::createDescriptorSet()
 {
-    DescriptorBuilder builder;
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_outputImage->view(), vk::ImageLayout::eGeneral); // binding 0
-    builder.bindStorageImage(&outputDescriptorInfo);
-
+    vk::helper::DescriptorBuilder builder;
+    std::vector<Image*> images = {
+        m_output, // binding 0
+        m_aovColor, // binding 1
+        m_aovOpacity, // binding 2
+        m_aovShadowCatcher, // binding 3
+        m_aovReflectionCatcher, // binding 4
+        m_aovMattePass, // binding 5
+        m_aovBackground, // binding 6
+    };
     std::vector<vk::DescriptorImageInfo> descriptorImageInfos;
-    std::visit(overload {
-                   [&](const Aovs& arg) {
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.color.view(), vk::ImageLayout::eGeneral)); // binding 1
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.opacity.view(), vk::ImageLayout::eGeneral)); // binding 2
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.shadowCatcher.view(), vk::ImageLayout::eGeneral)); // binding 3
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.reflectionCatcher.view(), vk::ImageLayout::eGeneral)); // binding 4
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.mattePass.view(), vk::ImageLayout::eGeneral)); // binding 5
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *arg.background.view(), vk::ImageLayout::eGeneral)); // binding 6
-                       for (auto& dii : descriptorImageInfos) {
-                           builder.bindStorageImage(&dii);
-                       }
-                   },
-                   [&](const InteropAovs& arg) {
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.color, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 1
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.opacity, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 2
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.shadowCatcher, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 3
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.reflectionCatcher, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 4
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.mattePass, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 5
-                       descriptorImageInfos.push_back(vk::DescriptorImageInfo(*arg.sampler, *arg.background, vk::ImageLayout::eShaderReadOnlyOptimal)); // binding 6
-                       for (auto& dii : descriptorImageInfos) {
-                           builder.bindCombinedImageSampler(&dii);
-                       }
-                   } },
-        m_aovs.value());
+    descriptorImageInfos.reserve(images.size());
+    for (auto img : images) {
+        if (img->IsStorage()) {
+            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, img->view(), img->getLayout()));
+            builder.bindStorageImage(&descriptorImageInfos.back());
+        } else if (img->IsSampled()) {
+            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*m_sampler, img->view(), img->getLayout()));
+            builder.bindCombinedImageSampler(&descriptorImageInfos.back());
+        } else {
+            throw InternalError("uknown image type");
+        }
+    }
 
-    vk::DescriptorBufferInfo uboDescriptoInfo = vk::DescriptorBufferInfo(*m_uboBuffer.get(), 0, sizeof(UniformBufferObject)); // binding 7
+    vk::DescriptorBufferInfo uboDescriptoInfo(m_uboBuffer.get(), 0, sizeof(UniformBufferObject)); // binding 7
     builder.bindUniformBuffer(&uboDescriptoInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
@@ -191,6 +68,17 @@ void PostProcessing::createDescriptorSet()
 
     builder.updateDescriptorSet(*m_descriptorSet.value());
     m_dctx->device.updateDescriptorSets(builder.writes(), nullptr);
+}
+
+void PostProcessing::recordComputeCommandBuffer()
+{
+    m_commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+    m_commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
+    m_commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *m_pipelineLayout.value(), 0, *m_descriptorSet.value(), nullptr);
+    uint32_t x = (uint32_t)ceil(m_aovColor->description().width / float(WorkgroupSize));
+    uint32_t y = (uint32_t)ceil(m_aovColor->description().height / float(WorkgroupSize));
+    m_commandBuffer.dispatch(x, y, 1);
+    m_commandBuffer.end();
 }
 
 void PostProcessing::createComputePipeline()
@@ -203,241 +91,150 @@ void PostProcessing::createComputePipeline()
     m_computePipeline = m_dctx->device.createComputePipeline(nullptr, pipelineInfo);
 }
 
-void PostProcessing::recordComputeCommandBuffer(uint32_t width, uint32_t height)
+void PostProcessing::validateInputsAndOutput()
 {
-    m_commandBuffers.compute.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
-    m_commandBuffers.compute.bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
-    m_commandBuffers.compute.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-        *m_pipelineLayout.value(),
-        0,
-        *m_descriptorSet.value(),
-        nullptr);
-    m_commandBuffers.compute.dispatch((uint32_t)ceil(width / float(WorkgroupSize)), (uint32_t)ceil(height / float(WorkgroupSize)), 1);
-    m_commandBuffers.compute.end();
-}
-
-void PostProcessing::copyBufferToAov(const Buffer& src, Image& dst)
-{
-    vk::AccessFlags oldAccess = dst.getAccess();
-    vk::ImageLayout oldLayout = dst.getLayout();
-    vk::PipelineStageFlags oldStage = dst.getPipelineStages();
-
-    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(m_commandBuffers.secondary,
-        dst,
-        vk::AccessFlagBits::eTransferWrite,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-    {
-        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { dst.description().width, dst.description().height, 1 });
-        m_commandBuffers.secondary.copyBufferToImage(*src.get(), *dst.get(), vk::ImageLayout::eTransferDstOptimal, region);
-    }
-    transitionImageLayout(m_commandBuffers.secondary,
-        dst,
-        oldAccess,
-        oldLayout,
-        oldStage);
-    m_commandBuffers.secondary.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx->queue.submit(submitInfo);
-    m_dctx->queue.waitIdle();
-}
-
-void PostProcessing::updateUbo()
-{
-    void* data = m_uboBuffer.map(sizeof(UniformBufferObject));
-    std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
-    m_uboBuffer.unmap();
-}
-
-void PostProcessing::resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo)
-{
-    if (m_width == width
-        && m_height == height
-        && m_outputImageFormat == format
-        && m_aovsVkInteropInfo == aovsVkInteropInfo) {
-        return;
+    if (m_aovColor == nullptr) {
+        throw InvalidParameter("aov color", "cannot be null");
     }
 
-    m_computePipeline.reset();
-    m_pipelineLayout.reset();
-    m_descriptorSet.reset();
-    m_descriptorPool.reset();
-    m_descriptorSetLayout.reset();
-    m_aovs.reset();
-    m_outputImage.reset();
+    if (m_aovOpacity == nullptr) {
+        throw InvalidParameter("aov opacity", "cannot be null");
+    }
 
-    if (m_outputImageFormat != format || m_aovsVkInteropInfo.has_value() != aovsVkInteropInfo.has_value() || !m_shaderModule.has_value()) {
+    if (m_aovShadowCatcher == nullptr) {
+        throw InvalidParameter("aov shadow catcher", "cannot be null");
+    }
+
+    if (m_aovReflectionCatcher == nullptr) {
+        throw InvalidParameter("aov reflection catcher", "cannot be null");
+    }
+
+    if (m_aovMattePass == nullptr) {
+        throw InvalidParameter("aov matte pass", "cannot be null");
+    }
+
+    if (m_aovBackground == nullptr) {
+        throw InvalidParameter("aov background", "cannot be null");
+    }
+
+    if (m_output == nullptr) {
+        throw InvalidParameter("aov output", "cannot be null");
+    }
+
+    if (m_aovColor->description() != m_aovOpacity->description()
+        || m_aovColor->description() != m_aovShadowCatcher->description()
+        || m_aovColor->description() != m_aovReflectionCatcher->description()
+        || m_aovColor->description() != m_aovMattePass->description()
+        || m_aovColor->description() != m_aovBackground->description()) {
+        throw InvalidParameter("aovs", "all aovs should have the same image description");
+    }
+
+    if (!m_output->IsStorage()) {
+        throw InvalidParameter("output", "output has to be created as storage images");
+    }
+
+    bool allStorageAovs = m_aovColor->IsStorage()
+        && m_aovOpacity->IsStorage()
+        && m_aovShadowCatcher->IsStorage()
+        && m_aovReflectionCatcher->IsStorage()
+        && m_aovMattePass->IsStorage()
+        && m_aovBackground->IsStorage();
+
+    bool allSampledAovs = m_aovColor->IsSampled()
+        && m_aovOpacity->IsSampled()
+        && m_aovShadowCatcher->IsSampled()
+        && m_aovReflectionCatcher->IsSampled()
+        && m_aovMattePass->IsSampled()
+        && m_aovBackground->IsSampled();
+
+    if (allStorageAovs && allSampledAovs) {
+        throw InvalidParameter("aovs images", "all aovs images have to be created either as storage images or sampled images");
+    }
+
+    if (!allStorageAovs && !allSampledAovs) {
+        throw InvalidParameter("aovs images", "all aovs images have to be created either as storage images or sampled images");
+    }
+}
+
+void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> processingFinishedSemaphore)
+{
+    validateInputsAndOutput();
+
+    if (m_uboDirty) {
+        void* data = m_uboBuffer.map(sizeof(UniformBufferObject));
+        std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
+        m_uboBuffer.unmap();
+        m_uboDirty = false;
+    }
+
+    if (m_descriptorsDirty) {
+        m_computePipeline.reset();
+        m_pipelineLayout.reset();
+        m_descriptorSet.reset();
+        m_descriptorPool.reset();
+        m_descriptorSetLayout.reset();
         m_shaderModule.reset();
-        createShaderModule(format, aovsVkInteropInfo.has_value());
-    }
 
-    if (width > 0 && height > 0) {
-        createImages(width, height, format, aovsVkInteropInfo);
+        createShaderModule();
         createDescriptorSet();
         createComputePipeline();
-        recordComputeCommandBuffer(width, height);
+        recordComputeCommandBuffer();
+        m_descriptorsDirty = false;
     }
 
-    m_width = width;
-    m_height = height;
-    m_outputImageFormat = format;
-    m_aovsVkInteropInfo = aovsVkInteropInfo;
-}
-
-void PostProcessing::copyOutputTo(Buffer& dst)
-{
-    size_t size = m_width * m_height * to_pixel_size(m_outputImageFormat);
-    if (dst.size() < size) {
-        throw InvalidParameter("dst", "The provided buffer is smaller than output image");
+    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
+    vk::SubmitInfo submitInfo;
+    if (aovsReadySemaphore.has_value()) {
+        submitInfo.setWaitDstStageMask(waitStage);
+        submitInfo.setWaitSemaphores(aovsReadySemaphore.value());
     }
-
-    vk::AccessFlags oldAccess = m_outputImage->getAccess();
-    vk::ImageLayout oldLayout = m_outputImage->getLayout();
-    vk::PipelineStageFlags oldStage = m_outputImage->getPipelineStages();
-
-    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(),
-        vk::AccessFlagBits::eTransferRead,
-        vk::ImageLayout::eTransferSrcOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-    {
-        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { m_outputImage->description().width, m_outputImage->description().height, 1 });
-        m_commandBuffers.secondary.copyImageToBuffer(*m_outputImage->get(), vk::ImageLayout::eTransferSrcOptimal, *dst.get(), region);
+    if (processingFinishedSemaphore.has_value()) {
+        submitInfo.setSignalSemaphores(processingFinishedSemaphore.value());
     }
-    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
-    m_commandBuffers.secondary.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
+    submitInfo.setCommandBuffers(*m_commandBuffer);
     m_dctx->queue.submit(submitInfo);
-    m_dctx->queue.waitIdle();
 }
 
-void PostProcessing::copyOutputTo(Image& image)
+void PostProcessing::setAovColor(Image* img)
 {
-    if (!m_outputImage.has_value()) {
-        return;
-    }
-
-    m_commandBuffers.secondary.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(
-        m_commandBuffers.secondary,
-        image,
-        vk::AccessFlagBits::eTransferWrite,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-
-    vk::AccessFlags oldAccess = m_outputImage->getAccess();
-    vk::ImageLayout oldLayout = m_outputImage->getLayout();
-    vk::PipelineStageFlags oldStage = m_outputImage->getPipelineStages();
-    transitionImageLayout(
-        m_commandBuffers.secondary,
-        m_outputImage.value(),
-        vk::AccessFlagBits::eTransferRead,
-        vk::ImageLayout::eTransferSrcOptimal,
-        vk::PipelineStageFlagBits::eTransfer);
-    {
-        vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-        vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { m_outputImage->description().width, m_outputImage->description().height, 1 });
-        m_commandBuffers.secondary.copyImage(*m_outputImage->get(), vk::ImageLayout::eTransferSrcOptimal, *image.get(), vk::ImageLayout::eTransferDstOptimal, region);
-    }
-    transitionImageLayout(m_commandBuffers.secondary, m_outputImage.value(), oldAccess, oldLayout, oldStage);
-    m_commandBuffers.secondary.end();
-
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *m_commandBuffers.secondary);
-    m_dctx->queue.submit(submitInfo);
-    m_dctx->queue.waitIdle();
+    m_aovColor = img;
+    m_descriptorsDirty = true;
 }
 
-void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore)
+void PostProcessing::setAovOpacity(Image* img)
 {
-    if (m_computePipeline.has_value()) {
-        if (m_uboDirty) {
-            updateUbo();
-            m_uboDirty = false;
-        }
-
-        vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
-        vk::SubmitInfo submitInfo;
-        if (aovsReadySemaphore.has_value()) {
-            submitInfo.setWaitDstStageMask(waitStage);
-            submitInfo.setWaitSemaphores(aovsReadySemaphore.value());
-        }
-        if (toSignalAfterProcessingSemaphore.has_value()) {
-            submitInfo.setSignalSemaphores(toSignalAfterProcessingSemaphore.value());
-        }
-        submitInfo.setCommandBuffers(*m_commandBuffers.compute);
-        m_dctx->queue.submit(submitInfo);
-    }
+    m_aovOpacity = img;
+    m_descriptorsDirty = true;
 }
 
-void PostProcessing::copyBufferToAovColor(const Buffer& src)
+void PostProcessing::setAovShadowCatcher(Image* img)
 {
-    if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyBufferToAovColor cannot be called when vkinterop is used");
-    }
-    std::visit(overload {
-                   [&](Aovs& arg) { copyBufferToAov(src, arg.color); },
-                   [](InteropAovs& args) {} },
-        m_aovs.value());
+    m_aovShadowCatcher = img;
+    m_descriptorsDirty = true;
 }
 
-void PostProcessing::copyBufferToAovOpacity(const Buffer& src)
+void PostProcessing::setAovReflectionCatcher(Image* img)
 {
-    if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyBufferToAovOpacity cannot be called when vkinterop is used");
-    }
-    std::visit(overload {
-                   [&](Aovs& arg) { copyBufferToAov(src, arg.opacity); },
-                   [](InteropAovs& args) {} },
-        m_aovs.value());
+    m_aovReflectionCatcher = img;
+    m_descriptorsDirty = true;
 }
 
-void PostProcessing::copyBufferToAovShadowCatcher(const Buffer& src)
+void PostProcessing::setAovMattePass(Image* img)
 {
-    if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyBufferToAovShadowCatcher cannot be called when vkinterop is used");
-    }
-    std::visit(overload {
-                   [&](Aovs& arg) { copyBufferToAov(src, arg.shadowCatcher); },
-                   [](InteropAovs& args) {} },
-        m_aovs.value());
+    m_aovMattePass = img;
+    m_descriptorsDirty = true;
 }
 
-void PostProcessing::copyBufferToAovReflectionCatcher(const Buffer& src)
+void PostProcessing::setAovBackground(Image* img)
 {
-    if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyBufferToAovReflectionCatcher cannot be called when vkinterop is used");
-    }
-    std::visit(overload {
-                   [&](Aovs& arg) { copyBufferToAov(src, arg.reflectionCatcher); },
-                   [](InteropAovs& args) {} },
-        m_aovs.value());
+    m_aovBackground = img;
+    m_descriptorsDirty = true;
 }
 
-void PostProcessing::copyBufferToAovMattePass(const Buffer& src)
+void PostProcessing::setOutput(Image* img)
 {
-    if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyBufferToAovMattePass cannot be called when vkinterop is used");
-    }
-    std::visit(overload {
-                   [&](Aovs& arg) { copyBufferToAov(src, arg.mattePass); },
-                   [](InteropAovs& args) {} },
-        m_aovs.value());
-}
-
-void PostProcessing::copyBufferToAovBackground(const Buffer& src)
-{
-    if (m_aovsVkInteropInfo.has_value()) {
-        throw InvalidOperation("copyBufferToAovBackground cannot be called when vkinterop is used");
-    }
-    std::visit(overload {
-                   [&](Aovs& arg) { copyBufferToAov(src, arg.background); },
-                   [](InteropAovs& args) {} },
-        m_aovs.value());
+    m_output = img;
+    m_descriptorsDirty = true;
 }
 
 void PostProcessing::setGamma(float gamma) noexcept
@@ -449,6 +246,13 @@ void PostProcessing::setGamma(float gamma) noexcept
 void PostProcessing::setShadowIntensity(float shadowIntensity) noexcept
 {
     m_ubo.shadowIntensity = shadowIntensity;
+    m_uboDirty = true;
+}
+
+void PostProcessing::setTileOffset(uint32_t x, uint32_t y) noexcept
+{
+    m_ubo.tileOffsetX = x;
+    m_ubo.tileOffsetY = y;
     m_uboDirty = true;
 }
 

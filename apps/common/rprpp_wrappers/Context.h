@@ -15,6 +15,9 @@ public:
     RprPpVkQueue getVkQueue() const noexcept;
     void waitQueueIdle();
     RprPpContext get() const noexcept;
+    void copyBufferToImage(RprPpBuffer buffer, RprPpImage image);
+    void copyImageToBuffer(RprPpImage image, RprPpBuffer buffer);
+    void copyImage(RprPpImage src, RprPpImage dst);
 
     Context(const Context&) = delete;
     Context& operator=(const Context&) = delete;

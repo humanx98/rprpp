@@ -3,7 +3,7 @@
 #include "Context.h"
 #include "Error.h"
 #include "PostProcessing.h"
-#include "vk_helper.h"
+#include "vk/DeviceContext.h"
 
 #include <cassert>
 #include <concepts>
@@ -152,6 +152,34 @@ RprPpError rprppContextDestroyBuffer(RprPpContext context, RprPpBuffer buffer)
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppContextCreateImage(RprPpContext context, RprPpImageDescription description, RprPpImage* outImage)
+{
+    assert(context);
+    assert(outImage);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outImage = ctx->createImage(rprpp::ImageDescription(description));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCreateImageFromVkSampledImage(RprPpContext context, RprPpVkImage vkSampledImage, RprPpImageDescription description, RprPpImage* outImage)
+{
+    assert(context);
+    assert(outImage);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outImage = ctx->createFromVkSampledImage(static_cast<vk::Image>(static_cast<VkImage>(vkSampledImage)), rprpp::ImageDescription(description));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle, RprPpImageDescription description, RprPpImage* outImage)
 {
     assert(context);
@@ -159,11 +187,7 @@ RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx1
 
     auto result = safeCall([&] {
         rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
-        *outImage = ctx->createImageFromDx11Texture(dx11textureHandle, {
-                                                                           .width = description.width,
-                                                                           .height = description.height,
-                                                                           .format = static_cast<rprpp::ImageFormat>(description.format),
-                                                                       });
+        *outImage = ctx->createImageFromDx11Texture(dx11textureHandle, rprpp::ImageDescription(description));
     });
     check(result);
 
@@ -178,6 +202,51 @@ RprPpError rprppContextDestroyImage(RprPpContext context, RprPpImage image)
     auto result = safeCall([&] {
         rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
         ctx->destroyImage(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCopyBufferToImage(RprPpContext context, RprPpBuffer buffer, RprPpImage image)
+{
+    assert(context);
+    assert(image);
+    assert(buffer);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        ctx->copyBufferToImage(static_cast<rprpp::Buffer*>(buffer), static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCopyImageToBuffer(RprPpContext context, RprPpImage image, RprPpBuffer buffer)
+{
+    assert(context);
+    assert(image);
+    assert(buffer);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        ctx->copyImageToBuffer(static_cast<rprpp::Image*>(image), static_cast<rprpp::Buffer*>(buffer));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCopyImage(RprPpContext context, RprPpImage src, RprPpImage dst)
+{
+    assert(context);
+    assert(src);
+    assert(dst);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        ctx->copyImage(static_cast<rprpp::Image*>(src), static_cast<rprpp::Image*>(dst));
     });
     check(result);
 
@@ -239,32 +308,6 @@ RprPpError rprppContextWaitQueueIdle(RprPpContext context)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingResize(RprPpPostProcessing processing, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* pAovsVkInterop)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        std::optional<rprpp::AovsVkInteropInfo> aovsVkInteropInfo;
-        if (pAovsVkInterop != nullptr) {
-            aovsVkInteropInfo = {
-                .color = static_cast<VkImage>(pAovsVkInterop->color),
-                .opacity = static_cast<VkImage>(pAovsVkInterop->opacity),
-                .shadowCatcher = static_cast<VkImage>(pAovsVkInterop->shadowCatcher),
-                .reflectionCatcher = static_cast<VkImage>(pAovsVkInterop->reflectionCatcher),
-                .mattePass = static_cast<VkImage>(pAovsVkInterop->mattePass),
-                .background = static_cast<VkImage>(pAovsVkInterop->background),
-            };
-        }
-
-        pp->resize(width, height, static_cast<rprpp::ImageFormat>(format), aovsVkInteropInfo);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
 RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore inAovsReadySemaphore, RprPpVkSemaphore inToSignalAfterProcessingSemaphore)
 {
     assert(processing);
@@ -289,111 +332,91 @@ RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemapho
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, RprPpImage dst)
+RprPpError rprppPostProcessingSetOutput(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyOutputTo(*static_cast<rprpp::Image*>(dst));
+        pp->setOutput(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpBuffer dst)
+RprPpError rprppPostProcessingSetAovColor(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
-    assert(dst);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyOutputTo(*static_cast<rprpp::Buffer*>(dst));
+        pp->setAovColor(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpBuffer buffer)
+RprPpError rprppPostProcessingSetAovOpacity(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
-    assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovColor(*static_cast<rprpp::Buffer*>(buffer));
+        pp->setAovOpacity(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovOpacity(RprPpPostProcessing processing, RprPpBuffer buffer)
+RprPpError rprppPostProcessingSetAovShadowCatcher(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
-    assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovOpacity(*static_cast<rprpp::Buffer*>(buffer));
+        pp->setAovShadowCatcher(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovShadowCatcher(RprPpPostProcessing processing, RprPpBuffer buffer)
+RprPpError rprppPostProcessingSetAovReflectionCatcher(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
-    assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovShadowCatcher(*static_cast<rprpp::Buffer*>(buffer));
+        pp->setAovReflectionCatcher(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovReflectionCatcher(RprPpPostProcessing processing, RprPpBuffer buffer)
+RprPpError rprppPostProcessingSetAovMattePass(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
-    assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovReflectionCatcher(*static_cast<rprpp::Buffer*>(buffer));
+        pp->setAovMattePass(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingCopyBufferToAovMattePass(RprPpPostProcessing processing, RprPpBuffer buffer)
+RprPpError rprppPostProcessingSetAovBackground(RprPpPostProcessing processing, RprPpImage image)
 {
     assert(processing);
-    assert(buffer);
 
     auto result = safeCall([&] {
         rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovMattePass(*static_cast<rprpp::Buffer*>(buffer));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingCopyBufferToAovBackground(RprPpPostProcessing processing, RprPpBuffer buffer)
-{
-    assert(processing);
-    assert(buffer);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->copyBufferToAovBackground(*static_cast<rprpp::Buffer*>(buffer));
+        pp->setAovBackground(static_cast<rprpp::Image*>(image));
     });
     check(result);
 

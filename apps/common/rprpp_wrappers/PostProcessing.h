@@ -11,18 +11,15 @@ public:
     PostProcessing(const Context& context);
     ~PostProcessing();
 
-    void resize(uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo = nullptr);
     void run(RprPpVkSemaphore aovsReadySemaphore = nullptr, RprPpVkSemaphore toSignalAfterProcessingSemaphore = nullptr);
     void waitQueueIdle();
-    void copyOutputTo(Image& dst);
-    void copyOutputTo(Buffer& dst);
-
-    void copyBufferToAovColor(const Buffer& src);
-    void copyBufferToAovOpacity(const Buffer& src);
-    void copyBufferToAovShadowCatcher(const Buffer& src);
-    void copyBufferToAovReflectionCatcher(const Buffer& src);
-    void copyBufferToAovMattePass(const Buffer& src);
-    void copyBufferToAovBackground(const Buffer& src);
+    void setAovColor(const Image& img);
+    void setAovOpacity(const Image& img);
+    void setAovShadowCatcher(const Image& img);
+    void setAovReflectionCatcher(const Image& img);
+    void setAovMattePass(const Image& img);
+    void setAovBackground(const Image& img);
+    void setOutput(const Image& img);
 
     void setGamma(float gamma);
     void setShadowIntensity(float shadowIntensity);

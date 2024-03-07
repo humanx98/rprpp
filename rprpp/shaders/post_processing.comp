@@ -1,6 +1,7 @@
 #version 450
 // these defs are provided by shaderc lib
 // #define WORKGROUP_SIZE 32
+// #define AOVS_FORMAT rgba8/rgba32f provided by shaderc lib
 // #define OUTPUT_FORMAT rgba8/rgba32f provided by shaderc lib
 // #define AOVS_ARE_SAMPLED_IMAGES
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
@@ -41,12 +42,12 @@ layout (set = 0, binding = 5) uniform sampler2D aovMattePass;
 layout (set = 0, binding = 6) uniform sampler2D aovBackground;
 #define LOAD_AOV(texSampler, xy) texture(texSampler, vec2((float(xy.x) + 0.5f) / imageSize(outputBuffer).x, (float(xy.y) + 0.5f) / imageSize(outputBuffer).y))
 #else
-layout (set = 0, binding = 1, rgba32f) uniform readonly image2D aovColor;
-layout (set = 0, binding = 2, rgba32f) uniform readonly image2D aovOpacity;
-layout (set = 0, binding = 3, rgba32f) uniform readonly image2D aovShadowCatcher;
-layout (set = 0, binding = 4, rgba32f) uniform readonly image2D aovReflectionCatcher;
-layout (set = 0, binding = 5, rgba32f) uniform readonly image2D aovMattePass;
-layout (set = 0, binding = 6, rgba32f) uniform readonly image2D aovBackground;
+layout (set = 0, binding = 1, AOVS_FORMAT) uniform readonly image2D aovColor;
+layout (set = 0, binding = 2, AOVS_FORMAT) uniform readonly image2D aovOpacity;
+layout (set = 0, binding = 3, AOVS_FORMAT) uniform readonly image2D aovShadowCatcher;
+layout (set = 0, binding = 4, AOVS_FORMAT) uniform readonly image2D aovReflectionCatcher;
+layout (set = 0, binding = 5, AOVS_FORMAT) uniform readonly image2D aovMattePass;
+layout (set = 0, binding = 6, AOVS_FORMAT) uniform readonly image2D aovBackground;
 #define LOAD_AOV(img, xy) imageLoad(img, xy)
 #endif
 layout (set = 0, binding = 7) uniform UBO 
@@ -55,6 +56,8 @@ layout (set = 0, binding = 7) uniform UBO
     Bloom bloom;
     float shadowIntensity;
     float invGamma;
+    int tileOffsetX;
+    int tileOffsetY;
 } ubo;
 
 

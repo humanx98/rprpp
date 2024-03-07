@@ -50,15 +50,6 @@ typedef void* RprPpVkDevice;
 typedef void* RprPpVkQueue;
 typedef void* RprPpVkImage;
 
-typedef struct RprPpAovsVkInteropInfo {
-    RprPpVkImage color;
-    RprPpVkImage opacity;
-    RprPpVkImage shadowCatcher;
-    RprPpVkImage reflectionCatcher;
-    RprPpVkImage mattePass;
-    RprPpVkImage background;
-} RprPpVkInteropAovs;
-
 typedef struct RprPpImageDescription {
     uint32_t width;
     uint32_t height;
@@ -78,25 +69,28 @@ RPRPP_API RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprP
 RPRPP_API RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProcessing pp);
 RPRPP_API RprPpError rprppContextCreateBuffer(RprPpContext context, size_t size, RprPpBuffer* outBuffer);
 RPRPP_API RprPpError rprppContextDestroyBuffer(RprPpContext context, RprPpBuffer buffer);
+
+RPRPP_API RprPpError rprppContextCreateImage(RprPpContext context, RprPpImageDescription description, RprPpImage* outImage);
+RPRPP_API RprPpError rprppContextCreateImageFromVkSampledImage(RprPpContext context, RprPpVkImage vkSampledImage, RprPpImageDescription description, RprPpImage* outImage);
 RPRPP_API RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle, RprPpImageDescription description, RprPpImage* outImage);
 RPRPP_API RprPpError rprppContextDestroyImage(RprPpContext context, RprPpImage image);
+RPRPP_API RprPpError rprppContextCopyBufferToImage(RprPpContext context, RprPpBuffer buffer, RprPpImage image);
+RPRPP_API RprPpError rprppContextCopyImageToBuffer(RprPpContext context, RprPpImage image, RprPpBuffer buffer);
+RPRPP_API RprPpError rprppContextCopyImage(RprPpContext context, RprPpImage src, RprPpImage dst);
 RPRPP_API RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPpVkPhysicalDevice* physicalDevice);
 RPRPP_API RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkDevice* device);
 RPRPP_API RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue);
 RPRPP_API RprPpError rprppContextWaitQueueIdle(RprPpContext context);
 
 // post processing functions
-RPRPP_API RprPpError rprppPostProcessingResize(RprPpPostProcessing processing, uint32_t width, uint32_t height, RprPpImageFormat format, RprPpAovsVkInteropInfo* aovsVkInteropInfo);
 RPRPP_API RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore);
-RPRPP_API RprPpError rprppPostProcessingCopyOutputToImage(RprPpPostProcessing processing, RprPpImage dst);
-RPRPP_API RprPpError rprppPostProcessingCopyOutputToBuffer(RprPpPostProcessing processing, RprPpBuffer dst);
-
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovColor(RprPpPostProcessing processing, RprPpBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovOpacity(RprPpPostProcessing processing, RprPpBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovShadowCatcher(RprPpPostProcessing processing, RprPpBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovReflectionCatcher(RprPpPostProcessing processing, RprPpBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovMattePass(RprPpPostProcessing processing, RprPpBuffer src);
-RPRPP_API RprPpError rprppPostProcessingCopyBufferToAovBackground(RprPpPostProcessing processing, RprPpBuffer src);
+RPRPP_API RprPpError rprppPostProcessingSetOutput(RprPpPostProcessing processing, RprPpImage image);
+RPRPP_API RprPpError rprppPostProcessingSetAovColor(RprPpPostProcessing processing, RprPpImage image);
+RPRPP_API RprPpError rprppPostProcessingSetAovOpacity(RprPpPostProcessing processing, RprPpImage image);
+RPRPP_API RprPpError rprppPostProcessingSetAovShadowCatcher(RprPpPostProcessing processing, RprPpImage image);
+RPRPP_API RprPpError rprppPostProcessingSetAovReflectionCatcher(RprPpPostProcessing processing, RprPpImage image);
+RPRPP_API RprPpError rprppPostProcessingSetAovMattePass(RprPpPostProcessing processing, RprPpImage image);
+RPRPP_API RprPpError rprppPostProcessingSetAovBackground(RprPpPostProcessing processing, RprPpImage image);
 
 RPRPP_API RprPpError rprppPostProcessingSetToneMapWhitepoint(RprPpPostProcessing processing, float x, float y, float z);
 RPRPP_API RprPpError rprppPostProcessingSetToneMapVignetting(RprPpPostProcessing processing, float vignetting);

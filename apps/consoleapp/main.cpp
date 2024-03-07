@@ -15,7 +15,7 @@
 #define DEVICE_ID 0
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
-#define FRAMES_IN_FLIGHT 3
+#define FRAMES_IN_FLIGHT 4
 #define ITERATIONS 100
 
 void savePngImage(const char* filename, void* img, uint32_t width, uint32_t height, RprPpImageFormat format);
@@ -90,15 +90,31 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     auto frameBuffersReadySemaphores = renderer.getFrameBuffersReadySemaphores();
 
     renderer.resize(WIDTH, HEIGHT);
-    RprPpAovsVkInteropInfo aovsVkInteropInfo = {
-        .color = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_COLOR),
-        .opacity = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_OPACITY),
-        .shadowCatcher = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_SHADOW_CATCHER),
-        .reflectionCatcher = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_REFLECTION_CATCHER),
-        .mattePass = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_MATTE_PASS),
-        .background = (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_BACKGROUND),
+
+    RprPpImageDescription outputDesc = {
+        .width = WIDTH,
+        .height = HEIGHT,
+        .format = format,
     };
-    postProcessing.resize(WIDTH, HEIGHT, format, &aovsVkInteropInfo);
+    rprpp::wrappers::Image output = rprpp::wrappers::Image::create(ppContext, outputDesc);
+    RprPpImageDescription aovsDesc = {
+        .width = WIDTH,
+        .height = HEIGHT,
+        .format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT,
+    };
+    rprpp::wrappers::Image aovColor = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_COLOR), aovsDesc);
+    rprpp::wrappers::Image aovOpacity = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_OPACITY), aovsDesc);
+    rprpp::wrappers::Image aovShadowCatcher = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_SHADOW_CATCHER), aovsDesc);
+    rprpp::wrappers::Image aovReflectionCatcher = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_REFLECTION_CATCHER), aovsDesc);
+    rprpp::wrappers::Image aovMattePass = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_MATTE_PASS), aovsDesc);
+    rprpp::wrappers::Image aovBackground = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_BACKGROUND), aovsDesc);
+    postProcessing.setOutput(output);
+    postProcessing.setAovColor(aovColor);
+    postProcessing.setAovOpacity(aovOpacity);
+    postProcessing.setAovShadowCatcher(aovShadowCatcher);
+    postProcessing.setAovReflectionCatcher(aovReflectionCatcher);
+    postProcessing.setAovMattePass(aovMattePass);
+    postProcessing.setAovBackground(aovBackground);
 
     uint32_t currentFrame = 0;
     for (size_t i = 0; i < ITERATIONS; i++) {
@@ -120,7 +136,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         if (i == 0 || i == ITERATIONS - 1) {
             ppContext.waitQueueIdle();
             size_t size;
-            postProcessing.copyOutputTo(buffer);
+            ppContext.copyImageToBuffer(output.get(), buffer.get());
 
             auto resultPath = exeDirPath / ("result_with_interop_" + std::to_string(i) + ".png");
             std::filesystem::remove(resultPath);
@@ -152,7 +168,30 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     // this buffer should handle hdr for aovs and hdr/ldr for output
     rprpp::wrappers::Buffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
 
-    postProcessing.resize(WIDTH, HEIGHT, format);
+    RprPpImageDescription outputDesc = {
+        .width = WIDTH,
+        .height = HEIGHT,
+        .format = format,
+    };
+    rprpp::wrappers::Image output = rprpp::wrappers::Image::create(ppContext, outputDesc);
+    RprPpImageDescription aovsDesc = {
+        .width = WIDTH,
+        .height = HEIGHT,
+        .format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT,
+    };
+    rprpp::wrappers::Image aovColor = rprpp::wrappers::Image::create(ppContext, aovsDesc);
+    rprpp::wrappers::Image aovOpacity = rprpp::wrappers::Image::create(ppContext, aovsDesc);
+    rprpp::wrappers::Image aovShadowCatcher = rprpp::wrappers::Image::create(ppContext, aovsDesc);
+    rprpp::wrappers::Image aovReflectionCatcher = rprpp::wrappers::Image::create(ppContext, aovsDesc);
+    rprpp::wrappers::Image aovMattePass = rprpp::wrappers::Image::create(ppContext, aovsDesc);
+    rprpp::wrappers::Image aovBackground = rprpp::wrappers::Image::create(ppContext, aovsDesc);
+    postProcessing.setOutput(output);
+    postProcessing.setAovColor(aovColor);
+    postProcessing.setAovOpacity(aovOpacity);
+    postProcessing.setAovShadowCatcher(aovShadowCatcher);
+    postProcessing.setAovReflectionCatcher(aovReflectionCatcher);
+    postProcessing.setAovMattePass(aovMattePass);
+    postProcessing.setAovBackground(aovBackground);
 
     HybridProRenderer renderer(deviceId, std::nullopt, hybridproDll, hybridproCacheDir, assetsDir);
     renderer.resize(WIDTH, HEIGHT);
@@ -161,23 +200,23 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
         renderer.render();
 
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_COLOR);
-        postProcessing.copyBufferToAovColor(buffer);
+        ppContext.copyBufferToImage(buffer.get(), aovColor.get());
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_OPACITY);
-        postProcessing.copyBufferToAovOpacity(buffer);
+        ppContext.copyBufferToImage(buffer.get(), aovOpacity.get());
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_SHADOW_CATCHER);
-        postProcessing.copyBufferToAovShadowCatcher(buffer);
+        ppContext.copyBufferToImage(buffer.get(), aovShadowCatcher.get());
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_REFLECTION_CATCHER);
-        postProcessing.copyBufferToAovReflectionCatcher(buffer);
+        ppContext.copyBufferToImage(buffer.get(), aovReflectionCatcher.get());
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_MATTE_PASS);
-        postProcessing.copyBufferToAovMattePass(buffer);
+        ppContext.copyBufferToImage(buffer.get(), aovMattePass.get());
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_BACKGROUND);
-        postProcessing.copyBufferToAovBackground(buffer);
+        ppContext.copyBufferToImage(buffer.get(), aovBackground.get());
 
         postProcessing.run();
         ppContext.waitQueueIdle();
 
         if (i == 0 || i == ITERATIONS - 1) {
-            postProcessing.copyOutputTo(buffer);
+            ppContext.copyImageToBuffer(output.get(), buffer.get());
 
             auto resultPath = exeDirPath / ("result_without_interop_" + std::to_string(i) + ".png");
             std::filesystem::remove(resultPath);

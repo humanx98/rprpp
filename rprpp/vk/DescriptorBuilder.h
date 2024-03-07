@@ -3,7 +3,7 @@
 #include "vk.h"
 #include <vector>
 
-namespace rprpp {
+namespace vk::helper {
 
 class DescriptorBuilder {
 public:

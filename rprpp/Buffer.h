@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_helper.h"
+#include "vk/DeviceContext.h"
 
 namespace rprpp {
 
@@ -12,7 +12,7 @@ public:
 
     static Buffer create(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
     size_t size() const noexcept;
-    const vk::raii::Buffer& get() const noexcept;
+    vk::Buffer get() const noexcept;
     void* map(size_t size);
     void unmap();
 

@@ -3,46 +3,14 @@
 #include "Buffer.h"
 #include "Image.h"
 #include "ImageFormat.h"
-#include "ShaderManager.h"
-#include "vk_helper.h"
+#include "vk/DeviceContext.h"
+#include "vk/ShaderManager.h"
 
 #include <memory>
 #include <optional>
-#include <variant>
 #include <vector>
 
 namespace rprpp {
-
-struct AovsVkInteropInfo {
-    VkImage color;
-    VkImage opacity;
-    VkImage shadowCatcher;
-    VkImage reflectionCatcher;
-    VkImage mattePass;
-    VkImage background;
-
-    friend bool operator==(const AovsVkInteropInfo&, const AovsVkInteropInfo&) = default;
-    friend bool operator!=(const AovsVkInteropInfo&, const AovsVkInteropInfo&) = default;
-};
-
-struct InteropAovs {
-    vk::raii::ImageView color;
-    vk::raii::ImageView opacity;
-    vk::raii::ImageView shadowCatcher;
-    vk::raii::ImageView reflectionCatcher;
-    vk::raii::ImageView mattePass;
-    vk::raii::ImageView background;
-    vk::raii::Sampler sampler;
-};
-
-struct Aovs {
-    Image color;
-    Image opacity;
-    Image shadowCatcher;
-    Image reflectionCatcher;
-    Image mattePass;
-    Image background;
-};
 
 struct ToneMap {
     float whitepoint[3] = { 1.0f, 1.0f, 1.0f };
@@ -74,19 +42,14 @@ struct UniformBufferObject {
     Bloom bloom;
     float shadowIntensity = 1.0f;
     float invGamma = 1.0f;
-};
-
-struct CommandBuffers {
-    vk::raii::CommandBuffer compute;
-    vk::raii::CommandBuffer secondary;
+    int tileOffsetX = 0;
+    int tileOffsetY = 0;
 };
 
 class PostProcessing {
 public:
-    PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
-        vk::raii::CommandPool&& commandPool,
-        CommandBuffers&& commandBuffers,
-        Buffer&& uboBuffer) noexcept;
+    PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx, Buffer&& uboBuffer, vk::raii::Sampler&& sampler) noexcept;
+    ~PostProcessing();
 
     PostProcessing(PostProcessing&&) = default;
     PostProcessing& operator=(PostProcessing&&) = default;
@@ -94,18 +57,16 @@ public:
     PostProcessing(PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
 
-    void resize(uint32_t width, uint32_t height, ImageFormat format, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
-    void copyOutputTo(Buffer& dst);
-    void copyOutputTo(Image& image);
-    void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore);
+    void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> processingFinishedSemaphore);
+    void setAovColor(Image* img);
+    void setAovOpacity(Image* img);
+    void setAovShadowCatcher(Image* img);
+    void setAovReflectionCatcher(Image* img);
+    void setAovMattePass(Image* img);
+    void setAovBackground(Image* img);
+    void setOutput(Image* img);
 
-    void copyBufferToAovColor(const Buffer& src);
-    void copyBufferToAovOpacity(const Buffer& src);
-    void copyBufferToAovShadowCatcher(const Buffer& src);
-    void copyBufferToAovReflectionCatcher(const Buffer& src);
-    void copyBufferToAovMattePass(const Buffer& src);
-    void copyBufferToAovBackground(const Buffer& src);
-
+    void setTileOffset(uint32_t x, uint32_t y) noexcept;
     void setGamma(float gamma) noexcept;
     void setShadowIntensity(float shadowIntensity) noexcept;
     void setToneMapWhitepoint(float x, float y, float z) noexcept;
@@ -145,32 +106,29 @@ public:
     bool getDenoiserEnabled() const noexcept;
 
 private:
-    void createShaderModule(ImageFormat outputFormat, bool sampledAovs);
+    void validateInputsAndOutput();
+    void createShaderModule();
     void createDescriptorSet();
-    void createImages(uint32_t width, uint32_t height, ImageFormat outputFormat, std::optional<AovsVkInteropInfo> aovsVkInteropInfo);
     void createComputePipeline();
-    void recordComputeCommandBuffer(uint32_t width, uint32_t height);
-    void transitionImageLayout(Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage);
-    void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, Image& image, vk::AccessFlags dstAccess, vk::ImageLayout dstLayout, vk::PipelineStageFlags dstStage);
-    void copyBufferToAov(const Buffer& src, Image& dst);
-    void updateUbo();
+    void recordComputeCommandBuffer();
 
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
-    ImageFormat m_outputImageFormat = ImageFormat::eR32G32B32A32Sfloat;
-    std::optional<AovsVkInteropInfo> m_aovsVkInteropInfo;
     bool m_uboDirty = true;
     bool m_denoiserEnabled = false;
     UniformBufferObject m_ubo;
-    std::vector<const char*> m_enabledLayers;
-    ShaderManager m_shaderManager;
+    bool m_descriptorsDirty = true;
+    Image* m_aovColor;
+    Image* m_aovOpacity;
+    Image* m_aovShadowCatcher;
+    Image* m_aovReflectionCatcher;
+    Image* m_aovMattePass;
+    Image* m_aovBackground;
+    Image* m_output;
+    vk::helper::ShaderManager m_shaderManager;
     std::shared_ptr<vk::helper::DeviceContext> m_dctx;
-    vk::raii::CommandPool m_commandPool;
-    CommandBuffers m_commandBuffers;
     Buffer m_uboBuffer;
+    vk::raii::Sampler m_sampler;
+    vk::raii::CommandBuffer m_commandBuffer;
     std::optional<vk::raii::ShaderModule> m_shaderModule;
-    std::optional<Image> m_outputImage;
-    std::optional<std::variant<Aovs, InteropAovs>> m_aovs;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
     std::optional<vk::raii::DescriptorPool> m_descriptorPool;
     std::optional<vk::raii::DescriptorSet> m_descriptorSet;

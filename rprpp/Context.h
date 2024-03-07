@@ -3,7 +3,7 @@
 #include "Buffer.h"
 #include "Image.h"
 #include "PostProcessing.h"
-#include "vk_helper.h"
+#include "vk/DeviceContext.h"
 
 #include <unordered_map>
 
@@ -14,7 +14,7 @@ namespace rprpp {
 
 class Context {
 public:
-    Context(vk::helper::DeviceContext dctx);
+    Context(const std::shared_ptr<vk::helper::DeviceContext>& dctx);
     Context(Context&&) = default;
     Context& operator=(Context&&) = default;
 
@@ -33,8 +33,13 @@ public:
     Buffer* createBuffer(size_t size);
     void destroyBuffer(Buffer* buffer);
 
+    Image* createImage(const ImageDescription& desc);
+    Image* createFromVkSampledImage(vk::Image image, const ImageDescription& desc);
     Image* createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc);
     void destroyImage(Image* image);
+    void copyBufferToImage(Buffer* buffer, Image* image);
+    void copyImageToBuffer(Image* image, Buffer* buffer);
+    void copyImage(Image* src, Image* dst);
 
 private:
     std::shared_ptr<vk::helper::DeviceContext> m_deviceContext;
