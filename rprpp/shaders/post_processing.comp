@@ -32,33 +32,33 @@ struct Bloom
     int enabled;
 };
 
-layout (set = 0, binding = 0, OUTPUT_FORMAT) uniform image2D outputBuffer;
-#if AOVS_ARE_SAMPLED_IMAGES
-layout (set = 0, binding = 1) uniform sampler2D aovColor;
-layout (set = 0, binding = 2) uniform sampler2D aovOpacity;
-layout (set = 0, binding = 3) uniform sampler2D aovShadowCatcher;
-layout (set = 0, binding = 4) uniform sampler2D aovReflectionCatcher;
-layout (set = 0, binding = 5) uniform sampler2D aovMattePass;
-layout (set = 0, binding = 6) uniform sampler2D aovBackground;
-#define LOAD_AOV(texSampler, xy) texture(texSampler, vec2((float(xy.x) + 0.5f) / imageSize(outputBuffer).x, (float(xy.y) + 0.5f) / imageSize(outputBuffer).y))
-#else
-layout (set = 0, binding = 1, AOVS_FORMAT) uniform readonly image2D aovColor;
-layout (set = 0, binding = 2, AOVS_FORMAT) uniform readonly image2D aovOpacity;
-layout (set = 0, binding = 3, AOVS_FORMAT) uniform readonly image2D aovShadowCatcher;
-layout (set = 0, binding = 4, AOVS_FORMAT) uniform readonly image2D aovReflectionCatcher;
-layout (set = 0, binding = 5, AOVS_FORMAT) uniform readonly image2D aovMattePass;
-layout (set = 0, binding = 6, AOVS_FORMAT) uniform readonly image2D aovBackground;
-#define LOAD_AOV(img, xy) imageLoad(img, xy)
-#endif
-layout (set = 0, binding = 7) uniform UBO 
+layout (set = 0, binding = 0) uniform UBO 
 {
     ToneMap tonemap;
     Bloom bloom;
+    ivec2 tileOffset;
+    ivec2 tileSize;
     float shadowIntensity;
     float invGamma;
-    int tileOffsetX;
-    int tileOffsetY;
 } ubo;
+layout (set = 0, binding = 1, OUTPUT_FORMAT) uniform image2D outputBuffer;
+#if AOVS_ARE_SAMPLED_IMAGES
+layout (set = 0, binding = 2) uniform sampler2D aovColor;
+layout (set = 0, binding = 3) uniform sampler2D aovOpacity;
+layout (set = 0, binding = 4) uniform sampler2D aovShadowCatcher;
+layout (set = 0, binding = 5) uniform sampler2D aovReflectionCatcher;
+layout (set = 0, binding = 6) uniform sampler2D aovMattePass;
+layout (set = 0, binding = 7) uniform sampler2D aovBackground;
+#define LOAD_AOV(texSampler, xy) texture(texSampler, vec2((float(xy.x) + 0.5f) / ubo.tileSize.x, (float(xy.y) + 0.5f) / ubo.tileSize.y))
+#else
+layout (set = 0, binding = 2, AOVS_FORMAT) uniform readonly image2D aovColor;
+layout (set = 0, binding = 3, AOVS_FORMAT) uniform readonly image2D aovOpacity;
+layout (set = 0, binding = 4, AOVS_FORMAT) uniform readonly image2D aovShadowCatcher;
+layout (set = 0, binding = 5, AOVS_FORMAT) uniform readonly image2D aovReflectionCatcher;
+layout (set = 0, binding = 6, AOVS_FORMAT) uniform readonly image2D aovMattePass;
+layout (set = 0, binding = 7, AOVS_FORMAT) uniform readonly image2D aovBackground;
+#define LOAD_AOV(img, xy) imageLoad(img, xy)
+#endif
 
 
 vec4 clamp4(vec4 val, float minVal, float maxVal)
@@ -152,12 +152,12 @@ vec4 tonemap(vec4 color, ivec2 pos, ivec2 resolution)
 }
 
 void main() {
+    ivec2 xy = ubo.tileOffset + ivec2(gl_GlobalInvocationID.xy);
     ivec2 resolution = imageSize(outputBuffer);
-    if(gl_GlobalInvocationID.x >= resolution.x || gl_GlobalInvocationID.y >= resolution.y)
+    if (xy.x >= resolution.x || xy.y >= resolution.y)
         return;
-
-    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
-    vec4 color = compose(xy);
+    
+    vec4 color = compose(ivec2(gl_GlobalInvocationID.xy));
     color = tonemap(color, xy, resolution);
     color = vec4(
         pow(color.x, ubo.invGamma), 

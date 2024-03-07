@@ -107,6 +107,7 @@ RPRPP_API RprPpError rprppPostProcessingSetBloomRadius(RprPpPostProcessing proce
 RPRPP_API RprPpError rprppPostProcessingSetBloomBrightnessScale(RprPpPostProcessing processing, float brightnessScale);
 RPRPP_API RprPpError rprppPostProcessingSetBloomThreshold(RprPpPostProcessing processing, float threshold);
 RPRPP_API RprPpError rprppPostProcessingSetBloomEnabled(RprPpPostProcessing processing, RprPpBool enabled);
+RPRPP_API RprPpError rprppPostProcessingSetTileOffset(RprPpPostProcessing processing, uint32_t x, uint32_t y);
 RPRPP_API RprPpError rprppPostProcessingSetGamma(RprPpPostProcessing processing, float gamma);
 RPRPP_API RprPpError rprppPostProcessingSetShadowIntensity(RprPpPostProcessing processing, float shadowIntensity);
 RPRPP_API RprPpError rprppPostProcessingSetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool enabled);
@@ -126,6 +127,7 @@ RPRPP_API RprPpError rprppPostProcessingGetBloomRadius(RprPpPostProcessing proce
 RPRPP_API RprPpError rprppPostProcessingGetBloomBrightnessScale(RprPpPostProcessing processing, float* brightnessScale);
 RPRPP_API RprPpError rprppPostProcessingGetBloomThreshold(RprPpPostProcessing processing, float* threshold);
 RPRPP_API RprPpError rprppPostProcessingGetBloomEnabled(RprPpPostProcessing processing, RprPpBool* enabled);
+RPRPP_API RprPpError rprppPostProcessingGetTileOffset(RprPpPostProcessing processing, uint32_t* x, uint32_t* y);
 RPRPP_API RprPpError rprppPostProcessingGetGamma(RprPpPostProcessing processing, float* gamma);
 RPRPP_API RprPpError rprppPostProcessingGetShadowIntensity(RprPpPostProcessing processing, float* shadowIntensity);
 RPRPP_API RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool* enabled);

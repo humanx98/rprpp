@@ -40,10 +40,10 @@ struct Bloom {
 struct UniformBufferObject {
     ToneMap tonemap;
     Bloom bloom;
+    int tileOffset[2] = { 0, 0 };
+    int tileSize[2] = { 0, 0 };
     float shadowIntensity = 1.0f;
     float invGamma = 1.0f;
-    int tileOffsetX = 0;
-    int tileOffsetY = 0;
 };
 
 class PostProcessing {
@@ -86,6 +86,7 @@ public:
     void setBloomEnabled(bool enabled) noexcept;
     void setDenoiserEnabled(bool enabled) noexcept;
 
+    void getTileOffset(uint32_t& x, uint32_t& y) noexcept;
     float getGamma() const noexcept;
     float getShadowIntensity() const noexcept;
     void getToneMapWhitepoint(float& x, float& y, float& z) noexcept;

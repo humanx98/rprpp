@@ -21,6 +21,7 @@ public:
     void setAovBackground(const Image& img);
     void setOutput(const Image& img);
 
+    void setTileOffset(int x, int y);
     void setGamma(float gamma);
     void setShadowIntensity(float shadowIntensity);
     void setToneMapWhitepoint(float x, float y, float z);

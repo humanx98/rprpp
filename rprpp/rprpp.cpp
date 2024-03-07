@@ -618,6 +618,19 @@ RprPpError rprppPostProcessingSetBloomEnabled(RprPpPostProcessing processing, Rp
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppPostProcessingSetTileOffset(RprPpPostProcessing processing, uint32_t x, uint32_t y)
+{
+    assert(processing);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
+        pp->setTileOffset(x, y);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppPostProcessingSetGamma(RprPpPostProcessing processing, float gamma)
 {
     assert(processing);
@@ -900,6 +913,28 @@ RprPpError rprppPostProcessingGetBloomEnabled(RprPpPostProcessing processing, Rp
 
         if (enabled != nullptr) {
             *enabled = pp->getBloomEnabled() ? RPRPP_TRUE : RPRPP_FALSE;
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppPostProcessingGetTileOffset(RprPpPostProcessing processing, uint32_t* x, uint32_t* y)
+{
+    assert(processing);
+
+    auto result = safeCall([&] {
+        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
+        uint32_t xy[2];
+        pp->getTileOffset(xy[0], xy[1]);
+
+        if (x != nullptr) {
+            *x = xy[0];
+        }
+
+        if (y != nullptr) {
+            *y = xy[1];
         }
     });
     check(result);

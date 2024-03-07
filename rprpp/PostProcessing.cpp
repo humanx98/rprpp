@@ -35,14 +35,17 @@ void PostProcessing::createShaderModule()
 void PostProcessing::createDescriptorSet()
 {
     vk::helper::DescriptorBuilder builder;
+    vk::DescriptorBufferInfo uboDescriptoInfo(m_uboBuffer.get(), 0, sizeof(UniformBufferObject)); // binding 0
+    builder.bindUniformBuffer(&uboDescriptoInfo);
+
     std::vector<Image*> images = {
-        m_output, // binding 0
-        m_aovColor, // binding 1
-        m_aovOpacity, // binding 2
-        m_aovShadowCatcher, // binding 3
-        m_aovReflectionCatcher, // binding 4
-        m_aovMattePass, // binding 5
-        m_aovBackground, // binding 6
+        m_output, // binding 1
+        m_aovColor, // binding 2
+        m_aovOpacity, // binding 3
+        m_aovShadowCatcher, // binding 4
+        m_aovReflectionCatcher, // binding 5
+        m_aovMattePass, // binding 6
+        m_aovBackground, // binding 7
     };
     std::vector<vk::DescriptorImageInfo> descriptorImageInfos;
     descriptorImageInfos.reserve(images.size());
@@ -58,9 +61,6 @@ void PostProcessing::createDescriptorSet()
         }
     }
 
-    vk::DescriptorBufferInfo uboDescriptoInfo(m_uboBuffer.get(), 0, sizeof(UniformBufferObject)); // binding 7
-    builder.bindUniformBuffer(&uboDescriptoInfo);
-
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
     m_descriptorSetLayout = m_dctx->device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
     m_descriptorPool = m_dctx->device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
@@ -75,9 +75,9 @@ void PostProcessing::recordComputeCommandBuffer()
     m_commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
     m_commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, *m_computePipeline.value());
     m_commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *m_pipelineLayout.value(), 0, *m_descriptorSet.value(), nullptr);
-    uint32_t x = (uint32_t)ceil(m_aovColor->description().width / float(WorkgroupSize));
-    uint32_t y = (uint32_t)ceil(m_aovColor->description().height / float(WorkgroupSize));
-    m_commandBuffer.dispatch(x, y, 1);
+    int x = std::min((int)m_output->description().width - m_ubo.tileOffset[0], m_ubo.tileSize[0]);
+    int y = std::min((int)m_output->description().height - m_ubo.tileOffset[1], m_ubo.tileSize[1]);
+    m_commandBuffer.dispatch((uint32_t)ceil(x / float(WorkgroupSize)), (uint32_t)ceil(y / float(WorkgroupSize)), 1);
     m_commandBuffer.end();
 }
 
@@ -160,13 +160,6 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
 {
     validateInputsAndOutput();
 
-    if (m_uboDirty) {
-        void* data = m_uboBuffer.map(sizeof(UniformBufferObject));
-        std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
-        m_uboBuffer.unmap();
-        m_uboDirty = false;
-    }
-
     if (m_descriptorsDirty) {
         m_computePipeline.reset();
         m_pipelineLayout.reset();
@@ -178,8 +171,15 @@ void PostProcessing::run(std::optional<vk::Semaphore> aovsReadySemaphore, std::o
         createShaderModule();
         createDescriptorSet();
         createComputePipeline();
-        recordComputeCommandBuffer();
         m_descriptorsDirty = false;
+    }
+
+    if (m_uboDirty) {
+        void* data = m_uboBuffer.map(sizeof(UniformBufferObject));
+        std::memcpy(data, &m_ubo, sizeof(UniformBufferObject));
+        m_uboBuffer.unmap();
+        recordComputeCommandBuffer();
+        m_uboDirty = false;
     }
 
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;
@@ -199,6 +199,12 @@ void PostProcessing::setAovColor(Image* img)
 {
     m_aovColor = img;
     m_descriptorsDirty = true;
+
+    if (img != nullptr) {
+        m_uboDirty = true;
+        m_ubo.tileSize[0] = img->description().width;
+        m_ubo.tileSize[1] = img->description().height;
+    }
 }
 
 void PostProcessing::setAovOpacity(Image* img)
@@ -251,8 +257,8 @@ void PostProcessing::setShadowIntensity(float shadowIntensity) noexcept
 
 void PostProcessing::setTileOffset(uint32_t x, uint32_t y) noexcept
 {
-    m_ubo.tileOffsetX = x;
-    m_ubo.tileOffsetY = y;
+    m_ubo.tileOffset[0] = x;
+    m_ubo.tileOffset[1] = y;
     m_uboDirty = true;
 }
 
@@ -351,6 +357,12 @@ void PostProcessing::setBloomEnabled(bool enabled) noexcept
 void PostProcessing::setDenoiserEnabled(bool enabled) noexcept
 {
     m_denoiserEnabled = enabled;
+}
+
+void PostProcessing::getTileOffset(uint32_t& x, uint32_t& y) noexcept
+{
+    x = m_ubo.tileOffset[0];
+    y = m_ubo.tileOffset[1];
 }
 
 float PostProcessing::getGamma() const noexcept

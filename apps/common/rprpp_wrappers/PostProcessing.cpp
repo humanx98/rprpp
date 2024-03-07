@@ -83,6 +83,14 @@ void PostProcessing::setAovBackground(const Image& img)
     RPRPP_CHECK(status);
 }
 
+void PostProcessing::setTileOffset(int x, int y)
+{
+    RprPpError status;
+
+    status = rprppPostProcessingSetTileOffset(m_postProcessing, x, y);
+    RPRPP_CHECK(status);
+}
+
 void PostProcessing::setGamma(float gamma)
 {
     RprPpError status;
