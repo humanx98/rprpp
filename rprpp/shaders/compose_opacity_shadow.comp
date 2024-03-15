@@ -1,0 +1,35 @@
+#version 450
+// these defs are provided by shaderc lib
+// #define WORKGROUP_SIZE 32
+// #define AOVS_FORMAT rgba8/rgba32f provided by shaderc lib
+// #define OUTPUT_FORMAT rgba8/rgba32f provided by shaderc lib
+// #define AOVS_ARE_SAMPLED_IMAGES
+
+layout (set = 0, binding = 0) uniform UBO 
+{
+    ivec2 tileOffset;
+    ivec2 tileSize;
+    float shadowIntensity;
+} ubo;
+layout (set = 0, binding = 1, OUTPUT_FORMAT) uniform image2D outputImage;
+#if AOVS_ARE_SAMPLED_IMAGES
+layout (set = 0, binding = 2) uniform sampler2D aovOpacity;
+layout (set = 0, binding = 3) uniform sampler2D aovShadowCatcher;
+#define LOAD_AOV(texSampler, xy) texture(texSampler, vec2((float(xy.x) + 0.5f) / ubo.tileSize.x, (float(xy.y) + 0.5f) / ubo.tileSize.y))
+#else
+layout (set = 0, binding = 2, AOVS_FORMAT) uniform readonly image2D aovOpacity;
+layout (set = 0, binding = 3, AOVS_FORMAT) uniform readonly image2D aovShadowCatcher;
+#define LOAD_AOV(img, xy) imageLoad(img, xy)
+#endif
+
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+void main() {
+    ivec2 xy = ubo.tileOffset + ivec2(gl_GlobalInvocationID.xy);
+    ivec2 resolution = imageSize(outputImage);
+    if (xy.x >= resolution.x || xy.y >= resolution.y)
+        return;
+    
+    float opacity = LOAD_AOV(aovOpacity, xy).x + min(ubo.shadowIntensity * LOAD_AOV(aovShadowCatcher, xy).x, 1.0f);
+    opacity = clamp(opacity, 0.0f, 1.0f);
+    imageStore(outputImage, xy, vec4(opacity, opacity, opacity, 1.0f));
+}

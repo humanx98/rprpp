@@ -1,5 +1,9 @@
 #include "Context.h"
 #include "Error.h"
+#include "filters/BloomFilter.h"
+#include "filters/ComposeColorShadowReflectionFilter.h"
+#include "filters/ComposeOpacityShadowFilter.h"
+#include "filters/ToneMapFilter.h"
 
 namespace rprpp {
 
@@ -16,14 +20,17 @@ std::unique_ptr<Context> Context::create(uint32_t deviceId)
 
 PostProcessing* Context::createPostProcessing()
 {
-    Buffer uboBuffer = Buffer::create(*m_deviceContext,
-        sizeof(UniformBufferObject),
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    auto composeColorShadowReflectionParams = UniformObjectBuffer<filters::ComposeColorShadowReflectionParams>::create(*m_deviceContext);
+    auto composeOpacityShadowParams = UniformObjectBuffer<filters::ComposeOpacityShadowParams>::create(*m_deviceContext);
+    auto tonemapParams = UniformObjectBuffer<filters::ToneMapParams>::create(*m_deviceContext);
+    auto bloomParams = UniformObjectBuffer<filters::BloomParams>::create(*m_deviceContext);
 
-    vk::raii::Sampler sampler(m_deviceContext->device, vk::SamplerCreateInfo());
+    filters::ComposeColorShadowReflectionFilter composeColorShadowReflectionFilter(m_deviceContext, std::move(composeColorShadowReflectionParams), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
+    filters::ComposeOpacityShadowFilter composeOpacityShadowFilter(m_deviceContext, std::move(composeOpacityShadowParams), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
+    filters::ToneMapFilter tonemapFilter(m_deviceContext, std::move(tonemapParams));
+    filters::BloomFilter bloomFilter(m_deviceContext, std::move(bloomParams));
 
-    auto pp = std::make_unique<PostProcessing>(m_deviceContext, std::move(uboBuffer), std::move(sampler));
+    auto pp = std::make_unique<PostProcessing>(m_deviceContext, std::move(composeColorShadowReflectionFilter), std::move(composeOpacityShadowFilter), std::move(tonemapFilter), std::move(bloomFilter));
 
     PostProcessing* ptr = pp.get();
     m_postProcessings.emplace(ptr, std::move(pp));
@@ -33,6 +40,51 @@ PostProcessing* Context::createPostProcessing()
 void Context::destroyPostProcessing(PostProcessing* pp)
 {
     m_postProcessings.erase(pp);
+}
+
+filters::BloomFilter* Context::createBloomFilter()
+{
+    auto params = UniformObjectBuffer<filters::BloomParams>::create(*m_deviceContext);
+    auto filter = std::make_unique<filters::BloomFilter>(m_deviceContext, std::move(params));
+
+    filters::BloomFilter* ptr = filter.get();
+    m_filters.emplace(ptr, std::move(filter));
+    return ptr;
+}
+
+filters::ComposeColorShadowReflectionFilter* Context::createComposeColorShadowReflectionFilter()
+{
+    auto params = UniformObjectBuffer<filters::ComposeColorShadowReflectionParams>::create(*m_deviceContext);
+    auto filter = std::make_unique<filters::ComposeColorShadowReflectionFilter>(m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
+
+    filters::ComposeColorShadowReflectionFilter* ptr = filter.get();
+    m_filters.emplace(ptr, std::move(filter));
+    return ptr;
+}
+
+filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
+{
+    auto params = UniformObjectBuffer<filters::ComposeOpacityShadowParams>::create(*m_deviceContext);
+    auto filter = std::make_unique<filters::ComposeOpacityShadowFilter>(m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
+
+    filters::ComposeOpacityShadowFilter* ptr = filter.get();
+    m_filters.emplace(ptr, std::move(filter));
+    return ptr;
+}
+
+filters::ToneMapFilter* Context::createToneMapFilter()
+{
+    auto params = UniformObjectBuffer<filters::ToneMapParams>::create(*m_deviceContext);
+    auto filter = std::make_unique<filters::ToneMapFilter>(m_deviceContext, std::move(params));
+
+    filters::ToneMapFilter* ptr = filter.get();
+    m_filters.emplace(ptr, std::move(filter));
+    return ptr;
+}
+
+void Context::destroyFilter(filters::Filter* filter)
+{
+    m_filters.erase(filter);
 }
 
 Buffer* Context::createBuffer(size_t size)
@@ -98,24 +150,23 @@ void Context::copyBufferToImage(Buffer* buffer, Image* image)
     vk::ImageLayout oldLayout = image->getLayout();
     vk::PipelineStageFlags oldStage = image->getPipelineStages();
 
-    vk::raii::CommandBuffer commandBuffer = m_deviceContext->takeCommandBuffer();
-    commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    Image::transitionImageLayout(commandBuffer, *image,
+    vk::helper::CommandBuffer commandBuffer(m_deviceContext);
+    commandBuffer.get().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    Image::transitionImageLayout(commandBuffer.get(), *image,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image->description().width, image->description().height, 1 });
-        commandBuffer.copyBufferToImage(buffer->get(), image->get(), vk::ImageLayout::eTransferDstOptimal, region);
+        commandBuffer.get().copyBufferToImage(buffer->get(), image->get(), vk::ImageLayout::eTransferDstOptimal, region);
     }
-    Image::transitionImageLayout(commandBuffer, *image, oldAccess, oldLayout, oldStage);
-    commandBuffer.end();
+    Image::transitionImageLayout(commandBuffer.get(), *image, oldAccess, oldLayout, oldStage);
+    commandBuffer.get().end();
 
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer);
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer.get());
     m_deviceContext->queue.submit(submitInfo);
     m_deviceContext->queue.waitIdle();
-    m_deviceContext->returnCommandBuffer(std::move(commandBuffer));
 }
 
 void Context::copyImageToBuffer(Image* image, Buffer* buffer)
@@ -129,24 +180,23 @@ void Context::copyImageToBuffer(Image* image, Buffer* buffer)
     vk::ImageLayout oldLayout = image->getLayout();
     vk::PipelineStageFlags oldStage = image->getPipelineStages();
 
-    vk::raii::CommandBuffer commandBuffer = m_deviceContext->takeCommandBuffer();
-    commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    Image::transitionImageLayout(commandBuffer, *image,
+    vk::helper::CommandBuffer commandBuffer(m_deviceContext);
+    commandBuffer.get().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    Image::transitionImageLayout(commandBuffer.get(), *image,
         vk::AccessFlagBits::eTransferRead,
         vk::ImageLayout::eTransferSrcOptimal,
         vk::PipelineStageFlagBits::eTransfer);
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image->description().width, image->description().height, 1 });
-        commandBuffer.copyImageToBuffer(image->get(), vk::ImageLayout::eTransferSrcOptimal, buffer->get(), region);
+        commandBuffer.get().copyImageToBuffer(image->get(), vk::ImageLayout::eTransferSrcOptimal, buffer->get(), region);
     }
-    Image::transitionImageLayout(commandBuffer, *image, oldAccess, oldLayout, oldStage);
-    commandBuffer.end();
+    Image::transitionImageLayout(commandBuffer.get(), *image, oldAccess, oldLayout, oldStage);
+    commandBuffer.get().end();
 
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer);
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer.get());
     m_deviceContext->queue.submit(submitInfo);
     m_deviceContext->queue.waitIdle();
-    m_deviceContext->returnCommandBuffer(std::move(commandBuffer));
 }
 
 void Context::copyImage(Image* src, Image* dst)
@@ -163,14 +213,14 @@ void Context::copyImage(Image* src, Image* dst)
     vk::ImageLayout oldSrcLayout = src->getLayout();
     vk::PipelineStageFlags oldSrcStage = src->getPipelineStages();
 
-    vk::raii::CommandBuffer commandBuffer = m_deviceContext->takeCommandBuffer();
-    commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    Image::transitionImageLayout(commandBuffer,
+    vk::helper::CommandBuffer commandBuffer(m_deviceContext);
+    commandBuffer.get().begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+    Image::transitionImageLayout(commandBuffer.get(),
         *dst,
         vk::AccessFlagBits::eTransferWrite,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits::eTransfer);
-    Image::transitionImageLayout(commandBuffer,
+    Image::transitionImageLayout(commandBuffer.get(),
         *src,
         vk::AccessFlagBits::eTransferRead,
         vk::ImageLayout::eTransferSrcOptimal,
@@ -178,16 +228,15 @@ void Context::copyImage(Image* src, Image* dst)
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { src->description().width, src->description().height, 1 });
-        commandBuffer.copyImage(src->get(), vk::ImageLayout::eTransferSrcOptimal, dst->get(), vk::ImageLayout::eTransferDstOptimal, region);
+        commandBuffer.get().copyImage(src->get(), vk::ImageLayout::eTransferSrcOptimal, dst->get(), vk::ImageLayout::eTransferDstOptimal, region);
     }
-    Image::transitionImageLayout(commandBuffer, *src, oldSrcAccess, oldSrcLayout, oldSrcStage);
-    Image::transitionImageLayout(commandBuffer, *dst, oldDstAccess, oldDstLayout, oldDstStage);
-    commandBuffer.end();
+    Image::transitionImageLayout(commandBuffer.get(), *src, oldSrcAccess, oldSrcLayout, oldSrcStage);
+    Image::transitionImageLayout(commandBuffer.get(), *dst, oldDstAccess, oldDstLayout, oldDstStage);
+    commandBuffer.get().end();
 
-    vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer);
+    vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer.get());
     m_deviceContext->queue.submit(submitInfo);
     m_deviceContext->queue.waitIdle();
-    m_deviceContext->returnCommandBuffer(std::move(commandBuffer));
 }
 
 VkPhysicalDevice Context::getVkPhysicalDevice() const noexcept

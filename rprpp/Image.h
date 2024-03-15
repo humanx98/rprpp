@@ -22,8 +22,8 @@ class Image {
 public:
     Image(vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii::ImageView&& view, vk::ImageUsageFlags usage, const ImageDescription& desc) noexcept;
     Image(vk::Image image, vk::raii::ImageView&& view, const ImageDescription& desc) noexcept;
-    Image(Image&&) = default;
-    Image& operator=(Image&&) = default;
+    Image(Image&&) noexcept = default;
+    Image& operator=(Image&&) noexcept = default;
 
     static Image create(vk::helper::DeviceContext& dctx, const ImageDescription& desc);
     static Image createFromVkSampledImage(const vk::helper::DeviceContext& dctx, vk::Image image, const ImageDescription& desc);
@@ -55,7 +55,7 @@ public:
     vk::PipelineStageFlags getPipelineStages() const noexcept;
     void setPipelineStages(vk::PipelineStageFlags stages) noexcept;
 
-    Image(Image&) = delete;
+    Image(const Image&) = delete;
     Image& operator=(const Image&) = delete;
 
 private:

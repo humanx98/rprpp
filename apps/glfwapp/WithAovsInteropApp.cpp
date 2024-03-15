@@ -193,6 +193,10 @@ void WithAovsInteropApp::resize(int width, int height)
             m_postProcessing->setAovMattePass(*m_aovMattePass);
             m_postProcessing->setAovBackground(*m_aovBackground);
             m_postProcessing->setToneMapFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
+            // m_postProcessing->setBloomEnabled(true);
+            // m_postProcessing->setBloomRadius(0.1f);
+            // m_postProcessing->setBloomThreshold(0.0f);
+            // m_postProcessing->setBloomBrightnessScale(1.0f);
         }
 
         m_width = width;

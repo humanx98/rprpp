@@ -40,6 +40,7 @@ typedef enum RprPpImageFormat {
 typedef uint32_t RprPpBool;
 typedef void* RprPpContext;
 typedef void* RprPpPostProcessing;
+typedef void* RprPpFilter;
 typedef void* RprPpBuffer;
 typedef void* RprPpImage;
 typedef void* RprPpDx11Handle;
@@ -65,6 +66,11 @@ RPRPP_API RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo devic
 
 RPRPP_API RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext);
 RPRPP_API RprPpError rprppDestroyContext(RprPpContext context);
+RPRPP_API RprPpError rprppContextCreateBloomFilter(RprPpContext context, RprPpFilter* outFilter);
+RPRPP_API RprPpError rprppContextCreateComposeColorShadowReflectionFilter(RprPpContext context, RprPpFilter* outFilter);
+RPRPP_API RprPpError rprppContextCreateComposeOpacityShadowFilter(RprPpContext context, RprPpFilter* outFilter);
+RPRPP_API RprPpError rprppContextCreateToneMapFilter(RprPpContext context, RprPpFilter* outFilter);
+RPRPP_API RprPpError rprppContextDestroyFilter(RprPpContext context, RprPpFilter filter);
 RPRPP_API RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprPpPostProcessing* outpp);
 RPRPP_API RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProcessing pp);
 RPRPP_API RprPpError rprppContextCreateBuffer(RprPpContext context, size_t size, RprPpBuffer* outBuffer);
@@ -131,6 +137,59 @@ RPRPP_API RprPpError rprppPostProcessingGetTileOffset(RprPpPostProcessing proces
 RPRPP_API RprPpError rprppPostProcessingGetGamma(RprPpPostProcessing processing, float* gamma);
 RPRPP_API RprPpError rprppPostProcessingGetShadowIntensity(RprPpPostProcessing processing, float* shadowIntensity);
 RPRPP_API RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool* enabled);
+
+// Filter
+RPRPP_API RprPpError rprppFilterRun(RprPpFilter filter, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore* finishedSemaphore);
+RPRPP_API RprPpError rprppFilterSetInput(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppFilterSetOutput(RprPpFilter filter, RprPpImage image);
+// Bloom Filter
+RPRPP_API RprPpError rprppBloomFilterGetRadius(RprPpFilter filter, float* radius);
+RPRPP_API RprPpError rprppBloomFilterGetBrightnessScale(RprPpFilter filter, float* brightnessScale);
+RPRPP_API RprPpError rprppBloomFilterGetThreshold(RprPpFilter filter, float* threshold);
+RPRPP_API RprPpError rprppBloomFilterSetRadius(RprPpFilter filter, float radius);
+RPRPP_API RprPpError rprppBloomFilterSetBrightnessScale(RprPpFilter filter, float brightnessScale);
+RPRPP_API RprPpError rprppBloomFilterSetThreshold(RprPpFilter filter, float threshold);
+// ComposeColorShadowReflection Filter
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovOpacity(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovShadowCatcher(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovReflectionCatcher(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovMattePass(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovBackground(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity);
+// ComposeOpacityShadow Filter
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetAovShadowCatcher(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y);
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity);
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y);
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity);
+// ToneMap Filter
+RPRPP_API RprPpError rprppToneMapFilterSetWhitepoint(RprPpFilter filter, float x, float y, float z);
+RPRPP_API RprPpError rprppToneMapFilterSetVignetting(RprPpFilter filter, float vignetting);
+RPRPP_API RprPpError rprppToneMapFilterSetCrushBlacks(RprPpFilter filter, float crushBlacks);
+RPRPP_API RprPpError rprppToneMapFilterSetBurnHighlights(RprPpFilter filter, float burnHighlights);
+RPRPP_API RprPpError rprppToneMapFilterSetSaturation(RprPpFilter filter, float saturation);
+RPRPP_API RprPpError rprppToneMapFilterSetCm2Factor(RprPpFilter filter, float cm2Factor);
+RPRPP_API RprPpError rprppToneMapFilterSetFilmIso(RprPpFilter filter, float filmIso);
+RPRPP_API RprPpError rprppToneMapFilterSetCameraShutter(RprPpFilter filter, float cameraShutter);
+RPRPP_API RprPpError rprppToneMapFilterSetFNumber(RprPpFilter filter, float fNumber);
+RPRPP_API RprPpError rprppToneMapFilterSetFocalLength(RprPpFilter filter, float focalLength);
+RPRPP_API RprPpError rprppToneMapFilterSetAperture(RprPpFilter filter, float aperture);
+RPRPP_API RprPpError rprppToneMapFilterSetGamma(RprPpFilter filter, float gamma);
+RPRPP_API RprPpError rprppToneMapFilterGetWhitepoint(RprPpFilter filter, float* x, float* y, float* z);
+RPRPP_API RprPpError rprppToneMapFilterGetVignetting(RprPpFilter filter, float* vignetting);
+RPRPP_API RprPpError rprppToneMapFilterGetCrushBlacks(RprPpFilter filter, float* crushBlacks);
+RPRPP_API RprPpError rprppToneMapFilterGetBurnHighlights(RprPpFilter filter, float* burnHighlights);
+RPRPP_API RprPpError rprppToneMapFilterGetSaturation(RprPpFilter filter, float* saturation);
+RPRPP_API RprPpError rprppToneMapFilterGetCm2Factor(RprPpFilter filter, float* cm2Factor);
+RPRPP_API RprPpError rprppToneMapFilterGetFilmIso(RprPpFilter filter, float* filmIso);
+RPRPP_API RprPpError rprppToneMapFilterGetCameraShutter(RprPpFilter filter, float* cameraShutter);
+RPRPP_API RprPpError rprppToneMapFilterGetFNumber(RprPpFilter filter, float* fNumber);
+RPRPP_API RprPpError rprppToneMapFilterGetFocalLength(RprPpFilter filter, float* focalLength);
+RPRPP_API RprPpError rprppToneMapFilterGetAperture(RprPpFilter filter, float* aperture);
+RPRPP_API RprPpError rprppToneMapFilterGetGamma(RprPpFilter filter, float* gamma);
 
 // buffer functions
 RPRPP_API RprPpError rprppBufferMap(RprPpBuffer buffer, size_t size, void** outdata);

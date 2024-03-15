@@ -1,5 +1,14 @@
-file(READ shaders/post_processing.comp RPRPP_POSTPROCESSING_SHADER_FILE_CONTENT)
-string(REPLACE "\n" "\\n" RPRPP_POSTPROCESSING_SHADER "${RPRPP_POSTPROCESSING_SHADER_FILE_CONTENT}")
+file(READ shaders/bloom_horizontal.comp RPRPP_bloom_horizontal_SHADER_FILE_CONTENT)
+file(READ shaders/bloom_vertical.comp RPRPP_bloom_vertical_SHADER_FILE_CONTENT)
+file(READ shaders/compose_color_shadow_reflection.comp RPRPP_compose_color_shadow_reflection_SHADER_FILE_CONTENT)
+file(READ shaders/compose_opacity_shadow.comp RPRPP_compose_opacity_shadow_SHADER_FILE_CONTENT)
+file(READ shaders/tonemap.comp RPRPP_tonemap_SHADER_FILE_CONTENT)
+
+string(REPLACE "\n" "\\n" RPRPP_bloom_horizontal_SHADER "${RPRPP_bloom_horizontal_SHADER_FILE_CONTENT}")
+string(REPLACE "\n" "\\n" RPRPP_bloom_vertical_SHADER "${RPRPP_bloom_vertical_SHADER_FILE_CONTENT}")
+string(REPLACE "\n" "\\n" RPRPP_compose_color_shadow_reflection_SHADER "${RPRPP_compose_color_shadow_reflection_SHADER_FILE_CONTENT}")
+string(REPLACE "\n" "\\n" RPRPP_compose_opacity_shadow_SHADER "${RPRPP_compose_opacity_shadow_SHADER_FILE_CONTENT}")
+string(REPLACE "\n" "\\n" RPRPP_tonemap_SHADER "${RPRPP_tonemap_SHADER_FILE_CONTENT}")
 
 configure_file(rprpp_config.h.in rprpp_config.h)
 
@@ -14,11 +23,13 @@ configure_file(
     @ONLY
 )
 
-set(SHADERS
-    shaders/post_processing.comp
-)
-
 set(HEADERS
+    filters/BloomFilter.h
+    filters/ComposeColorShadowReflectionFilter.h
+    filters/ComposeOpacityShadowFilter.h
+    filters/Filter.h
+    filters/ToneMapFilter.h
+    vk/CommandBuffer.h
     vk/DescriptorBuilder.h
     vk/DeviceContext.h
     vk/ShaderManager.h
@@ -30,9 +41,15 @@ set(HEADERS
     Image.h
     ImageFormat.h
     PostProcessing.h
+    UniformObjectBuffer.h
 )
 
 set(SOURCES
+    filters/BloomFilter.cpp
+    filters/ComposeColorShadowReflectionFilter.cpp
+    filters/ComposeOpacityShadowFilter.cpp
+    filters/ToneMapFilter.cpp
+    vk/CommandBuffer.cpp
     vk/DescriptorBuilder.cpp
     vk/DeviceContext.cpp
     vk/ShaderManager.cpp

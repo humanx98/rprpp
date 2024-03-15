@@ -1,4 +1,5 @@
 #include "Image.h"
+#include "vk/CommandBuffer.h"
 
 namespace rprpp {
 
@@ -136,21 +137,21 @@ Image Image::createFromDx11Texture(vk::helper::DeviceContext& dctx, HANDLE dx11t
     return result;
 }
 
-void Image::transitionImageLayout(vk::helper::DeviceContext& dctx,
+void Image::transitionImageLayout(vk::helper::DeviceContext& deviceContext,
     Image& image,
     vk::AccessFlags dstAccess,
     vk::ImageLayout dstLayout,
     vk::PipelineStageFlags dstStage)
 {
-    vk::raii::CommandBuffer commandBuffer = dctx.takeCommandBuffer();
+    vk::raii::CommandBuffer commandBuffer = deviceContext.takeCommandBuffer();
     commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
     transitionImageLayout(commandBuffer, image, dstAccess, dstLayout, dstStage);
     commandBuffer.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer);
-    dctx.queue.submit(submitInfo);
-    dctx.queue.waitIdle();
-    dctx.returnCommandBuffer(std::move(commandBuffer));
+    deviceContext.queue.submit(submitInfo);
+    deviceContext.queue.waitIdle();
+    deviceContext.returnCommandBuffer(std::move(commandBuffer));
 }
 
 void Image::transitionImageLayout(const vk::raii::CommandBuffer& commandBuffer,

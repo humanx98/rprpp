@@ -344,7 +344,7 @@ DeviceContext createDeviceContext(uint32_t deviceId)
 
 vk::raii::CommandBuffer DeviceContext::takeCommandBuffer()
 {
-    constexpr uint32_t numberOfPreallocatedBuffers = 8;
+    constexpr uint32_t numberOfPreallocatedBuffers = 12;
     if (commandBuffers.empty()) {
         vk::CommandPoolCreateInfo cmdPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndex);
         vk::raii::CommandPool pool(device, cmdPoolInfo);
@@ -364,4 +364,5 @@ void DeviceContext::returnCommandBuffer(vk::raii::CommandBuffer buffer)
 {
     commandBuffers.push_back(std::move(buffer));
 }
+
 }

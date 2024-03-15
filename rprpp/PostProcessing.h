@@ -1,60 +1,31 @@
 #pragma once
 
-#include "Buffer.h"
 #include "Image.h"
-#include "ImageFormat.h"
+#include "UniformObjectBuffer.h"
+#include "filters/BloomFilter.h"
+#include "filters/ComposeColorShadowReflectionFilter.h"
+#include "filters/ComposeOpacityShadowFilter.h"
+#include "filters/ToneMapFilter.h"
 #include "vk/DeviceContext.h"
 #include "vk/ShaderManager.h"
 
 #include <memory>
 #include <optional>
-#include <vector>
 
 namespace rprpp {
 
-struct ToneMap {
-    float whitepoint[3] = { 1.0f, 1.0f, 1.0f };
-    float vignetting = 0.0f;
-    float crushBlacks = 0.0f;
-    float burnHighlights = 1.0f;
-    float saturation = 1.0f;
-    float cm2Factor = 1.0f;
-    float filmIso = 100.0f;
-    float cameraShutter = 1.0f;
-    float fNumber = 1.0f;
-    float focalLength = 1.0f;
-    float aperture = 0.024f; // hardcoded in swviz
-    // paddings, needed to make a correct memory allignment
-    float _padding0; // int enabled; TODO: probably we won't need this field
-    float _padding1;
-    float _padding2;
-};
-
-struct Bloom {
-    float radius;
-    float brightnessScale;
-    float threshold;
-    int enabled = 0;
-};
-
-struct UniformBufferObject {
-    ToneMap tonemap;
-    Bloom bloom;
-    int tileOffset[2] = { 0, 0 };
-    int tileSize[2] = { 0, 0 };
-    float shadowIntensity = 1.0f;
-    float invGamma = 1.0f;
-};
-
 class PostProcessing {
 public:
-    PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx, Buffer&& uboBuffer, vk::raii::Sampler&& sampler) noexcept;
-    ~PostProcessing();
+    PostProcessing(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
+        filters::ComposeColorShadowReflectionFilter&& composeColorShadowReflectionFilter,
+        filters::ComposeOpacityShadowFilter&& composeOpacityShadowFilter,
+        filters::ToneMapFilter&& tonemapFilter,
+        filters::BloomFilter&& bloomFilter) noexcept;
 
-    PostProcessing(PostProcessing&&) = default;
-    PostProcessing& operator=(PostProcessing&&) = default;
+    PostProcessing(PostProcessing&&) noexcept = default;
+    PostProcessing& operator=(PostProcessing&&) noexcept = default;
 
-    PostProcessing(PostProcessing&) = delete;
+    PostProcessing(const PostProcessing&) = delete;
     PostProcessing& operator=(const PostProcessing&) = delete;
 
     void run(std::optional<vk::Semaphore> aovsReadySemaphore, std::optional<vk::Semaphore> processingFinishedSemaphore);
@@ -86,10 +57,10 @@ public:
     void setBloomEnabled(bool enabled) noexcept;
     void setDenoiserEnabled(bool enabled) noexcept;
 
-    void getTileOffset(uint32_t& x, uint32_t& y) noexcept;
+    void getTileOffset(uint32_t& x, uint32_t& y) const noexcept;
     float getGamma() const noexcept;
     float getShadowIntensity() const noexcept;
-    void getToneMapWhitepoint(float& x, float& y, float& z) noexcept;
+    void getToneMapWhitepoint(float& x, float& y, float& z) const noexcept;
     float getToneMapVignetting() const noexcept;
     float getToneMapCrushBlacks() const noexcept;
     float getToneMapBurnHighlights() const noexcept;
@@ -107,34 +78,13 @@ public:
     bool getDenoiserEnabled() const noexcept;
 
 private:
-    void validateInputsAndOutput();
-    void createShaderModule();
-    void createDescriptorSet();
-    void createComputePipeline();
-    void recordComputeCommandBuffer();
-
-    bool m_uboDirty = true;
     bool m_denoiserEnabled = false;
-    UniformBufferObject m_ubo;
-    bool m_descriptorsDirty = true;
-    Image* m_aovColor;
-    Image* m_aovOpacity;
-    Image* m_aovShadowCatcher;
-    Image* m_aovReflectionCatcher;
-    Image* m_aovMattePass;
-    Image* m_aovBackground;
-    Image* m_output;
-    vk::helper::ShaderManager m_shaderManager;
+    bool m_bloomEnabled = false;
     std::shared_ptr<vk::helper::DeviceContext> m_dctx;
-    Buffer m_uboBuffer;
-    vk::raii::Sampler m_sampler;
-    vk::raii::CommandBuffer m_commandBuffer;
-    std::optional<vk::raii::ShaderModule> m_shaderModule;
-    std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
-    std::optional<vk::raii::DescriptorPool> m_descriptorPool;
-    std::optional<vk::raii::DescriptorSet> m_descriptorSet;
-    std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
-    std::optional<vk::raii::Pipeline> m_computePipeline;
+    filters::ComposeColorShadowReflectionFilter m_composeColorShadowReflectionFilter;
+    filters::ComposeOpacityShadowFilter m_composeOpacityShadowFilter;
+    filters::ToneMapFilter m_tonemapFilter;
+    filters::BloomFilter m_bloomFilter;
 };
 
 } // namespace rprpp

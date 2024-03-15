@@ -1,0 +1,50 @@
+#version 450
+// these defs are provided by shaderc lib
+// #define WORKGROUP_SIZE 32
+// #define INPUT_FORMAT rgba8/rgba32f
+// #define OUTPUT_FORMAT rgba8/rgba32f
+
+layout (set = 0, binding = 0) uniform UBO 
+{
+    float radius;
+    float brightnessScale;
+    float threshold;
+} ubo;
+layout (set = 0, binding = 1, OUTPUT_FORMAT) uniform image2D outputImage;
+layout (set = 0, binding = 2, INPUT_FORMAT) uniform image2D tmpImage;
+layout (set = 0, binding = 3, INPUT_FORMAT) uniform readonly image2D inputImage;
+
+#define M_PI 3.14159265358979323846
+
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 resolution = imageSize(outputImage);
+    if (coord.x >= resolution.x || coord.y >= resolution.y)
+        return;
+    
+    vec4 bloom = vec4(0.0f);
+    int radius = int(ubo.radius * resolution.x);
+    float rSquared = radius * radius;
+    float rOver3 = radius / 3.0f;
+    float rOver3Squared = rOver3 * rOver3;
+    float decay = 0.1f;
+    vec4 sum = vec4(0.0f);
+    for (int i = -radius; i <= radius; i++) {
+        if (coord.x + i < 0 || coord.x + i >= resolution.x) {
+            continue;
+        }
+
+        float x2y2 = i * i;
+        float w = exp(-x2y2 / (2.0f * rOver3Squared));
+        w *= 1.0f - smoothstep(0, rSquared, x2y2);
+        w = pow(w, decay);
+        sum += imageLoad(tmpImage, ivec2(coord.x + i, coord.y)) * w;
+    }
+    bloom = sum * vec4(1.0f / (sqrt(2.0f * M_PI) * rOver3));
+    bloom *= ubo.brightnessScale;
+
+    vec4 pixel = imageLoad(inputImage, coord);
+    pixel.xyz += bloom.xyz;
+    imageStore(outputImage, coord, pixel);
+}

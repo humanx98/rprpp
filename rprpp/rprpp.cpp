@@ -96,6 +96,76 @@ RprPpError rprppDestroyContext(RprPpContext context)
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppContextCreateBloomFilter(RprPpContext context, RprPpFilter* outFilter)
+{
+    assert(context);
+    assert(outFilter);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outFilter = ctx->createBloomFilter();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCreateComposeColorShadowReflectionFilter(RprPpContext context, RprPpFilter* outFilter)
+{
+    assert(context);
+    assert(outFilter);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outFilter = ctx->createComposeColorShadowReflectionFilter();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCreateComposeOpacityShadowFilter(RprPpContext context, RprPpFilter* outFilter)
+{
+    assert(context);
+    assert(outFilter);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outFilter = ctx->createComposeOpacityShadowFilter();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextCreateToneMapFilter(RprPpContext context, RprPpFilter* outFilter)
+{
+    assert(context);
+    assert(outFilter);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outFilter = ctx->createToneMapFilter();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppContextDestroyFilter(RprPpContext context, RprPpFilter filter)
+{
+    assert(context);
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        ctx->destroyFilter(static_cast<rprpp::filters::Filter*>(filter));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprPpPostProcessing* outpp)
 {
     assert(context);
@@ -856,70 +926,6 @@ RprPpError rprppPostProcessingGetToneMapAperture(RprPpPostProcessing processing,
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingGetBloomRadius(RprPpPostProcessing processing, float* radius)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (radius != nullptr) {
-            *radius = pp->getBloomRadius();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetBloomBrightnessScale(RprPpPostProcessing processing, float* brightnessScale)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (brightnessScale != nullptr) {
-            *brightnessScale = pp->getBloomBrightnessScale();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetBloomThreshold(RprPpPostProcessing processing, float* threshold)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (threshold != nullptr) {
-            *threshold = pp->getBloomThreshold();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetBloomEnabled(RprPpPostProcessing processing, RprPpBool* enabled)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (enabled != nullptr) {
-            *enabled = pp->getBloomEnabled() ? RPRPP_TRUE : RPRPP_FALSE;
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
 RprPpError rprppPostProcessingGetTileOffset(RprPpPostProcessing processing, uint32_t* x, uint32_t* y)
 {
     assert(processing);
@@ -983,6 +989,664 @@ RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing,
 
         if (enabled != nullptr) {
             *enabled = pp->getDenoiserEnabled() ? RPRPP_TRUE : RPRPP_FALSE;
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+// Filter
+RprPpError rprppFilterRun(RprPpFilter filter, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore* finishedSemaphore)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::Filter* f = static_cast<rprpp::filters::Filter*>(filter);
+
+        std::optional<vk::Semaphore> waitSemaphoreOptional;
+        if (waitSemaphore != nullptr) {
+            waitSemaphoreOptional = static_cast<vk::Semaphore>(static_cast<VkSemaphore>(waitSemaphore));
+        }
+
+        *finishedSemaphore = (VkSemaphore)f->run(waitSemaphoreOptional);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppFilterSetInput(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::Filter* f = static_cast<rprpp::filters::Filter*>(filter);
+        f->setInput(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppFilterSetOutput(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::Filter* f = static_cast<rprpp::filters::Filter*>(filter);
+        f->setOutput(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppBloomFilterGetRadius(RprPpFilter filter, float* radius)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
+
+        if (radius != nullptr) {
+            *radius = f->getRadius();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppBloomFilterGetBrightnessScale(RprPpFilter filter, float* brightnessScale)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
+
+        if (brightnessScale != nullptr) {
+            *brightnessScale = f->getBrightnessScale();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppBloomFilterGetThreshold(RprPpFilter filter, float* threshold)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
+
+        if (threshold != nullptr) {
+            *threshold = f->getThreshold();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetAovOpacity(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setAovOpacity(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetAovShadowCatcher(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setAovShadowCatcher(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetAovReflectionCatcher(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setAovReflectionCatcher(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetAovMattePass(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setAovMattePass(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetAovBackground(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setAovBackground(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setTileOffset(x, y);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setShadowIntensity(shadowIntensity);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        uint32_t xy[2];
+        f->getTileOffset(xy[0], xy[1]);
+
+        if (x != nullptr) {
+            *x = xy[0];
+        }
+
+        if (y != nullptr) {
+            *y = xy[1];
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+
+        if (shadowIntensity != nullptr) {
+            *shadowIntensity = f->getShadowIntensity();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeOpacityShadowFilterSetAovShadowCatcher(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeOpacityShadowFilter* f = static_cast<rprpp::filters::ComposeOpacityShadowFilter*>(filter);
+        f->setAovShadowCatcher(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeOpacityShadowFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeOpacityShadowFilter* f = static_cast<rprpp::filters::ComposeOpacityShadowFilter*>(filter);
+        f->setTileOffset(x, y);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeOpacityShadowFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeOpacityShadowFilter* f = static_cast<rprpp::filters::ComposeOpacityShadowFilter*>(filter);
+        f->setShadowIntensity(shadowIntensity);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeOpacityShadowFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeOpacityShadowFilter* f = static_cast<rprpp::filters::ComposeOpacityShadowFilter*>(filter);
+        uint32_t xy[2];
+        f->getTileOffset(xy[0], xy[1]);
+
+        if (x != nullptr) {
+            *x = xy[0];
+        }
+
+        if (y != nullptr) {
+            *y = xy[1];
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeOpacityShadowFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeOpacityShadowFilter* f = static_cast<rprpp::filters::ComposeOpacityShadowFilter*>(filter);
+
+        if (shadowIntensity != nullptr) {
+            *shadowIntensity = f->getShadowIntensity();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetWhitepoint(RprPpFilter filter, float x, float y, float z)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setWhitepoint(x, y, z);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetVignetting(RprPpFilter filter, float vignetting)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setVignetting(vignetting);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetCrushBlacks(RprPpFilter filter, float crushBlacks)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setCrushBlacks(crushBlacks);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetBurnHighlights(RprPpFilter filter, float burnHighlights)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setBurnHighlights(burnHighlights);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetSaturation(RprPpFilter filter, float saturation)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setSaturation(saturation);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetCm2Factor(RprPpFilter filter, float cm2Factor)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setCm2Factor(cm2Factor);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetFilmIso(RprPpFilter filter, float filmIso)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setFilmIso(filmIso);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetCameraShutter(RprPpFilter filter, float cameraShutter)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setCameraShutter(cameraShutter);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetFNumber(RprPpFilter filter, float fNumber)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setFNumber(fNumber);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetFocalLength(RprPpFilter filter, float focalLength)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setFocalLength(focalLength);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetAperture(RprPpFilter filter, float aperture)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setAperture(aperture);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterSetGamma(RprPpFilter filter, float gamma)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        f->setGamma(gamma);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetWhitepoint(RprPpFilter filter, float* x, float* y, float* z)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+        float whitepoint[3];
+        f->getWhitepoint(whitepoint[0], whitepoint[1], whitepoint[2]);
+
+        if (x != nullptr) {
+            *x = whitepoint[0];
+        }
+
+        if (y != nullptr) {
+            *y = whitepoint[1];
+        }
+
+        if (z != nullptr) {
+            *z = whitepoint[2];
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetVignetting(RprPpFilter filter, float* vignetting)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (vignetting != nullptr) {
+            *vignetting = f->getVignetting();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetCrushBlacks(RprPpFilter filter, float* crushBlacks)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (crushBlacks != nullptr) {
+            *crushBlacks = f->getCrushBlacks();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetBurnHighlights(RprPpFilter filter, float* burnHighlights)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (burnHighlights != nullptr) {
+            *burnHighlights = f->getBurnHighlights();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetSaturation(RprPpFilter filter, float* saturation)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (saturation != nullptr) {
+            *saturation = f->getSaturation();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetCm2Factor(RprPpFilter filter, float* cm2Factor)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (cm2Factor != nullptr) {
+            *cm2Factor = f->getCm2Factor();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetFilmIso(RprPpFilter filter, float* filmIso)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (filmIso != nullptr) {
+            *filmIso = f->getFilmIso();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetCameraShutter(RprPpFilter filter, float* cameraShutter)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (cameraShutter != nullptr) {
+            *cameraShutter = f->getCameraShutter();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetFNumber(RprPpFilter filter, float* fNumber)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (fNumber != nullptr) {
+            *fNumber = f->getFNumber();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetFocalLength(RprPpFilter filter, float* focalLength)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (focalLength != nullptr) {
+            *focalLength = f->getFocalLength();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetAperture(RprPpFilter filter, float* aperture)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (aperture != nullptr) {
+            *aperture = f->getAperture();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppToneMapFilterGetGamma(RprPpFilter filter, float* gamma)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ToneMapFilter* f = static_cast<rprpp::filters::ToneMapFilter*>(filter);
+
+        if (gamma != nullptr) {
+            *gamma = f->getGamma();
         }
     });
     check(result);

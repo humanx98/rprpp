@@ -1,0 +1,105 @@
+#version 450
+// these defs are provided by shaderc lib
+// #define WORKGROUP_SIZE 32
+// #define INPUT_FORMAT rgba8/rgba32f
+// #define OUTPUT_FORMAT rgba8/rgba32f
+
+layout (set = 0, binding = 0) uniform UBO 
+{
+    vec3 whitepoint;
+    float vignetting;
+    float crushBlacks;
+    float burnHighlights;
+    float saturation;
+    float cm2Factor;
+    float filmIso;
+    float cameraShutter;
+    float fNumber;
+    float focalLength;
+    float aperture;
+    float invGamma;
+} ubo;
+layout (set = 0, binding = 1, OUTPUT_FORMAT) uniform image2D outputImage;
+layout (set = 0, binding = 2, INPUT_FORMAT) uniform image2D inputImage;
+
+float CIE_luminance_RGB(vec3 rgb) { return rgb.x * 0.176204f + rgb.y * 0.812985f + rgb.z * 0.0108109f; } // linear CIE RGB
+float weighted_luminance_RGB(vec3 rgb, vec3 w) { return rgb.x * w.x + rgb.y * w.y + rgb.z * w.z; }
+float lerp(float a, float b, float t) { return a + t * (b - a); }
+
+vec4 tonemap(vec4 color, ivec2 pos, ivec2 resolution)
+{
+    float invAspectRatio = 1.0f / (float(resolution.x) / float(resolution.y));
+    vec2 invResolution = 1.0f / vec2(resolution);
+    float vignetting_div2 = ubo.vignetting * 0.5f;
+
+    vec3 cm2DivWhitepoint = vec3(
+        ubo.whitepoint.r > 0.0f ? 1.0f / ubo.whitepoint.r : 1.0f, 
+        ubo.whitepoint.g > 0.0f ? 1.0f / ubo.whitepoint.g : 1.0f, 
+        ubo.whitepoint.b > 0.0f ? 1.0f / ubo.whitepoint.b : 1.0f
+    );
+
+    if (ubo.filmIso > 0.0f) {
+        float mod = 18.0f / (106.0f * 15.4f);
+        mod *= ubo.cm2Factor * ubo.filmIso;
+        mod /= ubo.cameraShutter * ubo.fNumber * ubo.fNumber;
+        cm2DivWhitepoint *= mod / CIE_luminance_RGB(cm2DivWhitepoint);
+    } else {
+        cm2DivWhitepoint *= ubo.cm2Factor / CIE_luminance_RGB(cm2DivWhitepoint);
+    }
+
+    if (vignetting_div2 != 0.0f) {
+        float f0 =  pos.x * invResolution.x - 0.5f;
+        float f1 = (pos.y * invResolution.y - 0.5f) * invAspectRatio;
+        float f2 = ubo.focalLength * ubo.focalLength;
+        color.xyz *= pow(
+            f2 / (ubo.aperture * ubo.aperture * (f0 * f0 + f1 * f1) + f2), 
+            vignetting_div2
+        );
+    }
+
+    color.xyz *= cm2DivWhitepoint;
+
+    float burnHighlights = max(ubo.burnHighlights, 0.0001f); //1=no scaling,0=reinhard simple tonemapping //!! magic to avoid problems with inverse
+    vec3 luminanceWeight = vec3(0.176204f, 0.812985f, 0.0108109f);
+    float rgbl = weighted_luminance_RGB(color.xyz, luminanceWeight);
+    color.x *= (rgbl * burnHighlights + 1.0f) / (rgbl + 1.0f);
+    color.y *= (rgbl * burnHighlights + 1.0f) / (rgbl + 1.0f);
+    color.z *= (rgbl * burnHighlights + 1.0f) / (rgbl + 1.0f);
+
+    float wl = weighted_luminance_RGB(color.xyz, luminanceWeight);
+    color.x = lerp(wl, color.x, ubo.saturation);
+    color.y = lerp(wl, color.y, ubo.saturation);
+    color.z = lerp(wl, color.z, ubo.saturation);
+
+    float crushBlacks = ubo.crushBlacks + ubo.crushBlacks + 1.0f; //1=no scaling,0=dark stuff gets even darker
+    if (crushBlacks > 1.0f) {
+        float intens = weighted_luminance_RGB(color.xyz, luminanceWeight);
+        if (intens < 1.0f) {
+            float sqrt_intens = sqrt(intens);
+            color.x = lerp(pow(color.x, crushBlacks), color.x, sqrt_intens);
+            color.y = lerp(pow(color.y, crushBlacks), color.y, sqrt_intens);
+            color.z = lerp(pow(color.z, crushBlacks), color.z, sqrt_intens);
+        }
+    }
+    
+    return color;
+}
+
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
+void main() {
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 resolution = imageSize(outputImage);
+    if (xy.x >= resolution.x || xy.y >= resolution.y)
+        return;
+    
+    vec4 color = imageLoad(inputImage, xy);
+    color = tonemap(color, xy, resolution);
+    color = vec4(
+        pow(color.x, ubo.invGamma),
+        pow(color.y, ubo.invGamma),
+        pow(color.z, ubo.invGamma),
+        color.w
+    );
+
+    imageStore(outputImage, xy, color);
+}
