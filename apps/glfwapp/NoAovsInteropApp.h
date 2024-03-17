@@ -16,7 +16,11 @@
 #include "common/rprpp_wrappers/Buffer.h"
 #include "common/rprpp_wrappers/Context.h"
 #include "common/rprpp_wrappers/Image.h"
-#include "common/rprpp_wrappers/PostProcessing.h"
+#include "common/rprpp_wrappers/filters/BloomFilter.h"
+#include "common/rprpp_wrappers/filters/ComposeColorShadowReflectionFilter.h"
+#include "common/rprpp_wrappers/filters/ComposeOpacityShadowFilter.h"
+#include "common/rprpp_wrappers/filters/DenoiserFilter.h"
+#include "common/rprpp_wrappers/filters/ToneMapFilter.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -38,7 +42,11 @@ private:
     ComPtr<ID3D11Texture2D> m_sharedTexture;
     ComPtr<IDXGIResource1> m_sharedTextureResource;
     std::unique_ptr<rprpp::wrappers::Context> m_ppContext;
-    std::unique_ptr<rprpp::wrappers::PostProcessing> m_postProcessing;
+    std::unique_ptr<rprpp::wrappers::filters::BloomFilter> m_bloomFilter;
+    std::unique_ptr<rprpp::wrappers::filters::ComposeColorShadowReflectionFilter> m_composeColorShadowReflectionFilter;
+    std::unique_ptr<rprpp::wrappers::filters::ComposeOpacityShadowFilter> m_composeOpacityShadowFilter;
+    std::unique_ptr<rprpp::wrappers::filters::DenoiserFilter> m_denoiserFilter;
+    std::unique_ptr<rprpp::wrappers::filters::ToneMapFilter> m_tonemapFilter;
     std::unique_ptr<rprpp::wrappers::Buffer> m_buffer;
     std::unique_ptr<rprpp::wrappers::Image> m_dx11output;
     std::unique_ptr<rprpp::wrappers::Image> m_output;

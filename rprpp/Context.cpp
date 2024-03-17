@@ -18,30 +18,6 @@ std::unique_ptr<Context> Context::create(uint32_t deviceId)
     return std::make_unique<Context>(std::make_shared<vk::helper::DeviceContext>(std::move(dctx)));
 }
 
-PostProcessing* Context::createPostProcessing()
-{
-    auto composeColorShadowReflectionParams = UniformObjectBuffer<filters::ComposeColorShadowReflectionParams>::create(*m_deviceContext);
-    auto composeOpacityShadowParams = UniformObjectBuffer<filters::ComposeOpacityShadowParams>::create(*m_deviceContext);
-    auto tonemapParams = UniformObjectBuffer<filters::ToneMapParams>::create(*m_deviceContext);
-    auto bloomParams = UniformObjectBuffer<filters::BloomParams>::create(*m_deviceContext);
-
-    filters::ComposeColorShadowReflectionFilter composeColorShadowReflectionFilter(m_deviceContext, std::move(composeColorShadowReflectionParams), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
-    filters::ComposeOpacityShadowFilter composeOpacityShadowFilter(m_deviceContext, std::move(composeOpacityShadowParams), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
-    filters::ToneMapFilter tonemapFilter(m_deviceContext, std::move(tonemapParams));
-    filters::BloomFilter bloomFilter(m_deviceContext, std::move(bloomParams));
-
-    auto pp = std::make_unique<PostProcessing>(m_deviceContext, std::move(composeColorShadowReflectionFilter), std::move(composeOpacityShadowFilter), std::move(tonemapFilter), std::move(bloomFilter));
-
-    PostProcessing* ptr = pp.get();
-    m_postProcessings.emplace(ptr, std::move(pp));
-    return ptr;
-}
-
-void Context::destroyPostProcessing(PostProcessing* pp)
-{
-    m_postProcessings.erase(pp);
-}
-
 filters::BloomFilter* Context::createBloomFilter()
 {
     auto params = UniformObjectBuffer<filters::BloomParams>::create(*m_deviceContext);
@@ -68,6 +44,15 @@ filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
     auto filter = std::make_unique<filters::ComposeOpacityShadowFilter>(m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
 
     filters::ComposeOpacityShadowFilter* ptr = filter.get();
+    m_filters.emplace(ptr, std::move(filter));
+    return ptr;
+}
+
+filters::DenoiserFilter* Context::createDenoiserFilter()
+{
+    auto filter = std::make_unique<filters::DenoiserFilter>(m_deviceContext);
+
+    filters::DenoiserFilter* ptr = filter.get();
     m_filters.emplace(ptr, std::move(filter));
     return ptr;
 }

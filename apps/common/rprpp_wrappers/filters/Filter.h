@@ -11,7 +11,7 @@ public:
     Filter(const Context& context);
     ~Filter();
 
-    RprPpVkSemaphore run(RprPpVkSemaphore waitSemaphore);
+    RprPpVkSemaphore run(RprPpVkSemaphore waitSemaphore = nullptr);
     void setInput(const Image& image);
     void setOutput(const Image& image);
     RprPpFilter get() const noexcept;

@@ -2,7 +2,6 @@
 
 #include "Context.h"
 #include "Error.h"
-#include "PostProcessing.h"
 #include "vk/DeviceContext.h"
 
 #include <cassert>
@@ -138,6 +137,20 @@ RprPpError rprppContextCreateComposeOpacityShadowFilter(RprPpContext context, Rp
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppContextCreateDenoiserFilter(RprPpContext context, RprPpFilter* outFilter)
+{
+    assert(context);
+    assert(outFilter);
+
+    auto result = safeCall([&] {
+        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
+        *outFilter = ctx->createDenoiserFilter();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppContextCreateToneMapFilter(RprPpContext context, RprPpFilter* outFilter)
 {
     assert(context);
@@ -160,34 +173,6 @@ RprPpError rprppContextDestroyFilter(RprPpContext context, RprPpFilter filter)
     auto result = safeCall([&] {
         rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
         ctx->destroyFilter(static_cast<rprpp::filters::Filter*>(filter));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprPpPostProcessing* outpp)
-{
-    assert(context);
-    assert(outpp);
-
-    auto result = safeCall([&] {
-        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
-        *outpp = ctx->createPostProcessing();
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProcessing pp)
-{
-    assert(context);
-    assert(pp);
-
-    auto result = safeCall([&] {
-        rprpp::Context* ctx = static_cast<rprpp::Context*>(context);
-        ctx->destroyPostProcessing(static_cast<rprpp::PostProcessing*>(pp));
     });
     check(result);
 
@@ -378,624 +363,6 @@ RprPpError rprppContextWaitQueueIdle(RprPpContext context)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore inAovsReadySemaphore, RprPpVkSemaphore inToSignalAfterProcessingSemaphore)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        std::optional<vk::Semaphore> aovsReadySemaphore;
-        if (inAovsReadySemaphore != nullptr) {
-            aovsReadySemaphore = static_cast<vk::Semaphore>(static_cast<VkSemaphore>(inAovsReadySemaphore));
-        }
-
-        std::optional<vk::Semaphore> toSignalAfterProcessingSemaphore;
-        if (inToSignalAfterProcessingSemaphore != nullptr) {
-            toSignalAfterProcessingSemaphore = static_cast<vk::Semaphore>(static_cast<VkSemaphore>(inToSignalAfterProcessingSemaphore));
-        }
-
-        pp->run(aovsReadySemaphore, toSignalAfterProcessingSemaphore);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetOutput(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setOutput(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetAovColor(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setAovColor(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetAovOpacity(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setAovOpacity(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetAovShadowCatcher(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setAovShadowCatcher(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetAovReflectionCatcher(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setAovReflectionCatcher(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetAovMattePass(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setAovMattePass(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetAovBackground(RprPpPostProcessing processing, RprPpImage image)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setAovBackground(static_cast<rprpp::Image*>(image));
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapWhitepoint(RprPpPostProcessing processing, float x, float y, float z)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapWhitepoint(x, y, z);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapVignetting(RprPpPostProcessing processing, float vignetting)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapVignetting(vignetting);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapCrushBlacks(RprPpPostProcessing processing, float crushBlacks)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapCrushBlacks(crushBlacks);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapBurnHighlights(RprPpPostProcessing processing, float burnHighlights)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapBurnHighlights(burnHighlights);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapSaturation(RprPpPostProcessing processing, float saturation)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapSaturation(saturation);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapCm2Factor(RprPpPostProcessing processing, float cm2Factor)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapCm2Factor(cm2Factor);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapFilmIso(RprPpPostProcessing processing, float filmIso)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapFilmIso(filmIso);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapCameraShutter(RprPpPostProcessing processing, float cameraShutter)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapCameraShutter(cameraShutter);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapFNumber(RprPpPostProcessing processing, float fNumber)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapFNumber(fNumber);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapFocalLength(RprPpPostProcessing processing, float focalLength)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapFocalLength(focalLength);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetToneMapAperture(RprPpPostProcessing processing, float aperture)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setToneMapAperture(aperture);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetBloomRadius(RprPpPostProcessing processing, float radius)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setBloomRadius(radius);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetBloomBrightnessScale(RprPpPostProcessing processing, float brightnessScale)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setBloomBrightnessScale(brightnessScale);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetBloomThreshold(RprPpPostProcessing processing, float threshold)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setBloomThreshold(threshold);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetBloomEnabled(RprPpPostProcessing processing, RprPpBool enabled)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setBloomEnabled(RPRPP_TRUE == enabled);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetTileOffset(RprPpPostProcessing processing, uint32_t x, uint32_t y)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setTileOffset(x, y);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetGamma(RprPpPostProcessing processing, float gamma)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setGamma(gamma);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetShadowIntensity(RprPpPostProcessing processing, float shadowIntensity)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setShadowIntensity(shadowIntensity);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingSetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool enabled)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        pp->setDenoiserEnabled(RPRPP_TRUE == enabled);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapWhitepoint(RprPpPostProcessing processing, float* x, float* y, float* z)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        float whitepoint[3];
-        pp->getToneMapWhitepoint(whitepoint[0], whitepoint[1], whitepoint[2]);
-
-        if (x != nullptr) {
-            *x = whitepoint[0];
-        }
-
-        if (y != nullptr) {
-            *y = whitepoint[1];
-        }
-
-        if (z != nullptr) {
-            *z = whitepoint[2];
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapVignetting(RprPpPostProcessing processing, float* vignetting)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (vignetting != nullptr) {
-            *vignetting = pp->getToneMapVignetting();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapCrushBlacks(RprPpPostProcessing processing, float* crushBlacks)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (crushBlacks != nullptr) {
-            *crushBlacks = pp->getToneMapCrushBlacks();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapBurnHighlights(RprPpPostProcessing processing, float* burnHighlights)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (burnHighlights != nullptr) {
-            *burnHighlights = pp->getToneMapBurnHighlights();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapSaturation(RprPpPostProcessing processing, float* saturation)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (saturation != nullptr) {
-            *saturation = pp->getToneMapSaturation();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapCm2Factor(RprPpPostProcessing processing, float* cm2Factor)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (cm2Factor != nullptr) {
-            *cm2Factor = pp->getToneMapCm2Factor();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapFilmIso(RprPpPostProcessing processing, float* filmIso)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (filmIso != nullptr) {
-            *filmIso = pp->getToneMapFilmIso();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapCameraShutter(RprPpPostProcessing processing, float* cameraShutter)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (cameraShutter != nullptr) {
-            *cameraShutter = pp->getToneMapCameraShutter();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapFNumber(RprPpPostProcessing processing, float* fNumber)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (fNumber != nullptr) {
-            *fNumber = pp->getToneMapFNumber();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapFocalLength(RprPpPostProcessing processing, float* focalLength)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (focalLength != nullptr) {
-            *focalLength = pp->getToneMapFocalLength();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetToneMapAperture(RprPpPostProcessing processing, float* aperture)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (aperture != nullptr) {
-            *aperture = pp->getToneMapAperture();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetTileOffset(RprPpPostProcessing processing, uint32_t* x, uint32_t* y)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-        uint32_t xy[2];
-        pp->getTileOffset(xy[0], xy[1]);
-
-        if (x != nullptr) {
-            *x = xy[0];
-        }
-
-        if (y != nullptr) {
-            *y = xy[1];
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetGamma(RprPpPostProcessing processing, float* gamma)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (gamma != nullptr) {
-            *gamma = pp->getGamma();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetShadowIntensity(RprPpPostProcessing processing, float* shadowIntensity)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (shadowIntensity != nullptr) {
-            *shadowIntensity = pp->getShadowIntensity();
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool* enabled)
-{
-    assert(processing);
-
-    auto result = safeCall([&] {
-        rprpp::PostProcessing* pp = static_cast<rprpp::PostProcessing*>(processing);
-
-        if (enabled != nullptr) {
-            *enabled = pp->getDenoiserEnabled() ? RPRPP_TRUE : RPRPP_FALSE;
-        }
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
 // Filter
 RprPpError rprppFilterRun(RprPpFilter filter, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore* finishedSemaphore)
 {
@@ -1036,6 +403,45 @@ RprPpError rprppFilterSetOutput(RprPpFilter filter, RprPpImage image)
     auto result = safeCall([&] {
         rprpp::filters::Filter* f = static_cast<rprpp::filters::Filter*>(filter);
         f->setOutput(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppBloomFilterSetRadius(RprPpFilter filter, float radius)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
+        f->setRadius(radius);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppBloomFilterSetBrightnessScale(RprPpFilter filter, float brightnessScale)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
+        f->setBrightnessScale(brightnessScale);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppBloomFilterSetThreshold(RprPpFilter filter, float threshold)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
+        f->setThreshold(threshold);
     });
     check(result);
 

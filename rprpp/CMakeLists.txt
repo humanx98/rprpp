@@ -27,6 +27,7 @@ set(HEADERS
     filters/BloomFilter.h
     filters/ComposeColorShadowReflectionFilter.h
     filters/ComposeOpacityShadowFilter.h
+    filters/DenoiserFilter.h
     filters/Filter.h
     filters/ToneMapFilter.h
     vk/CommandBuffer.h
@@ -40,7 +41,6 @@ set(HEADERS
     Buffer.h
     Image.h
     ImageFormat.h
-    PostProcessing.h
     UniformObjectBuffer.h
 )
 
@@ -48,6 +48,7 @@ set(SOURCES
     filters/BloomFilter.cpp
     filters/ComposeColorShadowReflectionFilter.cpp
     filters/ComposeOpacityShadowFilter.cpp
+    filters/DenoiserFilter.cpp
     filters/ToneMapFilter.cpp
     vk/CommandBuffer.cpp
     vk/DescriptorBuilder.cpp
@@ -58,7 +59,6 @@ set(SOURCES
     Error.cpp
     Buffer.cpp
     Image.cpp
-    PostProcessing.cpp
 )
 
 add_library(rprpp SHARED 

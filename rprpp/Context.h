@@ -2,10 +2,10 @@
 
 #include "Buffer.h"
 #include "Image.h"
-#include "PostProcessing.h"
 #include "filters/BloomFilter.h"
 #include "filters/ComposeColorShadowReflectionFilter.h"
 #include "filters/ComposeOpacityShadowFilter.h"
+#include "filters/DenoiserFilter.h"
 #include "filters/Filter.h"
 #include "filters/ToneMapFilter.h"
 #include "vk/DeviceContext.h"
@@ -32,9 +32,6 @@ public:
     VkQueue getVkQueue() const noexcept;
     void waitQueueIdle();
 
-    PostProcessing* createPostProcessing();
-    void destroyPostProcessing(PostProcessing* pp);
-
     Buffer* createBuffer(size_t size);
     void destroyBuffer(Buffer* buffer);
 
@@ -42,6 +39,7 @@ public:
     filters::ComposeColorShadowReflectionFilter* createComposeColorShadowReflectionFilter();
     filters::ComposeOpacityShadowFilter* createComposeOpacityShadowFilter();
     filters::ToneMapFilter* createToneMapFilter();
+    filters::DenoiserFilter* createDenoiserFilter();
     void destroyFilter(filters::Filter* filter);
 
     Image* createImage(const ImageDescription& desc);
@@ -55,7 +53,6 @@ public:
 private:
     std::shared_ptr<vk::helper::DeviceContext> m_deviceContext;
     map<filters::Filter> m_filters;
-    map<PostProcessing> m_postProcessings;
     map<Buffer> m_buffers;
     map<Image> m_images;
 };

@@ -3,14 +3,13 @@ set(HEADERS
     rprpp_wrappers/filters/BloomFilter.h
     rprpp_wrappers/filters/ComposeColorShadowReflectionFilter.h
     rprpp_wrappers/filters/ComposeOpacityShadowFilter.h
+    rprpp_wrappers/filters/DenoiserFilter.h
     rprpp_wrappers/filters/Filter.h
     rprpp_wrappers/filters/ToneMapFilter.h
     rprpp_wrappers/helper.h
     rprpp_wrappers/Context.h
     rprpp_wrappers/Buffer.h
     rprpp_wrappers/Image.h
-    rprpp_wrappers/PostProcessing.h
-    rprpp_wrappers/PostProcessing.h
     rpr_helper.h
 )
 set(SOURCES
@@ -18,13 +17,13 @@ set(SOURCES
     rprpp_wrappers/filters/BloomFilter.cpp
     rprpp_wrappers/filters/ComposeColorShadowReflectionFilter.cpp
     rprpp_wrappers/filters/ComposeOpacityShadowFilter.cpp
+    rprpp_wrappers/filters/DenoiserFilter.cpp
     rprpp_wrappers/filters/Filter.cpp
     rprpp_wrappers/filters/ToneMapFilter.cpp
     rprpp_wrappers/helper.cpp
     rprpp_wrappers/Context.cpp
     rprpp_wrappers/Buffer.cpp
     rprpp_wrappers/Image.cpp
-    rprpp_wrappers/PostProcessing.cpp
     rpr_helper.cpp
 )
 

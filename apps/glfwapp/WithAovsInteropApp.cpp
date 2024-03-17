@@ -45,7 +45,7 @@ void WithAovsInteropApp::run()
     initWindow();
     findAdapter();
     intiSwapChain();
-    initHybridProAndPostProcessing();
+    initRpr();
     resize(m_width, m_height);
     mainLoop();
 }
@@ -101,10 +101,14 @@ void WithAovsInteropApp::intiSwapChain()
         &m_deviceContex));
 }
 
-void WithAovsInteropApp::initHybridProAndPostProcessing()
+void WithAovsInteropApp::initRpr()
 {
     m_ppContext = std::make_unique<rprpp::wrappers::Context>(m_deviceInfo.index);
-    m_postProcessing = std::make_unique<rprpp::wrappers::PostProcessing>(*m_ppContext);
+    m_bloomFilter = std::make_unique<rprpp::wrappers::filters::BloomFilter>(*m_ppContext);
+    m_composeColorShadowReflectionFilter = std::make_unique<rprpp::wrappers::filters::ComposeColorShadowReflectionFilter>(*m_ppContext);
+    m_composeOpacityShadowFilter = std::make_unique<rprpp::wrappers::filters::ComposeOpacityShadowFilter>(*m_ppContext);
+    m_denoiserFilter = std::make_unique<rprpp::wrappers::filters::DenoiserFilter>(*m_ppContext);
+    m_tonemapFilter = std::make_unique<rprpp::wrappers::filters::ToneMapFilter>(*m_ppContext);
 
     for (uint32_t i = 0; i < m_framesInFlight; i++) {
         RprPpVkSemaphore semaphore;
@@ -185,18 +189,31 @@ void WithAovsInteropApp::resize(int width, int height)
             m_aovReflectionCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_REFLECTION_CATCHER), aovsDesc));
             m_aovMattePass = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS), aovsDesc));
             m_aovBackground = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND), aovsDesc));
-            m_postProcessing->setOutput(*m_output);
-            m_postProcessing->setAovColor(*m_aovColor);
-            m_postProcessing->setAovOpacity(*m_aovOpacity);
-            m_postProcessing->setAovShadowCatcher(*m_aovShadowCatcher);
-            m_postProcessing->setAovReflectionCatcher(*m_aovReflectionCatcher);
-            m_postProcessing->setAovMattePass(*m_aovMattePass);
-            m_postProcessing->setAovBackground(*m_aovBackground);
-            m_postProcessing->setToneMapFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
-            // m_postProcessing->setBloomEnabled(true);
-            // m_postProcessing->setBloomRadius(0.1f);
-            // m_postProcessing->setBloomThreshold(0.0f);
-            // m_postProcessing->setBloomBrightnessScale(1.0f);
+
+            m_composeColorShadowReflectionFilter->setOutput(*m_output);
+            m_composeColorShadowReflectionFilter->setInput(*m_aovColor);
+            m_composeColorShadowReflectionFilter->setAovOpacity(*m_aovOpacity);
+            m_composeColorShadowReflectionFilter->setAovShadowCatcher(*m_aovShadowCatcher);
+            m_composeColorShadowReflectionFilter->setAovReflectionCatcher(*m_aovReflectionCatcher);
+            m_composeColorShadowReflectionFilter->setAovMattePass(*m_aovMattePass);
+            m_composeColorShadowReflectionFilter->setAovBackground(*m_aovBackground);
+
+            m_denoiserFilter->setOutput(*m_output);
+            m_denoiserFilter->setInput(*m_output);
+
+            m_bloomFilter->setOutput(*m_output);
+            m_bloomFilter->setInput(*m_output);
+            m_bloomFilter->setRadius(0.03f);
+            m_bloomFilter->setThreshold(0.0f);
+            m_bloomFilter->setBrightnessScale(0.2f);
+
+            m_tonemapFilter->setOutput(*m_output);
+            m_tonemapFilter->setInput(*m_output);
+            m_tonemapFilter->setFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
+
+            m_composeOpacityShadowFilter->setOutput(*m_output);
+            m_composeOpacityShadowFilter->setInput(*m_aovOpacity);
+            m_composeOpacityShadowFilter->setAovShadowCatcher(*m_aovShadowCatcher);
         }
 
         m_width = width;
@@ -235,8 +252,12 @@ void WithAovsInteropApp::mainLoop()
                     if (i < m_renderedIterations - 1) {
                         RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), aovsReadySemaphore, aovsReleasedSemaphore, fence));
                     } else {
-                        m_postProcessing->run(aovsReadySemaphore, aovsReleasedSemaphore);
-                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), nullptr, nullptr, fence));
+                        RprPpVkSemaphore filterFinished = m_composeColorShadowReflectionFilter->run(aovsReadySemaphore);
+                        filterFinished = m_denoiserFilter->run(filterFinished);
+                        filterFinished = m_bloomFilter->run(filterFinished);
+                        filterFinished = m_tonemapFilter->run(filterFinished);
+                        // filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), filterFinished, aovsReleasedSemaphore, fence));
                     }
                 }
 

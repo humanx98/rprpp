@@ -5,7 +5,11 @@
 #include "common/HybridProRenderer.h"
 #include "common/rprpp_wrappers/Buffer.h"
 #include "common/rprpp_wrappers/Context.h"
-#include "common/rprpp_wrappers/PostProcessing.h"
+#include "common/rprpp_wrappers/filters/BloomFilter.h"
+#include "common/rprpp_wrappers/filters/ComposeColorShadowReflectionFilter.h"
+#include "common/rprpp_wrappers/filters/ComposeOpacityShadowFilter.h"
+#include "common/rprpp_wrappers/filters/DenoiserFilter.h"
+#include "common/rprpp_wrappers/filters/ToneMapFilter.h"
 #include <filesystem>
 #include <iostream>
 
@@ -61,7 +65,10 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
 
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT;
     rprpp::wrappers::Context ppContext(deviceId);
-    rprpp::wrappers::PostProcessing postProcessing(ppContext);
+    rprpp::wrappers::filters::BloomFilter bloomFilter(ppContext);
+    rprpp::wrappers::filters::ComposeColorShadowReflectionFilter composeColorShadowReflectionFilter(ppContext);
+    rprpp::wrappers::filters::DenoiserFilter denoiserFilter(ppContext);
+    rprpp::wrappers::filters::ToneMapFilter tonemapFilter(ppContext);
     rprpp::wrappers::Buffer buffer(ppContext, WIDTH * HEIGHT * rprpp::wrappers::to_pixel_size(format));
 
     std::vector<RprPpVkFence> fences;
@@ -108,13 +115,27 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     rprpp::wrappers::Image aovReflectionCatcher = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_REFLECTION_CATCHER), aovsDesc);
     rprpp::wrappers::Image aovMattePass = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_MATTE_PASS), aovsDesc);
     rprpp::wrappers::Image aovBackground = rprpp::wrappers::Image::createFromVkSampledImage(ppContext, (RprPpVkImage)renderer.getAovVkImage(RPR_AOV_BACKGROUND), aovsDesc);
-    postProcessing.setOutput(output);
-    postProcessing.setAovColor(aovColor);
-    postProcessing.setAovOpacity(aovOpacity);
-    postProcessing.setAovShadowCatcher(aovShadowCatcher);
-    postProcessing.setAovReflectionCatcher(aovReflectionCatcher);
-    postProcessing.setAovMattePass(aovMattePass);
-    postProcessing.setAovBackground(aovBackground);
+
+    composeColorShadowReflectionFilter.setOutput(output);
+    composeColorShadowReflectionFilter.setInput(aovColor);
+    composeColorShadowReflectionFilter.setAovOpacity(aovOpacity);
+    composeColorShadowReflectionFilter.setAovShadowCatcher(aovShadowCatcher);
+    composeColorShadowReflectionFilter.setAovReflectionCatcher(aovReflectionCatcher);
+    composeColorShadowReflectionFilter.setAovMattePass(aovMattePass);
+    composeColorShadowReflectionFilter.setAovBackground(aovBackground);
+
+    denoiserFilter.setOutput(output);
+    denoiserFilter.setInput(output);
+
+    bloomFilter.setOutput(output);
+    bloomFilter.setInput(output);
+    bloomFilter.setRadius(0.03f);
+    bloomFilter.setThreshold(0.0f);
+    bloomFilter.setBrightnessScale(0.2f);
+
+    tonemapFilter.setOutput(output);
+    tonemapFilter.setInput(output);
+    tonemapFilter.setFocalLength(renderer.getFocalLength() / 1000.0f);
 
     uint32_t currentFrame = 0;
     for (size_t i = 0; i < ITERATIONS; i++) {
@@ -127,10 +148,13 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
 
         uint32_t semaphoreIndex = renderer.getSemaphoreIndex();
         RprPpVkSemaphore aovsReadySemaphore = frameBuffersReadySemaphores[semaphoreIndex];
-        RprPpVkSemaphore processingFinishedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
+        RprPpVkSemaphore aovReleasedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
 
-        postProcessing.run(aovsReadySemaphore, processingFinishedSemaphore);
-        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), nullptr, nullptr, fence));
+        RprPpVkSemaphore filterFinished = composeColorShadowReflectionFilter.run(aovsReadySemaphore);
+        filterFinished = denoiserFilter.run(filterFinished);
+        filterFinished = bloomFilter.run(filterFinished);
+        filterFinished = tonemapFilter.run(filterFinished);
+        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), filterFinished, aovReleasedSemaphore, fence));
         currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
 
         if (i == 0 || i == ITERATIONS - 1) {
@@ -162,9 +186,15 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     std::filesystem::path hybridproCacheDir = exeDirPath / "hybridpro_cache";
     std::filesystem::path assetsDir = exeDirPath;
 
+    HybridProRenderer renderer(deviceId, std::nullopt, hybridproDll, hybridproCacheDir, assetsDir);
+    renderer.resize(WIDTH, HEIGHT);
+
     RprPpImageFormat format = RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
     rprpp::wrappers::Context ppContext(deviceId);
-    rprpp::wrappers::PostProcessing postProcessing(ppContext);
+    rprpp::wrappers::filters::BloomFilter bloomFilter(ppContext);
+    rprpp::wrappers::filters::ComposeColorShadowReflectionFilter composeColorShadowReflectionFilter(ppContext);
+    rprpp::wrappers::filters::DenoiserFilter denoiserFilter(ppContext);
+    rprpp::wrappers::filters::ToneMapFilter tonemapFilter(ppContext);
     // this buffer should handle hdr for aovs and hdr/ldr for output
     rprpp::wrappers::Buffer buffer(ppContext, WIDTH * HEIGHT * 4 * sizeof(float));
 
@@ -185,16 +215,27 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     rprpp::wrappers::Image aovReflectionCatcher = rprpp::wrappers::Image::create(ppContext, aovsDesc);
     rprpp::wrappers::Image aovMattePass = rprpp::wrappers::Image::create(ppContext, aovsDesc);
     rprpp::wrappers::Image aovBackground = rprpp::wrappers::Image::create(ppContext, aovsDesc);
-    postProcessing.setOutput(output);
-    postProcessing.setAovColor(aovColor);
-    postProcessing.setAovOpacity(aovOpacity);
-    postProcessing.setAovShadowCatcher(aovShadowCatcher);
-    postProcessing.setAovReflectionCatcher(aovReflectionCatcher);
-    postProcessing.setAovMattePass(aovMattePass);
-    postProcessing.setAovBackground(aovBackground);
 
-    HybridProRenderer renderer(deviceId, std::nullopt, hybridproDll, hybridproCacheDir, assetsDir);
-    renderer.resize(WIDTH, HEIGHT);
+    composeColorShadowReflectionFilter.setOutput(output);
+    composeColorShadowReflectionFilter.setInput(aovColor);
+    composeColorShadowReflectionFilter.setAovOpacity(aovOpacity);
+    composeColorShadowReflectionFilter.setAovShadowCatcher(aovShadowCatcher);
+    composeColorShadowReflectionFilter.setAovReflectionCatcher(aovReflectionCatcher);
+    composeColorShadowReflectionFilter.setAovMattePass(aovMattePass);
+    composeColorShadowReflectionFilter.setAovBackground(aovBackground);
+
+    denoiserFilter.setOutput(output);
+    denoiserFilter.setInput(output);
+
+    bloomFilter.setOutput(output);
+    bloomFilter.setInput(output);
+    bloomFilter.setRadius(0.03f);
+    bloomFilter.setThreshold(0.0f);
+    bloomFilter.setBrightnessScale(0.2f);
+
+    tonemapFilter.setOutput(output);
+    tonemapFilter.setInput(output);
+    tonemapFilter.setFocalLength(renderer.getFocalLength() / 1000.0f);
 
     for (size_t i = 0; i < ITERATIONS; i++) {
         renderer.render();
@@ -212,7 +253,11 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
         copyRprFbToBuffer(renderer, buffer, RPR_AOV_BACKGROUND);
         ppContext.copyBufferToImage(buffer.get(), aovBackground.get());
 
-        postProcessing.run();
+        RprPpVkSemaphore filterFinished = composeColorShadowReflectionFilter.run();
+        filterFinished = denoiserFilter.run(filterFinished);
+        filterFinished = bloomFilter.run(filterFinished);
+        filterFinished = tonemapFilter.run(filterFinished);
+        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), filterFinished, nullptr, nullptr));
         ppContext.waitQueueIdle();
 
         if (i == 0 || i == ITERATIONS - 1) {

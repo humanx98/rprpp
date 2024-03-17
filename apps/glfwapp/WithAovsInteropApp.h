@@ -17,7 +17,11 @@
 #include "common/HybridProRenderer.h"
 #include "common/rprpp_wrappers/Context.h"
 #include "common/rprpp_wrappers/Image.h"
-#include "common/rprpp_wrappers/PostProcessing.h"
+#include "common/rprpp_wrappers/filters/BloomFilter.h"
+#include "common/rprpp_wrappers/filters/ComposeColorShadowReflectionFilter.h"
+#include "common/rprpp_wrappers/filters/ComposeOpacityShadowFilter.h"
+#include "common/rprpp_wrappers/filters/DenoiserFilter.h"
+#include "common/rprpp_wrappers/filters/ToneMapFilter.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -48,7 +52,11 @@ private:
     std::unique_ptr<rprpp::wrappers::Image> m_aovReflectionCatcher;
     std::unique_ptr<rprpp::wrappers::Image> m_aovMattePass;
     std::unique_ptr<rprpp::wrappers::Image> m_aovBackground;
-    std::unique_ptr<rprpp::wrappers::PostProcessing> m_postProcessing;
+    std::unique_ptr<rprpp::wrappers::filters::BloomFilter> m_bloomFilter;
+    std::unique_ptr<rprpp::wrappers::filters::ComposeColorShadowReflectionFilter> m_composeColorShadowReflectionFilter;
+    std::unique_ptr<rprpp::wrappers::filters::ComposeOpacityShadowFilter> m_composeOpacityShadowFilter;
+    std::unique_ptr<rprpp::wrappers::filters::DenoiserFilter> m_denoiserFilter;
+    std::unique_ptr<rprpp::wrappers::filters::ToneMapFilter> m_tonemapFilter;
     std::unique_ptr<HybridProRenderer> m_hybridproRenderer;
     std::vector<RprPpVkFence> m_fences;
     std::vector<RprPpVkSemaphore> m_frameBuffersReadySemaphores;
@@ -56,7 +64,7 @@ private:
     void initWindow();
     void findAdapter();
     void intiSwapChain();
-    void initHybridProAndPostProcessing();
+    void initRpr();
     void resize(int width, int height);
     static void onResize(GLFWwindow* window, int width, int height);
     void mainLoop();

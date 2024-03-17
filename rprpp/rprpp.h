@@ -39,7 +39,6 @@ typedef enum RprPpImageFormat {
 
 typedef uint32_t RprPpBool;
 typedef void* RprPpContext;
-typedef void* RprPpPostProcessing;
 typedef void* RprPpFilter;
 typedef void* RprPpBuffer;
 typedef void* RprPpImage;
@@ -69,10 +68,9 @@ RPRPP_API RprPpError rprppDestroyContext(RprPpContext context);
 RPRPP_API RprPpError rprppContextCreateBloomFilter(RprPpContext context, RprPpFilter* outFilter);
 RPRPP_API RprPpError rprppContextCreateComposeColorShadowReflectionFilter(RprPpContext context, RprPpFilter* outFilter);
 RPRPP_API RprPpError rprppContextCreateComposeOpacityShadowFilter(RprPpContext context, RprPpFilter* outFilter);
+RPRPP_API RprPpError rprppContextCreateDenoiserFilter(RprPpContext context, RprPpFilter* outFilter);
 RPRPP_API RprPpError rprppContextCreateToneMapFilter(RprPpContext context, RprPpFilter* outFilter);
 RPRPP_API RprPpError rprppContextDestroyFilter(RprPpContext context, RprPpFilter filter);
-RPRPP_API RprPpError rprppContextCreatePostProcessing(RprPpContext context, RprPpPostProcessing* outpp);
-RPRPP_API RprPpError rprppContextDestroyPostProcessing(RprPpContext context, RprPpPostProcessing pp);
 RPRPP_API RprPpError rprppContextCreateBuffer(RprPpContext context, size_t size, RprPpBuffer* outBuffer);
 RPRPP_API RprPpError rprppContextDestroyBuffer(RprPpContext context, RprPpBuffer buffer);
 
@@ -87,56 +85,6 @@ RPRPP_API RprPpError rprppContextGetVkPhysicalDevice(RprPpContext context, RprPp
 RPRPP_API RprPpError rprppContextGetVkDevice(RprPpContext context, RprPpVkDevice* device);
 RPRPP_API RprPpError rprppContextGetVkQueue(RprPpContext context, RprPpVkQueue* queue);
 RPRPP_API RprPpError rprppContextWaitQueueIdle(RprPpContext context);
-
-// post processing functions
-RPRPP_API RprPpError rprppPostProcessingRun(RprPpPostProcessing processing, RprPpVkSemaphore aovsReadySemaphore, RprPpVkSemaphore toSignalAfterProcessingSemaphore);
-RPRPP_API RprPpError rprppPostProcessingSetOutput(RprPpPostProcessing processing, RprPpImage image);
-RPRPP_API RprPpError rprppPostProcessingSetAovColor(RprPpPostProcessing processing, RprPpImage image);
-RPRPP_API RprPpError rprppPostProcessingSetAovOpacity(RprPpPostProcessing processing, RprPpImage image);
-RPRPP_API RprPpError rprppPostProcessingSetAovShadowCatcher(RprPpPostProcessing processing, RprPpImage image);
-RPRPP_API RprPpError rprppPostProcessingSetAovReflectionCatcher(RprPpPostProcessing processing, RprPpImage image);
-RPRPP_API RprPpError rprppPostProcessingSetAovMattePass(RprPpPostProcessing processing, RprPpImage image);
-RPRPP_API RprPpError rprppPostProcessingSetAovBackground(RprPpPostProcessing processing, RprPpImage image);
-
-RPRPP_API RprPpError rprppPostProcessingSetToneMapWhitepoint(RprPpPostProcessing processing, float x, float y, float z);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapVignetting(RprPpPostProcessing processing, float vignetting);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapCrushBlacks(RprPpPostProcessing processing, float crushBlacks);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapBurnHighlights(RprPpPostProcessing processing, float burnHighlights);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapSaturation(RprPpPostProcessing processing, float saturation);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapCm2Factor(RprPpPostProcessing processing, float cm2Factor);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapFilmIso(RprPpPostProcessing processing, float filmIso);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapCameraShutter(RprPpPostProcessing processing, float cameraShutter);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapFNumber(RprPpPostProcessing processing, float fNumber);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapFocalLength(RprPpPostProcessing processing, float focalLength);
-RPRPP_API RprPpError rprppPostProcessingSetToneMapAperture(RprPpPostProcessing processing, float aperture);
-RPRPP_API RprPpError rprppPostProcessingSetBloomRadius(RprPpPostProcessing processing, float radius);
-RPRPP_API RprPpError rprppPostProcessingSetBloomBrightnessScale(RprPpPostProcessing processing, float brightnessScale);
-RPRPP_API RprPpError rprppPostProcessingSetBloomThreshold(RprPpPostProcessing processing, float threshold);
-RPRPP_API RprPpError rprppPostProcessingSetBloomEnabled(RprPpPostProcessing processing, RprPpBool enabled);
-RPRPP_API RprPpError rprppPostProcessingSetTileOffset(RprPpPostProcessing processing, uint32_t x, uint32_t y);
-RPRPP_API RprPpError rprppPostProcessingSetGamma(RprPpPostProcessing processing, float gamma);
-RPRPP_API RprPpError rprppPostProcessingSetShadowIntensity(RprPpPostProcessing processing, float shadowIntensity);
-RPRPP_API RprPpError rprppPostProcessingSetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool enabled);
-
-RPRPP_API RprPpError rprppPostProcessingGetToneMapWhitepoint(RprPpPostProcessing processing, float* x, float* y, float* z);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapVignetting(RprPpPostProcessing processing, float* vignetting);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapCrushBlacks(RprPpPostProcessing processing, float* crushBlacks);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapBurnHighlights(RprPpPostProcessing processing, float* burnHighlights);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapSaturation(RprPpPostProcessing processing, float* saturation);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapCm2Factor(RprPpPostProcessing processing, float* cm2Factor);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapFilmIso(RprPpPostProcessing processing, float* filmIso);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapCameraShutter(RprPpPostProcessing processing, float* cameraShutter);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapFNumber(RprPpPostProcessing processing, float* fNumber);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapFocalLength(RprPpPostProcessing processing, float* focalLength);
-RPRPP_API RprPpError rprppPostProcessingGetToneMapAperture(RprPpPostProcessing processing, float* aperture);
-RPRPP_API RprPpError rprppPostProcessingGetBloomRadius(RprPpPostProcessing processing, float* radius);
-RPRPP_API RprPpError rprppPostProcessingGetBloomBrightnessScale(RprPpPostProcessing processing, float* brightnessScale);
-RPRPP_API RprPpError rprppPostProcessingGetBloomThreshold(RprPpPostProcessing processing, float* threshold);
-RPRPP_API RprPpError rprppPostProcessingGetBloomEnabled(RprPpPostProcessing processing, RprPpBool* enabled);
-RPRPP_API RprPpError rprppPostProcessingGetTileOffset(RprPpPostProcessing processing, uint32_t* x, uint32_t* y);
-RPRPP_API RprPpError rprppPostProcessingGetGamma(RprPpPostProcessing processing, float* gamma);
-RPRPP_API RprPpError rprppPostProcessingGetShadowIntensity(RprPpPostProcessing processing, float* shadowIntensity);
-RPRPP_API RprPpError rprppPostProcessingGetDenoiserEnabled(RprPpPostProcessing processing, RprPpBool* enabled);
 
 // Filter
 RPRPP_API RprPpError rprppFilterRun(RprPpFilter filter, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore* finishedSemaphore);
