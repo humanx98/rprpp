@@ -84,7 +84,11 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     }
 
     // set frame buffers realese to signal state
-    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), nullptr, frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT], nullptr));
+    RprPpVkSubmitInfo submitInfo;
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = &frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT];
+    submitInfo.signalSemaphoreCount = 1;
+    RPRPP_CHECK(rprppVkQueueSubmit(ppContext.getVkQueue(), submitInfo, nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
         .physicalDevice = ppContext.getVkPhysicalDevice(),
@@ -154,7 +158,13 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
         filterFinished = denoiserFilter.run(filterFinished);
         filterFinished = bloomFilter.run(filterFinished);
         filterFinished = tonemapFilter.run(filterFinished);
-        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), filterFinished, aovReleasedSemaphore, fence));
+
+        RprPpVkSubmitInfo submitInfo;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = &filterFinished;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &aovReleasedSemaphore;
+        RPRPP_CHECK(rprppVkQueueSubmit(ppContext.getVkQueue(), submitInfo, fence));
         currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
 
         if (i == 0 || i == ITERATIONS - 1) {
@@ -257,7 +267,6 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
         filterFinished = denoiserFilter.run(filterFinished);
         filterFinished = bloomFilter.run(filterFinished);
         filterFinished = tonemapFilter.run(filterFinished);
-        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(ppContext.getVkQueue(), filterFinished, nullptr, nullptr));
         ppContext.waitQueueIdle();
 
         if (i == 0 || i == ITERATIONS - 1) {

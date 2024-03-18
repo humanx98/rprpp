@@ -56,6 +56,13 @@ typedef struct RprPpImageDescription {
     RprPpImageFormat format;
 } RprPpImageDescription;
 
+typedef struct RprPpVkSubmitInfo {
+    uint32_t waitSemaphoreCount;
+    RprPpVkSemaphore* pWaitSemaphores;
+    uint32_t signalSemaphoreCount;
+    RprPpVkSemaphore* pSignalSemaphores;
+} RprPpVkSubmitInfo;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -149,8 +156,7 @@ RPRPP_API RprPpError rprppVkCreateFence(RprPpVkDevice device, RprPpBool signaled
 RPRPP_API RprPpError rprppVkDestroyFence(RprPpVkDevice device, RprPpVkFence fence);
 RPRPP_API RprPpError rprppVkWaitForFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences, RprPpBool waitAll, uint64_t timeout);
 RPRPP_API RprPpError rprppVkResetFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences);
-
-RPRPP_API RprPpError rprppVkQueueSubmitWaitAndSignal(RprPpVkQueue queue, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore signalSemaphore, RprPpVkFence fence);
+RPRPP_API RprPpError rprppVkQueueSubmit(RprPpVkQueue queue, RprPpVkSubmitInfo submit, RprPpVkFence fence);
 
 #ifdef __cplusplus
 }

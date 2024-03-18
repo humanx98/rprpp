@@ -229,8 +229,6 @@ void NoAovsInteropApp::mainLoop()
             filterFinished = m_bloomFilter->run(filterFinished);
             filterFinished = m_tonemapFilter->run(filterFinished);
             // filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
-            RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), filterFinished, nullptr, nullptr));
-
             m_ppContext->waitQueueIdle();
             m_ppContext->copyImage(m_output->get(), m_dx11output->get());
 

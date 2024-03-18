@@ -1147,58 +1147,52 @@ RprPpError rprppVkDestroyFence(RprPpVkDevice device, RprPpVkFence fence)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppVkWaitForFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences, RprPpBool waitAll, uint64_t timeout)
+RprPpError rprppVkWaitForFences(RprPpVkDevice rprppDevice, uint32_t fenceCount, RprPpVkFence* rprppFences, RprPpBool waitAll, uint64_t timeout)
 {
-    assert(device);
+    assert(rprppDevice);
 
     auto result = safeCall([&] {
-        VkDevice vkdevice = static_cast<VkDevice>(device);
-        VkFence* vkfences = reinterpret_cast<VkFence*>(pFences);
-        vkWaitForFences(vkdevice, fenceCount, vkfences, waitAll, timeout);
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-RprPpError rprppVkResetFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences)
-{
-    assert(device);
-
-    auto result = safeCall([&] {
-        VkDevice vkdevice = static_cast<VkDevice>(device);
-        VkFence* vkfences = reinterpret_cast<VkFence*>(pFences);
-        vkResetFences(vkdevice, fenceCount, vkfences);
+        vk::Device device = static_cast<VkDevice>(rprppDevice);
+        vk::Fence* pFences = reinterpret_cast<vk::Fence*>(rprppFences);
+        vk::resultCheck(device.waitForFences(fenceCount, pFences, waitAll, timeout), "rprppVkWaitForFences");
     });
     check(result);
 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppVkQueueSubmitWaitAndSignal(RprPpVkQueue queue, RprPpVkSemaphore waitSemaphore, RprPpVkSemaphore signalSemaphore, RprPpVkFence fence)
+RprPpError rprppVkResetFences(RprPpVkDevice rprppDevice, uint32_t fenceCount, RprPpVkFence* rprppFences)
 {
-    assert(queue);
+    assert(rprppDevice);
 
     auto result = safeCall([&] {
-        VkQueue vkqueue = static_cast<VkQueue>(queue);
-        VkFence vkfence = static_cast<VkFence>(fence);
-        VkSemaphore vkwaitSemaphore = static_cast<VkSemaphore>(waitSemaphore);
-        VkSemaphore vksignalSemaphore = static_cast<VkSemaphore>(signalSemaphore);
+        vk::Device device = static_cast<VkDevice>(rprppDevice);
+        vk::Fence* pFences = reinterpret_cast<vk::Fence*>(rprppFences);
+        vk::resultCheck(device.resetFences(fenceCount, pFences), "rprppVkResetFences");
+    });
+    check(result);
 
-        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    return RPRPP_SUCCESS;
+}
 
-        if (vkwaitSemaphore != VK_NULL_HANDLE) {
-            submitInfo.pWaitDstStageMask = &waitStage;
-            submitInfo.pWaitSemaphores = &vkwaitSemaphore;
-            submitInfo.waitSemaphoreCount = 1;
-        }
+RprPpError rprppVkQueueSubmit(RprPpVkQueue rprppQueue, RprPpVkSubmitInfo rprppSubmitInfo, RprPpVkFence rprppFence)
+{
+    assert(rprppQueue);
 
-        if (vksignalSemaphore != VK_NULL_HANDLE) {
-            submitInfo.pSignalSemaphores = &vksignalSemaphore;
-            submitInfo.signalSemaphoreCount = 1;
-        }
+    auto result = safeCall([&] {
+        vk::Queue queue = static_cast<VkQueue>(rprppQueue);
+        vk::Fence fence = static_cast<VkFence>(rprppFence);
 
-        vkQueueSubmit(vkqueue, 1, &submitInfo, vkfence);
+        std::vector<vk::PipelineStageFlags> waitDstStageMask;
+        waitDstStageMask.resize(rprppSubmitInfo.waitSemaphoreCount, vk::PipelineStageFlagBits::eAllCommands);
+
+        vk::SubmitInfo submitInfo;
+        submitInfo.pWaitDstStageMask = waitDstStageMask.data();
+        submitInfo.pWaitSemaphores = reinterpret_cast<vk::Semaphore*>(rprppSubmitInfo.pWaitSemaphores);
+        submitInfo.waitSemaphoreCount = rprppSubmitInfo.waitSemaphoreCount;
+        submitInfo.pSignalSemaphores = reinterpret_cast<vk::Semaphore*>(rprppSubmitInfo.pSignalSemaphores);
+        submitInfo.signalSemaphoreCount = rprppSubmitInfo.signalSemaphoreCount;
+        vk::resultCheck(queue.submit(1, &submitInfo, static_cast<vk::Fence>(fence)), "rprppVkQueueSubmit");
     });
     check(result);
 
