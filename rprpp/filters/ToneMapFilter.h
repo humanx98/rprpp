@@ -25,7 +25,6 @@ struct ToneMapParams {
     float fNumber = 1.0f;
     float focalLength = 1.0f;
     float aperture = 0.024f;
-    float shadowIntensity = 1.0f;
     float invGamma = 1.0f;
 };
 

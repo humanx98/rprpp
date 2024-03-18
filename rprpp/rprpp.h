@@ -62,7 +62,6 @@ extern "C" {
 
 RPRPP_API RprPpError rprppGetDeviceCount(uint32_t* deviceCount);
 RPRPP_API RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet);
-
 RPRPP_API RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext);
 RPRPP_API RprPpError rprppDestroyContext(RprPpContext context);
 RPRPP_API RprPpError rprppContextCreateBloomFilter(RprPpContext context, RprPpFilter* outFilter);
@@ -73,7 +72,6 @@ RPRPP_API RprPpError rprppContextCreateToneMapFilter(RprPpContext context, RprPp
 RPRPP_API RprPpError rprppContextDestroyFilter(RprPpContext context, RprPpFilter filter);
 RPRPP_API RprPpError rprppContextCreateBuffer(RprPpContext context, size_t size, RprPpBuffer* outBuffer);
 RPRPP_API RprPpError rprppContextDestroyBuffer(RprPpContext context, RprPpBuffer buffer);
-
 RPRPP_API RprPpError rprppContextCreateImage(RprPpContext context, RprPpImageDescription description, RprPpImage* outImage);
 RPRPP_API RprPpError rprppContextCreateImageFromVkSampledImage(RprPpContext context, RprPpVkImage vkSampledImage, RprPpImageDescription description, RprPpImage* outImage);
 RPRPP_API RprPpError rprppContextCreateImageFromDx11Texture(RprPpContext context, RprPpDx11Handle dx11textureHandle, RprPpImageDescription description, RprPpImage* outImage);
