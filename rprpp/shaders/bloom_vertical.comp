@@ -6,12 +6,13 @@
 
 layout (set = 0, binding = 0) uniform UBO 
 {
+    int radiusInPixel;
     float radius;
     float brightnessScale;
     float threshold;
 } ubo;
 layout (set = 0, binding = 1, OUTPUT_FORMAT) uniform image2D outputImage;
-layout (set = 0, binding = 2, INPUT_FORMAT) uniform image2D tmpImage;
+layout (set = 0, binding = 2, rgba32f) uniform image2D tmpImage;
 layout (set = 0, binding = 3, INPUT_FORMAT) uniform readonly image2D inputImage;
 
 #define mix(x, y, a) ((x) + ((y) - (x)) * (a))
@@ -25,14 +26,12 @@ void main() {
         return;
     
     vec4 bloom = vec4(0.0f);
-    int radius = int(ubo.radius * resolution.x);
-    float rSquared = radius * radius;
-    float rOver3 = radius / 3.0f;
+    float rSquared = ubo.radiusInPixel * ubo.radiusInPixel;
+    float rOver3 = ubo.radiusInPixel / 3.0f;
     float rOver3Squared = rOver3 * rOver3;
-    float decay = 0.1f;
     vec3 LUMAWHITEPOINT = vec3(0.2126f, 0.7152f, 0.0722f);
     vec4 sum = vec4(0.0f);
-    for (int j = -radius; j <= radius; j++) {
+    for (int j = -ubo.radiusInPixel; j <= ubo.radiusInPixel; j++) {
         if (coord.y + j < 0 || coord.y + j >= resolution.y) {
             continue;
         }
@@ -40,7 +39,6 @@ void main() {
         float x2y2 = j * j;
         float w = exp(-x2y2 / (2.0f * rOver3Squared));
         w *= 1.0f - smoothstep(0, rSquared, x2y2);
-        w = pow(w, decay);
         
         vec4 pixel = imageLoad(inputImage, ivec2(coord.x, coord.y + j));
         float luminance = dot(pixel.xyz, LUMAWHITEPOINT);

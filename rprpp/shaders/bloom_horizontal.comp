@@ -6,12 +6,13 @@
 
 layout (set = 0, binding = 0) uniform UBO 
 {
+    int radiusInPixel;
     float radius;
     float brightnessScale;
     float threshold;
 } ubo;
 layout (set = 0, binding = 1, OUTPUT_FORMAT) uniform image2D outputImage;
-layout (set = 0, binding = 2, INPUT_FORMAT) uniform image2D tmpImage;
+layout (set = 0, binding = 2, rgba32f) uniform image2D tmpImage;
 layout (set = 0, binding = 3, INPUT_FORMAT) uniform readonly image2D inputImage;
 
 #define M_PI 3.14159265358979323846
@@ -24,13 +25,11 @@ void main() {
         return;
     
     vec4 bloom = vec4(0.0f);
-    int radius = int(ubo.radius * resolution.x);
-    float rSquared = radius * radius;
-    float rOver3 = radius / 3.0f;
+    float rSquared = ubo.radiusInPixel * ubo.radiusInPixel;
+    float rOver3 = ubo.radiusInPixel / 3.0f;
     float rOver3Squared = rOver3 * rOver3;
-    float decay = 0.1f;
     vec4 sum = vec4(0.0f);
-    for (int i = -radius; i <= radius; i++) {
+    for (int i = -ubo.radiusInPixel; i <= ubo.radiusInPixel; i++) {
         if (coord.x + i < 0 || coord.x + i >= resolution.x) {
             continue;
         }
@@ -38,7 +37,6 @@ void main() {
         float x2y2 = i * i;
         float w = exp(-x2y2 / (2.0f * rOver3Squared));
         w *= 1.0f - smoothstep(0, rSquared, x2y2);
-        w = pow(w, decay);
         sum += imageLoad(tmpImage, ivec2(coord.x + i, coord.y)) * w;
     }
     bloom = sum * vec4(1.0f / (sqrt(2.0f * M_PI) * rOver3));

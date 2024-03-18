@@ -13,7 +13,8 @@
 namespace rprpp::filters {
 
 struct BloomParams {
-    float radius = 0.1f;
+    int radiusInPixel = 0;
+    float radius = 0.0f;
     float brightnessScale = 0.1f;
     float threshold = 0.0f;
 };

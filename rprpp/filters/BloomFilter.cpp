@@ -124,7 +124,8 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
 
         if (!m_tmpImage.has_value() || m_tmpImage.value().description() != m_input->description()) {
             m_tmpImage.reset();
-            m_tmpImage = Image::create(*m_dctx, m_input->description());
+            ImageDescription desc(m_input->description().width, m_input->description().height, ImageFormat::eR32G32B32A32Sfloat);
+            m_tmpImage = Image::create(*m_dctx, desc);
         }
 
         createShaderModules();
@@ -135,6 +136,7 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     }
 
     if (m_ubo.dirty()) {
+        m_ubo.data().radiusInPixel = (uint32_t)(m_input->description().width * m_ubo.data().radius);
         m_ubo.update();
     }
 
