@@ -22,7 +22,8 @@ void DenoiserFilter::validateInputsAndOutput()
         throw InvalidParameter("output", "cannot be null");
     }
 
-    if (m_input->description() != m_output->description()) {
+    if (m_input->description().width != m_output->description().width
+        || m_input->description().height != m_output->description().height) {
         throw InvalidParameter("output and input", "output and input should have the same image description");
     }
 }

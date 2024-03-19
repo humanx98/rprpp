@@ -19,7 +19,7 @@ layout (set = 0, binding = 4) uniform sampler2D aovShadowCatcher;
 layout (set = 0, binding = 5) uniform sampler2D aovReflectionCatcher;
 layout (set = 0, binding = 6) uniform sampler2D aovMattePass;
 layout (set = 0, binding = 7) uniform sampler2D aovBackground;
-#define LOAD_AOV(texSampler, xy) texture(texSampler, vec2((float(xy.x) + 0.5f) / ubo.tileSize.x, (float(xy.y) + 0.5f) / ubo.tileSize.y))
+#define LOAD_AOV(texSampler, xy) texture(texSampler, xy)
 #else
 layout (set = 0, binding = 2, AOVS_FORMAT) uniform readonly image2D aovColor;
 layout (set = 0, binding = 3, AOVS_FORMAT) uniform readonly image2D aovOpacity;
