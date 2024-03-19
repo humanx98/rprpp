@@ -587,6 +587,32 @@ RprPpError rprppComposeColorShadowReflectionFilterSetShadowIntensity(RprPpFilter
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColor(RprPpFilter filter, float x, float y, float z)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setNotRefractiveBackgroundColor(x, y, z);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(RprPpFilter filter, float weight)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        f->setNotRefractiveBackgroundColorWeight(weight);
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y)
 {
     assert(filter);
@@ -618,6 +644,48 @@ RprPpError rprppComposeColorShadowReflectionFilterGetShadowIntensity(RprPpFilter
 
         if (shadowIntensity != nullptr) {
             *shadowIntensity = f->getShadowIntensity();
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColor(RprPpFilter filter, float* x, float* y, float* z)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+        float color[3];
+        f->getNotRefractiveBackgroundColor(color[0], color[1], color[2]);
+        
+        if (x != nullptr) {
+            *x = color[0];
+        }
+
+        if (y != nullptr) {
+            *y = color[1];
+        }
+
+        if (z != nullptr) {
+            *z = color[2];
+        }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColorWeight(RprPpFilter filter, float* weight)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
+
+        if (weight != nullptr) {
+            *weight = f->getNotRefractiveBackgroundColorWeight();
         }
     });
     check(result);

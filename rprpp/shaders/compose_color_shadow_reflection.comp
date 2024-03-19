@@ -7,6 +7,8 @@
 
 layout (set = 0, binding = 0) uniform UBO 
 {
+    vec3 notRefractiveBackgroundColor;
+    float notRefractiveBackgroundColorWeight;
     ivec2 tileOffset;
     ivec2 tileSize;
     float shadowIntensity;
@@ -47,7 +49,8 @@ vec4 compose(ivec2 xy)
     float shadow = min(ubo.shadowIntensity * LOAD_AOV(aovShadowCatcher, xy).x, 1.0f);
     float reflection = LOAD_AOV(aovReflectionCatcher, xy).x;
     vec4 mattePass = LOAD_AOV(aovMattePass, xy);
-    vec4 background = LOAD_AOV(aovBackground, xy);
+    vec4 background = LOAD_AOV(aovBackground, xy) * (1.0f - ubo.notRefractiveBackgroundColorWeight) 
+        + ubo.notRefractiveBackgroundColorWeight * vec4(ubo.notRefractiveBackgroundColor, 1.0f);
 
     vec4 colorSubMatte = clamp4(color - mattePass, 0.0f, 1.0f);
     mattePass = background * (1.0f - min(opacity + reflection, 1.0f)) + mattePass;

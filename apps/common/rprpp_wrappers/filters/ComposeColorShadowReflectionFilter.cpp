@@ -67,4 +67,21 @@ void ComposeColorShadowReflectionFilter::setShadowIntensity(float shadowIntensit
     RPRPP_CHECK(status);
 }
 
+void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColor(float x, float y, float z)
+{
+    RprPpError status;
+
+    status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColor(m_filter, x, y, z);
+    RPRPP_CHECK(status);
+}
+
+void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColorWeight(float weight)
+{
+    RprPpError status;
+
+    status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(m_filter, weight);
+    RPRPP_CHECK(status);
+}
+
+
 }

@@ -255,6 +255,32 @@ void ComposeColorShadowReflectionFilter::setTileOffset(uint32_t x, uint32_t y) n
     m_ubo.markDirty();
 }
 
+void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColor(float x, float y, float z)
+{
+    m_ubo.data().notRefractiveBackgroundColor[0] = x;
+    m_ubo.data().notRefractiveBackgroundColor[1] = y;
+    m_ubo.data().notRefractiveBackgroundColor[2] = z;
+    m_ubo.markDirty();
+}
+
+void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColorWeight(float weight)
+{
+    m_ubo.data().notRefractiveBackgroundColorWeight = weight;
+    m_ubo.markDirty();
+}
+
+float ComposeColorShadowReflectionFilter::getNotRefractiveBackgroundColorWeight()
+{
+    return m_ubo.data().notRefractiveBackgroundColorWeight;
+}
+
+void ComposeColorShadowReflectionFilter::getNotRefractiveBackgroundColor(float& x, float& y, float& z)
+{
+    x = m_ubo.data().notRefractiveBackgroundColor[0];
+    y = m_ubo.data().notRefractiveBackgroundColor[1];
+    z = m_ubo.data().notRefractiveBackgroundColor[2];
+}
+
 void ComposeColorShadowReflectionFilter::getTileOffset(uint32_t& x, uint32_t& y) const noexcept
 {
     x = m_ubo.data().tileOffset[0];

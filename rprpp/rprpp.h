@@ -110,7 +110,11 @@ RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovMattePass(RprP
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovBackground(RprPpFilter filter, RprPpImage image);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColor(RprPpFilter filter, float* x, float* y, float* z);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColorWeight(RprPpFilter filter, float* weight);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColor(RprPpFilter filter, float x, float y, float z);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(RprPpFilter filter, float weight);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity);
 // ComposeOpacityShadow Filter
 RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetAovShadowCatcher(RprPpFilter filter, RprPpImage image);

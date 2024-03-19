@@ -14,6 +14,8 @@
 namespace rprpp::filters {
 
 struct ComposeColorShadowReflectionParams {
+    float notRefractiveBackgroundColor[3] = { 0.0f, 0.0f, 0.0f };
+    float notRefractiveBackgroundColorWeight = 0.0f;
     int tileOffset[2] = { 0, 0 };
     int tileSize[2] = { 0, 0 };
     float shadowIntensity = 1.0f;
@@ -39,6 +41,12 @@ public:
     void setAovReflectionCatcher(Image* img) noexcept;
     void setAovMattePass(Image* img) noexcept;
     void setAovBackground(Image* img) noexcept;
+
+    void setNotRefractiveBackgroundColor(float x, float y, float z);
+    void getNotRefractiveBackgroundColor(float& x, float& y, float& z);
+
+    void setNotRefractiveBackgroundColorWeight(float weight);
+    float getNotRefractiveBackgroundColorWeight();
 
     void setTileOffset(uint32_t x, uint32_t y) noexcept;
     void setShadowIntensity(float shadowIntensity) noexcept;

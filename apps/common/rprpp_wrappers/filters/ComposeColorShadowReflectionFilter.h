@@ -15,6 +15,8 @@ public:
     void setAovBackground(const Image& image);
     void setTileOffset(int x, int y);
     void setShadowIntensity(float shadowIntensity);
+    void setNotRefractiveBackgroundColor(float x, float y, float z);
+    void setNotRefractiveBackgroundColorWeight(float weight);
 };
 
 }
