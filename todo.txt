@@ -1,3 +1,2 @@
-1. notRefractiveBackgroundColor
-2. denoising
-3. return error messages
+1. denoising
+2. return error messages
