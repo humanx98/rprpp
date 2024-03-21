@@ -45,7 +45,11 @@ filters::ComposeColorShadowReflectionFilter* Context::createComposeColorShadowRe
 filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
 {
     auto params = UniformObjectBuffer<filters::ComposeOpacityShadowParams>::create(*m_deviceContext);
-    auto filter = std::make_unique<filters::ComposeOpacityShadowFilter>(m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext->device, vk::SamplerCreateInfo()));
+    vk::SamplerCreateInfo samplerInfo;
+    samplerInfo.unnormalizedCoordinates = vk::True;
+    samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+    samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+    auto filter = std::make_unique<filters::ComposeOpacityShadowFilter>(m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext->device, samplerInfo));
 
     filters::ComposeOpacityShadowFilter* ptr = filter.get();
     m_filters.emplace(ptr, std::move(filter));

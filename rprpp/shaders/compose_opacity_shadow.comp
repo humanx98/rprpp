@@ -24,12 +24,13 @@ layout (set = 0, binding = 3, AOVS_FORMAT) uniform readonly image2D aovShadowCat
 
 layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1) in;
 void main() {
-    ivec2 xy = ubo.tileOffset + ivec2(gl_GlobalInvocationID.xy);
+    ivec2 aovXY = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 xy = ubo.tileOffset + aovXY;
     ivec2 resolution = imageSize(outputImage);
     if (xy.x >= resolution.x || xy.y >= resolution.y)
         return;
     
-    float opacity = LOAD_AOV(aovOpacity, xy).x + min(ubo.shadowIntensity * LOAD_AOV(aovShadowCatcher, xy).x, 1.0f);
+    float opacity = LOAD_AOV(aovOpacity, aovXY).x + min(ubo.shadowIntensity * LOAD_AOV(aovShadowCatcher, aovXY).x, 1.0f);
     opacity = clamp(opacity, 0.0f, 1.0f);
     imageStore(outputImage, xy, vec4(opacity, opacity, opacity, 1.0f));
 }

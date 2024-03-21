@@ -265,7 +265,7 @@ void WithAovsInteropApp::mainLoop()
                         filterFinished = m_denoiserFilter->run(filterFinished);
                         filterFinished = m_bloomFilter->run(filterFinished);
                         filterFinished = m_tonemapFilter->run(filterFinished);
-                        // filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
+                        filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
 
                         RprPpVkSubmitInfo submitInfo;
                         submitInfo.waitSemaphoreCount = 1;
