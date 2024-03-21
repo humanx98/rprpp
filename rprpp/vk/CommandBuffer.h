@@ -6,15 +6,15 @@ namespace vk::helper {
 
 class CommandBuffer {
 public:
-    CommandBuffer(const std::shared_ptr<DeviceContext>& deviceContext);
+    CommandBuffer(DeviceContext* deviceContext);
     ~CommandBuffer();
-    CommandBuffer(CommandBuffer&&) noexcept;
-    CommandBuffer& operator=(CommandBuffer&&) noexcept;
-    vk::raii::CommandBuffer& get() { return m_commandBuffer.value(); }
+
+    vk::raii::CommandBuffer& get() noexcept { return m_commandBuffer; }
+    const vk::raii::CommandBuffer& get() const noexcept { return m_commandBuffer; }
 
 private:
-    std::shared_ptr<DeviceContext> m_deviceContext;
-    std::optional<vk::raii::CommandBuffer> m_commandBuffer;
+    DeviceContext* m_deviceContext;
+    vk::raii::CommandBuffer m_commandBuffer;
 };
 
 }

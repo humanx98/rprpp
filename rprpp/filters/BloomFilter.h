@@ -21,12 +21,7 @@ struct BloomParams {
 
 class BloomFilter : public Filter {
 public:
-    BloomFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx, UniformObjectBuffer<BloomParams>&& ubo) noexcept;
-    BloomFilter(BloomFilter&&) noexcept = default;
-    BloomFilter& operator=(BloomFilter&&) noexcept = default;
-
-    BloomFilter(const BloomFilter&) = delete;
-    BloomFilter& operator=(const BloomFilter&) = delete;
+    BloomFilter(vk::helper::DeviceContext* dctx, UniformObjectBuffer<BloomParams>&& ubo) noexcept;
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
     void setInput(Image* img) noexcept override;
@@ -49,8 +44,9 @@ private:
     bool m_descriptorsDirty = true;
     Image* m_input = nullptr;
     Image* m_output = nullptr;
+
     vk::helper::ShaderManager m_shaderManager;
-    std::shared_ptr<vk::helper::DeviceContext> m_dctx;
+    vk::helper::DeviceContext* m_dctx;
     vk::raii::Semaphore m_verticalFinishedSemaphore;
     vk::raii::Semaphore m_horizontalFinishedSemaphore;
     UniformObjectBuffer<BloomParams> m_ubo;

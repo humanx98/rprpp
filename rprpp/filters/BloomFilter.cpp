@@ -7,7 +7,7 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-BloomFilter::BloomFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx, UniformObjectBuffer<BloomParams>&& ubo) noexcept
+BloomFilter::BloomFilter(vk::helper::DeviceContext* dctx, UniformObjectBuffer<BloomParams>&& ubo) noexcept
     : m_dctx(dctx)
     , m_verticalFinishedSemaphore(dctx->device.createSemaphore({}))
     , m_horizontalFinishedSemaphore(dctx->device.createSemaphore({}))

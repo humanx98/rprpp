@@ -36,6 +36,7 @@ set(HEADERS
     vk/ShaderManager.h
     vk/vk.h
     Context.h
+    ContextObject.h
     rprpp.h
     Error.h
     Buffer.h
@@ -55,6 +56,7 @@ set(SOURCES
     vk/DeviceContext.cpp
     vk/ShaderManager.cpp
     Context.cpp
+    ContextObject.cpp
     rprpp.cpp
     Error.cpp
     Buffer.cpp
@@ -74,11 +76,13 @@ endif()
 target_include_directories(rprpp
     PUBLIC ${CMAKE_SOURCE_DIR}
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
+    PRIVATE ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(rprpp
     PRIVATE Vulkan::Vulkan
     PRIVATE Vulkan::shaderc_combined
+    PRIVATE OpenImageDenoise
 )
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
 

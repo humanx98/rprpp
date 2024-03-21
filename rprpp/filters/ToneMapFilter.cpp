@@ -7,7 +7,7 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-ToneMapFilter::ToneMapFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
+ToneMapFilter::ToneMapFilter(vk::helper::DeviceContext* dctx,
     UniformObjectBuffer<ToneMapParams>&& ubo) noexcept
     : m_dctx(dctx)
     , m_finishedSemaphore(dctx->device.createSemaphore({}))

@@ -6,7 +6,7 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-DenoiserFilter::DenoiserFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx) noexcept
+DenoiserFilter::DenoiserFilter(vk::helper::DeviceContext* dctx) noexcept
     : m_dctx(dctx)
     , m_finishedSemaphore(dctx->device.createSemaphore({}))
 {

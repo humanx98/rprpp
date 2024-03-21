@@ -7,7 +7,7 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
+ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(vk::helper::DeviceContext* dctx,
     UniformObjectBuffer<ComposeColorShadowReflectionParams>&& ubo,
     vk::raii::Sampler&& sampler) noexcept
     : m_dctx(dctx)

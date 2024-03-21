@@ -14,7 +14,7 @@ namespace rprpp::filters {
 
 class DenoiserFilter : public Filter {
 public:
-    DenoiserFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx) noexcept;
+    DenoiserFilter(vk::helper::DeviceContext* dctx) noexcept;
     DenoiserFilter(DenoiserFilter&&) noexcept = default;
     DenoiserFilter& operator=(DenoiserFilter&&) noexcept = default;
 
@@ -30,7 +30,7 @@ private:
 
     Image* m_input = nullptr;
     Image* m_output = nullptr;
-    std::shared_ptr<vk::helper::DeviceContext> m_dctx;
+    vk::helper::DeviceContext* m_dctx;
     vk::raii::Semaphore m_finishedSemaphore;
 };
 
