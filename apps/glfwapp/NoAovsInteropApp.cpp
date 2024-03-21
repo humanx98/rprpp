@@ -204,6 +204,7 @@ void NoAovsInteropApp::mainLoop()
 {
     clock_t deltaTime = 0;
     unsigned int frames = 0;
+    RprPpVkSemaphore filterFinished = nullptr;
     while (!glfwWindowShouldClose(m_window)) {
         clock_t beginFrame = clock();
         {
@@ -224,7 +225,7 @@ void NoAovsInteropApp::mainLoop()
             copyRprFbToPpStagingBuffer(RPR_AOV_BACKGROUND);
             m_ppContext->copyBufferToImage(m_buffer->get(), m_aovBackground->get());
 
-            RprPpVkSemaphore filterFinished = m_composeColorShadowReflectionFilter->run();
+            filterFinished = m_composeColorShadowReflectionFilter->run(filterFinished);
             filterFinished = m_denoiserFilter->run(filterFinished);
             filterFinished = m_bloomFilter->run(filterFinished);
             filterFinished = m_tonemapFilter->run(filterFinished);

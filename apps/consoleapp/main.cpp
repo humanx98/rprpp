@@ -17,10 +17,15 @@
 #define HEIGHT 700
 #define INTEROP true
 #define DEVICE_ID 0
+#define ITERATIONS 100
+
+#ifdef NDEBUG
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
 #define FRAMES_IN_FLIGHT 4
-#define ITERATIONS 100
+#else
+#define FRAMES_IN_FLIGHT 1
+#endif
 
 void savePngImage(const char* filename, void* img, uint32_t width, uint32_t height, RprPpImageFormat format);
 void copyRprFbToBuffer(HybridProRenderer& r, rprpp::wrappers::Buffer& buffer, rpr_aov aov);
