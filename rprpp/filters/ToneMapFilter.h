@@ -30,14 +30,7 @@ struct ToneMapParams {
 
 class ToneMapFilter : public Filter {
 public:
-    ToneMapFilter(vk::helper::DeviceContext* dctx,
-        UniformObjectBuffer<ToneMapParams>&& ubo) noexcept;
-
-    ToneMapFilter(ToneMapFilter&&) noexcept = default;
-    ToneMapFilter& operator=(ToneMapFilter&&) noexcept = default;
-
-    ToneMapFilter(const ToneMapFilter&) = delete;
-    ToneMapFilter& operator=(const ToneMapFilter&) = delete;
+    ToneMapFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
 

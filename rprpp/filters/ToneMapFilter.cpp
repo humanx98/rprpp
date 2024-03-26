@@ -7,12 +7,11 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-ToneMapFilter::ToneMapFilter(vk::helper::DeviceContext* dctx,
-    UniformObjectBuffer<ToneMapParams>&& ubo) noexcept
-    : m_dctx(dctx)
-    , m_finishedSemaphore(dctx->device.createSemaphore({}))
-    , m_ubo(std::move(ubo))
-    , m_commandBuffer(dctx)
+ToneMapFilter::ToneMapFilter(Context* context) 
+    : Filter(context)
+    , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
+    , m_ubo(context)
+    , m_commandBuffer(&deviceContext())
 {
 }
 

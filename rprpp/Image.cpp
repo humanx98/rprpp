@@ -1,5 +1,6 @@
 #include "Image.h"
 #include "vk/CommandBuffer.h"
+#include "Context.h"
 
 namespace rprpp {
 
@@ -17,8 +18,9 @@ ImageDescription::ImageDescription(const RprPpImageDescription& desc)
 {
 }
 
-Image::Image(vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii::ImageView&& view, vk::ImageUsageFlags usage, const ImageDescription& desc) noexcept
-    : m_image(std::move(image))
+Image::Image(Context* context, vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii::ImageView&& view, vk::ImageUsageFlags usage, const ImageDescription& desc) noexcept
+    : ContextObject(context) 
+    , m_image(std::move(image))
     , m_memory(std::move(memory))
     , m_view(std::move(view))
     , m_usage(usage)
@@ -26,8 +28,9 @@ Image::Image(vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii:
 {
 }
 
-Image::Image(vk::Image image, vk::raii::ImageView&& view, const ImageDescription& desc) noexcept
-    : m_notOwnedImage(image)
+Image::Image(Context* context, vk::Image image, vk::raii::ImageView&& view, const ImageDescription& desc) noexcept
+    : ContextObject(context)
+    , m_notOwnedImage(image)
     , m_view(std::move(view))
     , m_description(desc)
     , m_usage(vk::ImageUsageFlagBits::eSampled)
@@ -37,40 +40,60 @@ Image::Image(vk::Image image, vk::raii::ImageView&& view, const ImageDescription
 {
 }
 
-Image Image::create(vk::helper::DeviceContext& dctx, const ImageDescription& desc)
+vk::raii::Image Image::createImage(const ImageDescription& desc, vk::ImageUsageFlags imageUsageFlags)
 {
-    vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage;
-    vk::ImageCreateInfo imageInfo({},
-        vk::ImageType::e2D,
-        to_vk_format(desc.format),
-        { desc.width, desc.height, 1 },
-        1,
-        1,
-        vk::SampleCountFlagBits::e1,
-        vk::ImageTiling::eOptimal,
-        usage,
-        vk::SharingMode::eExclusive,
-        nullptr,
-        vk::ImageLayout::eUndefined);
-    vk::raii::Image image(dctx.device, imageInfo);
+	//vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage;
+	vk::ImageCreateInfo imageInfo({},
+		vk::ImageType::e2D,
+		to_vk_format(desc.format),
+		{ desc.width, desc.height, 1 },
+		1,
+		1,
+		vk::SampleCountFlagBits::e1,
+		vk::ImageTiling::eOptimal,
+		imageUsageFlags,
+		vk::SharingMode::eExclusive,
+		nullptr,
+	vk::ImageLayout::eUndefined);
 
-    vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-    uint32_t memoryType = vk::helper::findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    vk::raii::DeviceMemory memory = dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-    image.bindMemory(*memory, 0);
+	return vk::raii::Image(deviceContext().device, imageInfo);
+}
 
-    vk::ImageViewCreateInfo viewInfo({},
-        *image,
-        vk::ImageViewType::e2D,
-        to_vk_format(desc.format),
-        {},
-        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-    vk::raii::ImageView view(dctx.device, viewInfo);
+vk::raii::DeviceMemory Image::allocateDeviceMemory()
+{
+	vk::MemoryRequirements memRequirements = m_image.getMemoryRequirements();
+	uint32_t memoryType = vk::helper::findMemoryType(deviceContext().physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	vk::raii::DeviceMemory memory = deviceContext().device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
+	m_image.bindMemory(*memory, 0);
 
-    Image result(std::move(image), std::move(memory), std::move(view), usage, desc);
-    vk::AccessFlags access = vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-    transitionImageLayout(dctx, result, access, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-    return result;
+	return memory;
+}
+
+vk::raii::ImageView Image::createImageView()
+{
+	vk::ImageViewCreateInfo viewInfo({},
+		*m_image,
+		vk::ImageViewType::e2D,
+		to_vk_format(m_description.format),
+		{},
+		{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
+	return vk::raii::ImageView(deviceContext().device, viewInfo);
+}
+
+
+
+Image::Image(Context* context, const ImageDescription& desc)
+    : ContextObject(context)
+    , m_description(desc)
+    , m_usage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage)
+    , m_image(createImage(desc, m_usage))
+    , m_memory(allocateDeviceMemory())
+    , m_view(createImageView())
+    , m_access(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
+    , m_layout(vk::ImageLayout::eGeneral)
+    , m_stages(vk::PipelineStageFlagBits::eComputeShader)
+{
+    transitionImageLayout();
 }
 
 Image Image::createFromVkSampledImage(const vk::helper::DeviceContext& dctx, vk::Image image, const ImageDescription& desc)
@@ -137,28 +160,20 @@ Image Image::createFromDx11Texture(vk::helper::DeviceContext& dctx, HANDLE dx11t
     return result;
 }
 
-void Image::transitionImageLayout(vk::helper::DeviceContext& deviceContext,
-    Image& image,
-    vk::AccessFlags dstAccess,
-    vk::ImageLayout dstLayout,
-    vk::PipelineStageFlags dstStage)
+void Image::transitionImageLayout()
 {
-    vk::raii::CommandBuffer commandBuffer = deviceContext.takeCommandBuffer();
+    vk::raii::CommandBuffer commandBuffer = deviceContext().takeCommandBuffer();
     commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(commandBuffer, image, dstAccess, dstLayout, dstStage);
+    transitionImageLayout(commandBuffer);
     commandBuffer.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer);
-    deviceContext.queue.submit(submitInfo);
-    deviceContext.queue.waitIdle();
-    deviceContext.returnCommandBuffer(std::move(commandBuffer));
+    deviceContext().queue.submit(submitInfo);
+    deviceContext().queue.waitIdle();
+    deviceContext().returnCommandBuffer(std::move(commandBuffer));
 }
 
-void Image::transitionImageLayout(const vk::raii::CommandBuffer& commandBuffer,
-    Image& image,
-    vk::AccessFlags dstAccess,
-    vk::ImageLayout dstLayout,
-    vk::PipelineStageFlags dstStage)
+void Image::transitionImageLayout(const vk::raii::CommandBuffer& commandBuffer)
 {
     vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
     vk::ImageMemoryBarrier imageMemoryBarrier(image.getAccess(),

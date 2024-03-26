@@ -360,7 +360,7 @@ vk::raii::CommandBuffer DeviceContext::takeCommandBuffer()
     return buf;
 }
 
-void DeviceContext::returnCommandBuffer(vk::raii::CommandBuffer buffer)
+void DeviceContext::returnCommandBuffer(vk::raii::CommandBuffer&& buffer)
 {
     commandBuffers.push_back(std::move(buffer));
 }

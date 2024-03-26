@@ -2,18 +2,19 @@
 #include "rprpp/Error.h"
 #include "rprpp/rprpp.h"
 #include "rprpp/vk/DescriptorBuilder.h"
+#include "rprpp/Context.h"
 
 constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-BloomFilter::BloomFilter(vk::helper::DeviceContext* dctx, UniformObjectBuffer<BloomParams>&& ubo) noexcept
-    : m_dctx(dctx)
-    , m_verticalFinishedSemaphore(dctx->device.createSemaphore({}))
-    , m_horizontalFinishedSemaphore(dctx->device.createSemaphore({}))
-    , m_ubo(std::move(ubo))
-    , m_verticalCommandBuffer(dctx)
-    , m_horizontalCommandBuffer(dctx)
+BloomFilter::BloomFilter(Context* context) noexcept
+    : Filter(context)
+    , m_verticalFinishedSemaphore(deviceContext().device.createSemaphore({}))
+    , m_horizontalFinishedSemaphore(deviceContext().device.createSemaphore({}))
+    , m_ubo(UniformObjectBuffer<filters::BloomParams>(context))
+    , m_verticalCommandBuffer(&deviceContext())
+    , m_horizontalCommandBuffer(&deviceContext())
 {
 }
 
@@ -45,8 +46,8 @@ void BloomFilter::createShaderModules()
         { "INPUT_FORMAT", to_glslformat(m_input->description().format) },
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
     };
-    m_verticalShaderModule = m_shaderManager.getBloomVerticalShader(m_dctx->device, macroDefinitions);
-    m_horizontalShaderModule = m_shaderManager.getBloomHorizontalShader(m_dctx->device, macroDefinitions);
+    m_verticalShaderModule = m_shaderManager.getBloomVerticalShader(deviceContext().device, macroDefinitions);
+    m_horizontalShaderModule = m_shaderManager.getBloomHorizontalShader(deviceContext().device, macroDefinitions);
 }
 
 void BloomFilter::createDescriptorSet()
@@ -65,12 +66,12 @@ void BloomFilter::createDescriptorSet()
     builder.bindStorageImage(&inputDescriptorInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
-    m_descriptorSetLayout = m_dctx->device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
-    m_descriptorPool = m_dctx->device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
-    m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx->device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
+    m_descriptorSetLayout = deviceContext().device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
+    m_descriptorPool = deviceContext().device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
+    m_descriptorSet = std::move(vk::raii::DescriptorSets(deviceContext().device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
 
     builder.updateDescriptorSet(*m_descriptorSet.value());
-    m_dctx->device.updateDescriptorSets(builder.writes(), nullptr);
+    deviceContext().device.updateDescriptorSets(builder.writes(), nullptr);
 }
 
 void BloomFilter::recordComputeCommandBuffers()
@@ -94,18 +95,18 @@ void BloomFilter::recordComputeCommandBuffers()
 void BloomFilter::createComputePipelines()
 {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo({}, *m_descriptorSetLayout.value());
-    m_pipelineLayout = vk::raii::PipelineLayout(m_dctx->device, pipelineLayoutInfo);
+    m_pipelineLayout = vk::raii::PipelineLayout(deviceContext().device, pipelineLayoutInfo);
     // vertical
     {
         vk::PipelineShaderStageCreateInfo shaderStageInfo({}, vk::ShaderStageFlagBits::eCompute, *m_verticalShaderModule.value(), "main");
         vk::ComputePipelineCreateInfo pipelineInfo({}, shaderStageInfo, *m_pipelineLayout.value());
-        m_verticalComputePipeline = m_dctx->device.createComputePipeline(nullptr, pipelineInfo);
+        m_verticalComputePipeline = deviceContext().device.createComputePipeline(nullptr, pipelineInfo);
     }
     // horizontal
     {
         vk::PipelineShaderStageCreateInfo shaderStageInfo({}, vk::ShaderStageFlagBits::eCompute, *m_horizontalShaderModule.value(), "main");
         vk::ComputePipelineCreateInfo pipelineInfo({}, shaderStageInfo, *m_pipelineLayout.value());
-        m_horizontalComputePipeline = m_dctx->device.createComputePipeline(nullptr, pipelineInfo);
+        m_horizontalComputePipeline = deviceContext().device.createComputePipeline(nullptr, pipelineInfo);
     }
 }
 
@@ -126,7 +127,7 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
         if (!m_tmpImage.has_value() || m_tmpImage.value().description() != m_input->description()) {
             m_tmpImage.reset();
             ImageDescription desc(m_input->description().width, m_input->description().height, ImageFormat::eR32G32B32A32Sfloat);
-            m_tmpImage = Image::create(*m_dctx, desc);
+            m_tmpImage = Image::create(deviceContext(), desc);
         }
 
         createShaderModules();
@@ -152,7 +153,7 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
 
         submitInfo.setSignalSemaphores(*m_verticalFinishedSemaphore);
         submitInfo.setCommandBuffers(*m_verticalCommandBuffer.get());
-        m_dctx->queue.submit(submitInfo);
+        deviceContext().queue.submit(submitInfo);
     }
     // horizontal
     {
@@ -163,7 +164,7 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
 
         submitInfo.setSignalSemaphores(*m_horizontalFinishedSemaphore);
         submitInfo.setCommandBuffers(*m_horizontalCommandBuffer.get());
-        m_dctx->queue.submit(submitInfo);
+        deviceContext().queue.submit(submitInfo);
     }
     return *m_horizontalFinishedSemaphore;
 }

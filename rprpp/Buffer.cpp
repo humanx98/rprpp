@@ -1,31 +1,28 @@
 #include "Buffer.h"
 #include "Error.h"
+#include "Context.h"
 
 namespace rprpp {
 
-Buffer::Buffer(vk::raii::Buffer&& buffer, vk::raii::DeviceMemory&& memory, size_t size) noexcept
-    : m_buffer(std::move(buffer))
-    , m_memory(std::move(memory))
-    , m_size(size)
+Buffer::Buffer(Context* parent, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
+: ContextObject(parent), 
+  m_size(size), 
+  m_buffer(createBuffer(context()->deviceContext(), size, usage)),
+  m_memory(allocateMemory(context()->deviceContext(), properties))
 {
+    m_buffer.bindMemory(*m_memory, 0);
 }
 
-Buffer Buffer::create(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
+vk::raii::Buffer Buffer::createBuffer(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage)
 {
-    vk::raii::Buffer buffer(dctx.device, vk::BufferCreateInfo({}, size, usage, vk::SharingMode::eExclusive));
+    return vk::raii::Buffer(dctx.device, vk::BufferCreateInfo({}, size, usage, vk::SharingMode::eExclusive));
+}
 
-    vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();
+vk::raii::DeviceMemory Buffer::allocateMemory(const vk::helper::DeviceContext& dctx, const vk::MemoryPropertyFlags& properties)
+{
+    vk::MemoryRequirements memRequirements = m_buffer.getMemoryRequirements();
     uint32_t memoryType = vk::helper::findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, properties);
-    auto memory = dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-
-    buffer.bindMemory(*memory, 0);
-
-    return Buffer(std::move(buffer), std::move(memory), size);
-}
-
-size_t Buffer::size() const noexcept
-{
-    return m_size;
+    return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
 }
 
 vk::Buffer Buffer::get() const noexcept

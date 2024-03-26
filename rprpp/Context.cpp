@@ -14,131 +14,153 @@ Context::Context(uint32_t deviceId)
 
 filters::BloomFilter* Context::createBloomFilter()
 {
-    auto params = UniformObjectBuffer<filters::BloomParams>::create(m_deviceContext);
-    auto filter = std::make_unique<filters::BloomFilter>(&m_deviceContext, std::move(params));
+    return m_objects.emplaceCastReturn<filters::BloomFilter>(this);
 
-    filters::BloomFilter* ptr = filter.get();
-    m_filters.emplace(ptr, std::move(filter));
-    return ptr;
-}
+    /* auto iter = m_childrens.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(m_tagGenerator()),
+        std::forward_as_tuple(std::in_place_type<filters::BloomFilter>, &m_deviceContext)
+    );
+
+    return &(std::get<filters::BloomFilter>(iter.first->second));*/
+
+    //return nullptr;
+
+ }
 
 filters::ComposeColorShadowReflectionFilter* Context::createComposeColorShadowReflectionFilter()
-{
-    auto params = UniformObjectBuffer<filters::ComposeColorShadowReflectionParams>::create(m_deviceContext);
-    vk::SamplerCreateInfo samplerInfo;
-    samplerInfo.unnormalizedCoordinates = vk::True;
-    samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-    samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-    auto filter = std::make_unique<filters::ComposeColorShadowReflectionFilter>(&m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext.device, samplerInfo));
+ {
+     /* auto params = UniformObjectBuffer<filters::ComposeColorShadowReflectionParams>(this);
+     vk::SamplerCreateInfo samplerInfo;
+     samplerInfo.unnormalizedCoordinates = vk::True;
+     samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+     samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;*/
 
-    filters::ComposeColorShadowReflectionFilter* ptr = filter.get();
-    m_filters.emplace(ptr, std::move(filter));
-    return ptr;
-}
+      return m_objects.emplaceCastReturn<filters::ComposeColorShadowReflectionFilter>(this);
 
-filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
+     /* auto filter = std::make_unique<filters::ComposeColorShadowReflectionFilter>(&m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext.device, samplerInfo));
+
+     filters::ComposeColorShadowReflectionFilter* ptr = filter.get();
+     m_filters.emplace(ptr, std::move(filter));
+     return ptr;*/
+
+    return nullptr;
+ }
+
+ filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
 {
-    auto params = UniformObjectBuffer<filters::ComposeOpacityShadowParams>::create(m_deviceContext);
-    auto filter = std::make_unique<filters::ComposeOpacityShadowFilter>(&m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext.device, vk::SamplerCreateInfo()));
+    //auto iter = m_objects.emplace(filters::ComposeOpacityShadowFilter(this));
+    //return static_cast<filters::ComposeOpacityShadowFilter*>(iter.first->get());
+
+    /* auto params = UniformObjectBuffer<filters::ComposeOpacityShadowParams>(this);
+    return nullptr;*/
+
+    /*auto filter = std::make_unique<filters::ComposeOpacityShadowFilter>(&m_deviceContext, std::move(params), vk::raii::Sampler(m_deviceContext.device, vk::SamplerCreateInfo()));
 
     filters::ComposeOpacityShadowFilter* ptr = filter.get();
     m_filters.emplace(ptr, std::move(filter));
-    return ptr;
+    return ptr;*/
+
+    return m_objects.emplaceCastReturn<filters::ComposeOpacityShadowFilter>(this);
+
 }
 
 filters::DenoiserFilter* Context::createDenoiserFilter()
 {
-    auto filter = std::make_unique<filters::DenoiserFilter>(&m_deviceContext);
+    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this);
+    //auto iter = m_objects.emplace(filters::DenoiserFilter(this));
+    //return static_cast<filters::DenoiserFilter*>(iter.first->get());
+
+    /* auto filter = std::make_unique<filters::DenoiserFilter>(&m_deviceContext);
 
     filters::DenoiserFilter* ptr = filter.get();
     m_filters.emplace(ptr, std::move(filter));
-    return ptr;
+    return ptr;*/
 }
 
 filters::ToneMapFilter* Context::createToneMapFilter()
 {
-    auto params = UniformObjectBuffer<filters::ToneMapParams>::create(m_deviceContext);
-    auto filter = std::make_unique<filters::ToneMapFilter>(&m_deviceContext, std::move(params));
+    return m_objects.emplaceCastReturn<filters::ToneMapFilter>(this);
+    //auto iter = m_objects.emplace(filters::ToneMapFilter(this));
+    //return static_cast<filters::ToneMapFilter*>(iter.first->get());
+
+    /* auto filter = std::make_unique<filters::ToneMapFilter>(&m_deviceContext, std::move(params));
 
     filters::ToneMapFilter* ptr = filter.get();
     m_filters.emplace(ptr, std::move(filter));
-    return ptr;
+    return ptr;*/
+
+    return nullptr;
 }
 
 void Context::destroyFilter(filters::Filter* filter)
 {
-    m_filters.erase(filter);
+    m_objects.erase(filter);
+    //m_filters.erase(filter);
 }
 
 Buffer* Context::createBuffer(size_t size)
 {
     auto usage = vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst;
     auto props = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+
+    return m_objects.emplaceCastReturn<Buffer>(this, size, usage, props);
+
+    /* auto iter = m_objects.emplace(std::make_unique<Buffer>(this, size, usage, props));
+    return static_cast<Buffer*>(iter.first->get());
+    */
+
+    //return nullptr;
+
     /* auto buffer = std::make_unique<Buffer>(Buffer::create(m_deviceContext, size, usage, props));
 
     Buffer* ptr = buffer.get();
     m_buffers.emplace(ptr, std::move(buffer));
     return ptr;*/
-
-    auto iter = m_childrens.emplace(
-        m_tagGenerator(),
-        Buffer::create(m_deviceContext, size, usage, props)
-    );
-
-    return &(std::get<Buffer>(iter.first->second));
 }
 
 void Context::destroyBuffer(Buffer* buffer)
 {
+    m_objects.erase(buffer);
     //m_buffers.erase(buffer);
 }
 
 Image* Context::createImage(const ImageDescription& desc)
 {
-    auto iter = m_childrens.emplace(
-        m_tagGenerator(),
-        Image::create(m_deviceContext, desc)
-    );
-    return &(std::get<Image>(iter.first->second));
+    return m_objects.emplaceCastReturn<Image>(Image::create(m_deviceContext, desc));
 
     /* auto image = std::make_unique<Image>(Image::create(m_deviceContext, desc));
 
     Image* ptr = image.get();
     m_images.emplace(ptr, std::move(image));
     return ptr;*/
+
+    return nullptr;
 }
 
 Image* Context::createFromVkSampledImage(vk::Image vkSampledImage, const ImageDescription& desc)
 {
-    auto iter = m_childrens.emplace(
-        m_tagGenerator(),
-        Image::createFromVkSampledImage(m_deviceContext, vkSampledImage, desc)
-    );
-    return &(std::get<Image>(iter.first->second));
 /*
     auto image = std::make_unique<Image>(Image::createFromVkSampledImage(m_deviceContext, vkSampledImage, desc));
 
     Image* ptr = image.get();
     m_images.emplace(ptr, std::move(image));
     return ptr;*/
+
+    return nullptr;
 }
 
 Image* Context::createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc)
 {
     assert(dx11textureHandle);
 
-    auto iter = m_childrens.emplace(
-        m_tagGenerator(),
-        Image::createFromDx11Texture(m_deviceContext, dx11textureHandle, desc)
-    );
-    return &(std::get<Image>(iter.first->second));
-
-
     /* auto image = std::make_unique<Image>(Image::createFromDx11Texture(m_deviceContext, dx11textureHandle, desc));
 
     Image* ptr = image.get();
     m_images.emplace(ptr, std::move(image));
     return ptr;*/
+
+    return nullptr;
 }
 
 void Context::destroyImage(Image* image)
