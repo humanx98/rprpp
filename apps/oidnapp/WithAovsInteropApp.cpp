@@ -121,11 +121,7 @@ void WithAovsInteropApp::initRpr()
     }
 
     // set frame buffers realese to signal state
-    RprPpVkSubmitInfo submitInfo;
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pSignalSemaphores = &m_frameBuffersReleaseSemaphores[1 % m_framesInFlight];
-    submitInfo.signalSemaphoreCount = 1;
-    RPRPP_CHECK(rprppVkQueueSubmit(m_ppContext->getVkQueue(), submitInfo, nullptr));
+    RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), nullptr, m_frameBuffersReleaseSemaphores[1 % m_framesInFlight], nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
         .physicalDevice = m_ppContext->getVkPhysicalDevice(),
@@ -209,7 +205,7 @@ void WithAovsInteropApp::resize(int width, int height)
             m_bloomFilter->setInput(*m_output);
             m_bloomFilter->setRadius(0.03f);
             m_bloomFilter->setThreshold(0.0f);
-            m_bloomFilter->setBrightnessScale(1.0f);
+            m_bloomFilter->setBrightnessScale(0.2f);
 
             m_tonemapFilter->setOutput(*m_output);
             m_tonemapFilter->setInput(*m_output);
@@ -254,25 +250,14 @@ void WithAovsInteropApp::mainLoop()
                     RprPpVkSemaphore aovsReleasedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
 
                     if (i < m_renderedIterations - 1) {
-                        RprPpVkSubmitInfo submitInfo;
-                        submitInfo.waitSemaphoreCount = 1;
-                        submitInfo.pWaitSemaphores = &aovsReadySemaphore;
-                        submitInfo.signalSemaphoreCount = 1;
-                        submitInfo.pSignalSemaphores = &aovsReleasedSemaphore;
-                        RPRPP_CHECK(rprppVkQueueSubmit(m_ppContext->getVkQueue(), submitInfo, fence));
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), aovsReadySemaphore, aovsReleasedSemaphore, fence));
                     } else {
                         RprPpVkSemaphore filterFinished = m_composeColorShadowReflectionFilter->run(aovsReadySemaphore);
                         filterFinished = m_denoiserFilter->run(filterFinished);
                         filterFinished = m_bloomFilter->run(filterFinished);
                         filterFinished = m_tonemapFilter->run(filterFinished);
                         // filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
-
-                        RprPpVkSubmitInfo submitInfo;
-                        submitInfo.waitSemaphoreCount = 1;
-                        submitInfo.pWaitSemaphores = &filterFinished;
-                        submitInfo.signalSemaphoreCount = 1;
-                        submitInfo.pSignalSemaphores = &aovsReleasedSemaphore;
-                        RPRPP_CHECK(rprppVkQueueSubmit(m_ppContext->getVkQueue(), submitInfo, fence));
+                        RPRPP_CHECK(rprppVkQueueSubmitWaitAndSignal(m_ppContext->getVkQueue(), filterFinished, aovsReleasedSemaphore, fence));
                     }
                 }
 
