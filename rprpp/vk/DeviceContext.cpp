@@ -189,7 +189,7 @@ namespace {
             enabledLayers,
             requiredExtensions,
             nullptr,
-            &accelerationStructureFeatures);
+            supportHardwareRT ? (void*)&accelerationStructureFeatures : (void*)&features12);
         return physicalDevice.createDevice(deviceCreateInfo);
     }
 } // namespace
