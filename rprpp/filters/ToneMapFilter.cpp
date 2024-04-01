@@ -31,10 +31,10 @@ void ToneMapFilter::createDescriptorSet()
     vk::DescriptorBufferInfo uboDescriptorInfo(m_ubo.buffer(), 0, m_ubo.size()); // binding 0
     builder.bindUniformBuffer(&uboDescriptorInfo);
 
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, m_output->view(), m_output->getLayout()); // binding 1
+    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_output->view(), m_output->layout()); // binding 1
     builder.bindStorageImage(&outputDescriptorInfo);
 
-    vk::DescriptorImageInfo inputDescriptorInfo(nullptr, m_input->view(), m_input->getLayout()); // binding 2
+    vk::DescriptorImageInfo inputDescriptorInfo(nullptr, *m_input->view(), m_input->layout()); // binding 2
     builder.bindStorageImage(&inputDescriptorInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();

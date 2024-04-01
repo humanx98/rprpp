@@ -45,7 +45,7 @@ void ComposeColorShadowReflectionFilter::createDescriptorSet()
     vk::DescriptorBufferInfo uboDescriptorInfo(m_ubo.buffer(), 0, m_ubo.size()); // binding 0
     builder.bindUniformBuffer(&uboDescriptorInfo);
 
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, m_output->view(), m_output->getLayout()); // binding 1
+    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_output->view(), m_output->layout()); // binding 1
     builder.bindStorageImage(&outputDescriptorInfo);
 
     std::vector<Image*> aovs = {
@@ -61,10 +61,10 @@ void ComposeColorShadowReflectionFilter::createDescriptorSet()
     descriptorImageInfos.reserve(aovs.size());
     for (auto img : aovs) {
         if (allAovsAreStoreImages()) {
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, img->view(), img->getLayout()));
+            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *img->view(), img->layout()));
             builder.bindStorageImage(&descriptorImageInfos.back());
         } else if (allAovsAreSampledImages()) {
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*m_sampler, img->view(), img->getLayout()));
+            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*m_sampler, *img->view(), img->layout()));
             builder.bindCombinedImageSampler(&descriptorImageInfos.back());
         } else {
             throw InternalError("uknown image type");

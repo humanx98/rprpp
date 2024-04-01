@@ -37,12 +37,18 @@ set(HEADERS
     vk/vk.h
     Context.h
     ContextObject.h
+    ContextObjectContainer.h
+    ContextObjectHash.h
     rprpp.h
     Error.h
     Buffer.h
     Image.h
     ImageFormat.h
+    ImageDescription.h
     UniformObjectBuffer.h
+    ContextObjectContainerHasher.h
+    ContextObjectContainerEqual.h
+
 )
 
 set(SOURCES
@@ -57,10 +63,12 @@ set(SOURCES
     vk/ShaderManager.cpp
     Context.cpp
     ContextObject.cpp
+    ContextObjectContainer.cpp
     rprpp.cpp
     Error.cpp
     Buffer.cpp
     Image.cpp
+    ImageDescription.cpp
 )
 
 add_library(rprpp SHARED 

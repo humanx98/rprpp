@@ -51,3 +51,8 @@ _deps
 !HybridPro.dll
 !Northstar64.dll
 !RadeonProRender64.dll
+
+.idea
+cmake-build-debug-visual-studio
+cmake-build-debug
+

@@ -4,167 +4,70 @@
 
 namespace rprpp {
 
-ImageDescription::ImageDescription(uint32_t w, uint32_t h, ImageFormat f)
-    : width(w)
-    , height(h)
-    , format(f)
+vk::raii::Image Image::createImage(
+    Context* context,
+    const ImageDescription& desc,
+    vk::ImageUsageFlags imageUsageFlags)
 {
+    vk::ImageCreateInfo imageInfo({},
+            vk::ImageType::e2D,
+            to_vk_format(desc.format),
+            { desc.width, desc.height, 1 },
+            1,
+            1,
+            vk::SampleCountFlagBits::e1,
+            vk::ImageTiling::eOptimal,
+            imageUsageFlags,
+            vk::SharingMode::eExclusive,
+            nullptr,
+    vk::ImageLayout::eUndefined);
+
+    return vk::raii::Image(context->deviceContext().device, imageInfo);
 }
 
-ImageDescription::ImageDescription(const RprPpImageDescription& desc)
-    : width(desc.width)
-    , height(desc.height)
-    , format(static_cast<rprpp::ImageFormat>(desc.format))
+vk::raii::DeviceMemory Image::allocateDeviceMemory(Context* context, vk::raii::Image* image)
 {
+    vk::MemoryRequirements memRequirements = image->getMemoryRequirements();
+    uint32_t memoryType = vk::helper::findMemoryType(context->deviceContext().physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    vk::raii::DeviceMemory memory = context->deviceContext().device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
+    image->bindMemory(*memory, 0);
+
+    return memory;
 }
 
-Image::Image(Context* context, vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii::ImageView&& view, vk::ImageUsageFlags usage, const ImageDescription& desc) noexcept
-    : ContextObject(context) 
-    , m_image(std::move(image))
-    , m_memory(std::move(memory))
-    , m_view(std::move(view))
-    , m_usage(usage)
-    , m_description(desc)
+vk::raii::ImageView Image::createImageView(Context* context, vk::raii::Image* image, const ImageDescription& imageDescription)
 {
+    vk::ImageViewCreateInfo viewInfo({},
+            *(*image),
+            vk::ImageViewType::e2D,
+            to_vk_format(imageDescription.format),
+            {},
+            { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
+    return vk::raii::ImageView(context->deviceContext().device, viewInfo);
 }
-
-Image::Image(Context* context, vk::Image image, vk::raii::ImageView&& view, const ImageDescription& desc) noexcept
-    : ContextObject(context)
-    , m_notOwnedImage(image)
-    , m_view(std::move(view))
-    , m_description(desc)
-    , m_usage(vk::ImageUsageFlagBits::eSampled)
-    , m_layout(vk::ImageLayout::eShaderReadOnlyOptimal)
-    , m_access(vk::AccessFlagBits::eShaderRead)
-    , m_stages(vk::PipelineStageFlagBits::eComputeShader)
-{
-}
-
-vk::raii::Image Image::createImage(const ImageDescription& desc, vk::ImageUsageFlags imageUsageFlags)
-{
-	//vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage;
-	vk::ImageCreateInfo imageInfo({},
-		vk::ImageType::e2D,
-		to_vk_format(desc.format),
-		{ desc.width, desc.height, 1 },
-		1,
-		1,
-		vk::SampleCountFlagBits::e1,
-		vk::ImageTiling::eOptimal,
-		imageUsageFlags,
-		vk::SharingMode::eExclusive,
-		nullptr,
-	vk::ImageLayout::eUndefined);
-
-	return vk::raii::Image(deviceContext().device, imageInfo);
-}
-
-vk::raii::DeviceMemory Image::allocateDeviceMemory()
-{
-	vk::MemoryRequirements memRequirements = m_image.getMemoryRequirements();
-	uint32_t memoryType = vk::helper::findMemoryType(deviceContext().physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-	vk::raii::DeviceMemory memory = deviceContext().device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
-	m_image.bindMemory(*memory, 0);
-
-	return memory;
-}
-
-vk::raii::ImageView Image::createImageView()
-{
-	vk::ImageViewCreateInfo viewInfo({},
-		*m_image,
-		vk::ImageViewType::e2D,
-		to_vk_format(m_description.format),
-		{},
-		{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-	return vk::raii::ImageView(deviceContext().device, viewInfo);
-}
-
-
 
 Image::Image(Context* context, const ImageDescription& desc)
     : ContextObject(context)
     , m_description(desc)
     , m_usage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage)
-    , m_image(createImage(desc, m_usage))
-    , m_memory(allocateDeviceMemory())
-    , m_view(createImageView())
-    , m_access(vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite)
-    , m_layout(vk::ImageLayout::eGeneral)
-    , m_stages(vk::PipelineStageFlagBits::eComputeShader)
+    , m_image(createImage(context, desc, m_usage))
+    , m_memory(allocateDeviceMemory(context, &m_image))
+    , m_view(createImageView(context, &m_image, m_description))
+    , m_access(vk::AccessFlagBits::eNone)
+    , m_layout(vk::ImageLayout::eUndefined)
+    , m_stages(vk::PipelineStageFlagBits::eTopOfPipe)
 {
-    transitionImageLayout();
+    transitionImageLayout(
+        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+        vk::ImageLayout::eGeneral,
+        vk::PipelineStageFlagBits::eComputeShader);
 }
 
-Image Image::createFromVkSampledImage(const vk::helper::DeviceContext& dctx, vk::Image image, const ImageDescription& desc)
-{
-    vk::ImageViewCreateInfo viewInfo({},
-        image,
-        vk::ImageViewType::e2D,
-        to_vk_format(desc.format),
-        {},
-        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-    vk::raii::ImageView view(dctx.device, viewInfo);
-
-    return Image(image, std::move(view), desc);
-}
-
-Image Image::createFromDx11Texture(vk::helper::DeviceContext& dctx, HANDLE dx11textureHandle, const ImageDescription& desc)
-{
-    vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage;
-    vk::ExternalMemoryImageCreateInfo externalMemoryInfo = vk::ExternalMemoryImageCreateInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture);
-
-    vk::ImageCreateInfo imageInfo({},
-        vk::ImageType::e2D,
-        to_vk_format(desc.format),
-        { desc.width, desc.height, 1 },
-        1,
-        1,
-        vk::SampleCountFlagBits::e1,
-        vk::ImageTiling::eOptimal,
-        usage,
-        vk::SharingMode::eExclusive,
-        nullptr,
-        vk::ImageLayout::eUndefined,
-        &externalMemoryInfo);
-    vk::raii::Image image(dctx.device, imageInfo);
-
-    vk::MemoryDedicatedRequirements memoryDedicatedRequirements;
-    vk::MemoryRequirements2 memoryRequirements2({}, &memoryDedicatedRequirements);
-    vk::ImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo2(*image);
-    (*dctx.device).getImageMemoryRequirements2(&imageMemoryRequirementsInfo2, &memoryRequirements2);
-    vk::MemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo(*image);
-    vk::ImportMemoryWin32HandleInfoKHR importMemoryInfo(vk::ExternalMemoryHandleTypeFlagBits::eD3D11Texture,
-        dx11textureHandle,
-        nullptr,
-        &memoryDedicatedAllocateInfo);
-    uint32_t memoryType = vk::helper::findMemoryType(dctx.physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    vk::MemoryAllocateInfo memoryAllocateInfo(memoryRequirements2.memoryRequirements.size,
-        memoryType,
-        &importMemoryInfo);
-    vk::raii::DeviceMemory memory = dctx.device.allocateMemory(memoryAllocateInfo);
-
-    image.bindMemory(*memory, 0);
-
-    vk::ImageViewCreateInfo viewInfo({},
-        *image,
-        vk::ImageViewType::e2D,
-        to_vk_format(desc.format),
-        {},
-        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-    vk::raii::ImageView view(dctx.device, viewInfo);
-
-    Image result(std::move(image), std::move(memory), std::move(view), usage, desc);
-    vk::AccessFlags access = vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-    transitionImageLayout(dctx, result, access, vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits::eComputeShader);
-    return result;
-}
-
-void Image::transitionImageLayout()
+void Image::transitionImageLayout(vk::AccessFlags dstAccessFlags, vk::ImageLayout dstImageLayout, vk::PipelineStageFlags dstPipelineStageFlags)
 {
     vk::raii::CommandBuffer commandBuffer = deviceContext().takeCommandBuffer();
     commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    transitionImageLayout(commandBuffer);
+    transitionImageLayout(commandBuffer, dstAccessFlags, dstImageLayout, dstPipelineStageFlags);
     commandBuffer.end();
 
     vk::SubmitInfo submitInfo(nullptr, nullptr, *commandBuffer);
@@ -173,88 +76,32 @@ void Image::transitionImageLayout()
     deviceContext().returnCommandBuffer(std::move(commandBuffer));
 }
 
-void Image::transitionImageLayout(const vk::raii::CommandBuffer& commandBuffer)
+void Image::transitionImageLayout(const vk::raii::CommandBuffer& commandBuffer,
+    vk::AccessFlags dstAccessFlags,
+    vk::ImageLayout dstImageLayout,
+    vk::PipelineStageFlags dstPipelineStageFlags)
 {
     vk::ImageSubresourceRange subresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
-    vk::ImageMemoryBarrier imageMemoryBarrier(image.getAccess(),
-        dstAccess,
-        image.getLayout(),
-        dstLayout,
+
+    vk::ImageMemoryBarrier imageMemoryBarrier(m_access,
+        dstAccessFlags,
+        m_layout,
+        dstImageLayout,
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
-        image.get(),
+        *m_image,
         subresourceRange);
 
-    commandBuffer.pipelineBarrier(image.getPipelineStages(),
-        dstStage,
+    commandBuffer.pipelineBarrier(m_stages,
+        dstPipelineStageFlags,
         {},
         nullptr,
         nullptr,
         imageMemoryBarrier);
 
-    image.setAccess(dstAccess);
-    image.setLayout(dstLayout);
-    image.setPipelineStages(dstStage);
+    m_access = dstAccessFlags;
+    m_layout = dstImageLayout;
+    m_stages = dstPipelineStageFlags;
 }
 
-const ImageDescription& Image::description() const noexcept
-{
-    return m_description;
-}
-
-vk::ImageUsageFlags Image::usage() const noexcept
-{
-    return m_usage;
-}
-
-bool Image::IsStorage() const noexcept
-{
-    return (m_usage & vk::ImageUsageFlagBits::eStorage) == vk::ImageUsageFlagBits::eStorage;
-}
-
-bool Image::IsSampled() const noexcept
-{
-    return (m_usage & vk::ImageUsageFlagBits::eSampled) == vk::ImageUsageFlagBits::eSampled;
-}
-
-const vk::Image Image::get() const noexcept
-{
-    return m_image.has_value() ? *m_image.value() : m_notOwnedImage.value();
-}
-
-const vk::ImageView Image::view() const noexcept
-{
-    return *m_view;
-}
-
-vk::AccessFlags Image::getAccess() const noexcept
-{
-    return m_access;
-}
-
-void Image::setAccess(vk::AccessFlags access) noexcept
-{
-    m_access = access;
-}
-
-vk::ImageLayout Image::getLayout() const noexcept
-{
-    return m_layout;
-}
-
-void Image::setLayout(vk::ImageLayout layout) noexcept
-{
-    m_layout = layout;
-}
-
-vk::PipelineStageFlags Image::getPipelineStages() const noexcept
-{
-    return m_stages;
-}
-
-void Image::setPipelineStages(vk::PipelineStageFlags stages) noexcept
-{
-    m_stages = stages;
-}
-
-}
+} // namespace rprpp

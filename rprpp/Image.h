@@ -1,65 +1,70 @@
 #pragma once
 
-#include "ImageFormat.h"
+#include "ImageDescription.h"
 #include "rprpp.h"
 #include "vk/DeviceContext.h"
 #include "ContextObject.h"
 
 namespace rprpp {
 
-struct ImageDescription {
-    uint32_t width;
-    uint32_t height;
-    ImageFormat format;
-
-    ImageDescription(uint32_t w, uint32_t h, ImageFormat f);
-    ImageDescription(const RprPpImageDescription& desc);
-
-    friend bool operator==(const ImageDescription&, const ImageDescription&) = default;
-    friend bool operator!=(const ImageDescription&, const ImageDescription&) = default;
-};
-
 class Image : public ContextObject {
 public:
-    Image(Context* context, vk::raii::Image&& image, vk::raii::DeviceMemory&& memory, vk::raii::ImageView&& view, vk::ImageUsageFlags usage, const ImageDescription& desc) noexcept;
-    Image(Context* context, vk::Image image, vk::raii::ImageView&& view, const ImageDescription& desc) noexcept;
-
     explicit Image(Context* context, const ImageDescription& desc);
 
-    static Image createFromVkSampledImage(Context* context, vk::Image image, const ImageDescription& desc);
-    static Image createFromDx11Texture(Context* context, HANDLE dx11textureHandle, const ImageDescription& desc);
+    // transition functions
+    void transitionImageLayout(
+        vk::AccessFlags newAccessFlags,
+        vk::ImageLayout newImageLayout,
+        vk::PipelineStageFlags newPipelineStageFlags);
 
-    void transitionImageLayout();
-    void transitionImageLayout(const vk::raii::CommandBuffer& commandBuffer);
+    void transitionImageLayout(
+        const vk::raii::CommandBuffer& commandBuffer,
+        vk::AccessFlags newAccessFlags,
+        vk::ImageLayout newImageLayout,
+        vk::PipelineStageFlags newPipelineStageFlags);
 
-    const vk::Image get() const noexcept;
-    const vk::ImageView view() const noexcept;
-    vk::ImageUsageFlags usage() const noexcept;
-    bool IsStorage() const noexcept;
-    bool IsSampled() const noexcept;
-    const ImageDescription& description() const noexcept;
+    [[nodiscard]]
+    bool IsStorage() const noexcept {  return (m_usage & vk::ImageUsageFlagBits::eStorage) == vk::ImageUsageFlagBits::eStorage; }
 
-    vk::AccessFlags getAccess() const noexcept;
-    vk::ImageLayout getLayout() const noexcept;
+    [[nodiscard]]
+    bool IsSampled() const noexcept { return (m_usage & vk::ImageUsageFlagBits::eSampled) == vk::ImageUsageFlagBits::eSampled; }
 
-    vk::PipelineStageFlags getPipelineStages() const noexcept;
-    void setPipelineStages(vk::PipelineStageFlags stages) noexcept;
+    [[nodiscard]]
+    const ImageDescription& description() const noexcept { return m_description; }
+
+    [[nodiscard]]
+    const vk::raii::ImageView& view() const noexcept { return m_view; }
+
+    [[nodiscard]]
+    const vk::ImageLayout& layout() const noexcept { return m_layout; }
+
+    [[nodiscard]]
+    const vk::PipelineStageFlags& stages() const noexcept { return m_stages; }
+
+    [[nodiscard]]
+    const vk::AccessFlags& access() const noexcept { return m_access; }
+
+    [[nodiscard]]
+    const vk::raii::Image& image() const noexcept { return m_image; }
 
 private:
-    vk::raii::Image createImage(const ImageDescription& desc, vk::ImageUsageFlags imageUsageFlags);
-    vk::raii::DeviceMemory allocateDeviceMemory();
-    vk::raii::ImageView createImageView();
+    // constructors
+    static vk::raii::Image createImage(Context* context,
+        const ImageDescription& desc,
+        vk::ImageUsageFlags imageUsageFlags);
+    static vk::raii::DeviceMemory allocateDeviceMemory(Context* context, vk::raii::Image* image);
+    static vk::raii::ImageView createImageView(Context* context, vk::raii::Image* image, const ImageDescription& imageDescription);
 
     ImageDescription m_description;
     vk::ImageUsageFlags m_usage;
 
     vk::raii::Image m_image;
     vk::raii::DeviceMemory m_memory;
-    vk::Image m_notOwnedImage;
     vk::raii::ImageView m_view;
-    vk::AccessFlags m_access = vk::AccessFlagBits::eNone;
-    vk::ImageLayout m_layout = vk::ImageLayout::eUndefined;
-    vk::PipelineStageFlags m_stages = vk::PipelineStageFlagBits::eTopOfPipe;
+
+    vk::AccessFlags m_access;
+    vk::ImageLayout m_layout;
+    vk::PipelineStageFlags m_stages;
 };
 
-}
+} // namespace

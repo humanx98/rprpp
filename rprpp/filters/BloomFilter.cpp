@@ -52,17 +52,19 @@ void BloomFilter::createShaderModules()
 
 void BloomFilter::createDescriptorSet()
 {
+    assert(m_tmpImage);
+
     vk::helper::DescriptorBuilder builder;
     vk::DescriptorBufferInfo uboDescriptorInfo(m_ubo.buffer(), 0, m_ubo.size()); // binding 0
     builder.bindUniformBuffer(&uboDescriptorInfo);
 
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, m_output->view(), m_output->getLayout()); // binding 1
+    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_output->view(), m_output->layout()); // binding 1
     builder.bindStorageImage(&outputDescriptorInfo);
 
-    vk::DescriptorImageInfo tmpImageDescriptorInfo(nullptr, m_tmpImage->view(), m_tmpImage->getLayout()); // binding 2
+    vk::DescriptorImageInfo tmpImageDescriptorInfo(nullptr, *m_tmpImage->view(), m_tmpImage->layout()); // binding 2
     builder.bindStorageImage(&tmpImageDescriptorInfo);
 
-    vk::DescriptorImageInfo inputDescriptorInfo(nullptr, m_input->view(), m_input->getLayout()); // binding 3
+    vk::DescriptorImageInfo inputDescriptorInfo(nullptr, *m_input->view(), m_input->layout()); // binding 3
     builder.bindStorageImage(&inputDescriptorInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
@@ -124,10 +126,10 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
         m_verticalShaderModule.reset();
         m_horizontalShaderModule.reset();
 
-        if (!m_tmpImage.has_value() || m_tmpImage.value().description() != m_input->description()) {
+        if (!m_tmpImage || m_tmpImage->description() != m_input->description()) {
             m_tmpImage.reset();
             ImageDescription desc(m_input->description().width, m_input->description().height, ImageFormat::eR32G32B32A32Sfloat);
-            m_tmpImage = Image::create(deviceContext(), desc);
+            m_tmpImage = std::make_unique<Image>(context(), desc);
         }
 
         createShaderModules();
