@@ -21,7 +21,7 @@ struct ComposeOpacityShadowParams {
 
 class ComposeOpacityShadowFilter : public Filter {
 public:
-    ComposeOpacityShadowFilter(Context* context);
+    explicit ComposeOpacityShadowFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
     void setOutput(Image* img) noexcept override;

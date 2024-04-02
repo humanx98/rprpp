@@ -2,20 +2,23 @@
 
 namespace rprpp::wrappers::filters {
 
-ComposeOpacityShadowFilter::ComposeOpacityShadowFilter(const Context& context)
-    : Filter(context)
+ComposeOpacityShadowFilter::ComposeOpacityShadowFilter(const Context& _context)
+: Filter(_context)
 {
     RprPpError status;
 
-    status = rprppContextCreateComposeOpacityShadowFilter(m_context, &m_filter);
+    RprPpFilter filter;
+    status = rprppContextCreateComposeOpacityShadowFilter(context(), &filter);
     RPRPP_CHECK(status);
+
+    setFilter(filter);
 }
 
 void ComposeOpacityShadowFilter::setAovShadowCatcher(const Image& img)
 {
     RprPpError status;
 
-    status = rprppComposeOpacityShadowFilterSetAovShadowCatcher(m_filter, img.get());
+    status = rprppComposeOpacityShadowFilterSetAovShadowCatcher(filter(), img.get());
     RPRPP_CHECK(status);
 }
 
@@ -23,7 +26,7 @@ void ComposeOpacityShadowFilter::setTileOffset(int x, int y)
 {
     RprPpError status;
 
-    status = rprppComposeOpacityShadowFilterSetTileOffset(m_filter, x, y);
+    status = rprppComposeOpacityShadowFilterSetTileOffset(filter(), x, y);
     RPRPP_CHECK(status);
 }
 
@@ -31,7 +34,7 @@ void ComposeOpacityShadowFilter::setShadowIntensity(float shadowIntensity)
 {
     RprPpError status;
 
-    status = rprppComposeOpacityShadowFilterSetShadowIntensity(m_filter, shadowIntensity);
+    status = rprppComposeOpacityShadowFilterSetShadowIntensity(filter(), shadowIntensity);
     RPRPP_CHECK(status);
 }
 

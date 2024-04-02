@@ -4,6 +4,9 @@
 #include "filters/ComposeColorShadowReflectionFilter.h"
 #include "filters/ComposeOpacityShadowFilter.h"
 #include "filters/ToneMapFilter.h"
+#include "DxImage.h"
+#include "VkSampledImage.h"
+#include "ImageSimple.h"
 
 namespace rprpp {
 
@@ -57,32 +60,18 @@ void Context::destroyBuffer(Buffer* buffer)
 
 Image* Context::createImage(const ImageDescription& desc)
 {
-    return m_objects.emplaceCastReturn<Image>(this, desc);
+    return m_objects.emplaceCastReturn<ImageSimple>(this, desc);
 }
 
 Image* Context::createFromVkSampledImage(vk::Image vkSampledImage, const ImageDescription& desc)
 {
-/*
-    auto image = std::make_unique<Image>(Image::createFromVkSampledImage(m_deviceContext, vkSampledImage, desc));
-
-    Image* ptr = image.get();
-    m_images.emplace(ptr, std::move(image));
-    return ptr;*/
-
-    return nullptr;
+    return m_objects.emplaceCastReturn<VkSampledImage>(this, vkSampledImage, desc);
 }
 
 Image* Context::createImageFromDx11Texture(HANDLE dx11textureHandle, const ImageDescription& desc)
 {
     assert(dx11textureHandle);
-
-    /* auto image = std::make_unique<Image>(Image::createFromDx11Texture(m_deviceContext, dx11textureHandle, desc));
-
-    Image* ptr = image.get();
-    m_images.emplace(ptr, std::move(image));
-    return ptr;*/
-
-    return nullptr;
+    return m_objects.emplaceCastReturn<DxImage>(this, desc, dx11textureHandle);
 }
 
 void Context::destroyImage(Image* image)
@@ -110,7 +99,7 @@ void Context::copyBufferToImage(Buffer* buffer, Image* image)
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image->description().width, image->description().height, 1 });
-        commandBuffer.get().copyBufferToImage(buffer->get(), *image->image(), vk::ImageLayout::eTransferDstOptimal, region);
+        commandBuffer.get().copyBufferToImage(buffer->get(), image->image(), vk::ImageLayout::eTransferDstOptimal, region);
     }
     image->transitionImageLayout(commandBuffer.get(), oldAccess, oldLayout, oldStage);
     commandBuffer.get().end();
@@ -140,7 +129,7 @@ void Context::copyImageToBuffer(Image* image, Buffer* buffer)
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::BufferImageCopy region(0, 0, 0, imageSubresource, { 0, 0, 0 }, { image->description().width, image->description().height, 1 });
-        commandBuffer.get().copyImageToBuffer(*image->image(), vk::ImageLayout::eTransferSrcOptimal, buffer->get(), region);
+        commandBuffer.get().copyImageToBuffer(image->image(), vk::ImageLayout::eTransferSrcOptimal, buffer->get(), region);
     }
     image->transitionImageLayout(commandBuffer.get(), oldAccess, oldLayout, oldStage);
     commandBuffer.get().end();
@@ -177,7 +166,7 @@ void Context::copyImage(Image* src, Image* dst)
     {
         vk::ImageSubresourceLayers imageSubresource(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
         vk::ImageCopy region(imageSubresource, { 0, 0, 0 }, imageSubresource, { 0, 0, 0 }, { src->description().width, src->description().height, 1 });
-        commandBuffer.get().copyImage(*src->image(), vk::ImageLayout::eTransferSrcOptimal, *dst->image(), vk::ImageLayout::eTransferDstOptimal, region);
+        commandBuffer.get().copyImage(src->image(), vk::ImageLayout::eTransferSrcOptimal, dst->image(), vk::ImageLayout::eTransferDstOptimal, region);
     }
     src->transitionImageLayout(commandBuffer.get(), oldSrcAccess, oldSrcLayout, oldSrcStage);
     dst->transitionImageLayout(commandBuffer.get(), oldDstAccess, oldDstLayout, oldDstStage);

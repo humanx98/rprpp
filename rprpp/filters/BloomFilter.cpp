@@ -3,6 +3,7 @@
 #include "rprpp/rprpp.h"
 #include "rprpp/vk/DescriptorBuilder.h"
 #include "rprpp/Context.h"
+#include "rprpp/ImageSimple.h"
 
 constexpr int WorkgroupSize = 32;
 
@@ -129,7 +130,7 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
         if (!m_tmpImage || m_tmpImage->description() != m_input->description()) {
             m_tmpImage.reset();
             ImageDescription desc(m_input->description().width, m_input->description().height, ImageFormat::eR32G32B32A32Sfloat);
-            m_tmpImage = std::make_unique<Image>(context(), desc);
+            m_tmpImage = std::make_unique<ImageSimple>(context(), desc);
         }
 
         createShaderModules();

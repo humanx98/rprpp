@@ -35,6 +35,9 @@ set(HEADERS
     vk/DeviceContext.h
     vk/ShaderManager.h
     vk/vk.h
+    VkSampledImage.h
+    DxImage.h
+    ImageSimple.h
     Context.h
     ContextObject.h
     ContextObjectContainer.h
@@ -45,6 +48,7 @@ set(HEADERS
     Image.h
     ImageFormat.h
     ImageDescription.h
+    ImageData.h
     UniformObjectBuffer.h
     ContextObjectContainerHasher.h
     ContextObjectContainerEqual.h
@@ -56,11 +60,16 @@ set(SOURCES
     filters/ComposeColorShadowReflectionFilter.cpp
     filters/ComposeOpacityShadowFilter.cpp
     filters/DenoiserFilter.cpp
+    filters/Filter.cpp
     filters/ToneMapFilter.cpp
     vk/CommandBuffer.cpp
     vk/DescriptorBuilder.cpp
     vk/DeviceContext.cpp
     vk/ShaderManager.cpp
+    ImageData.cpp
+    DxImage.cpp
+    ImageSimple.cpp
+    VkSampledImage.cpp
     Context.cpp
     ContextObject.cpp
     ContextObjectContainer.cpp

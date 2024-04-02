@@ -23,7 +23,7 @@ struct ComposeColorShadowReflectionParams {
 
 class ComposeColorShadowReflectionFilter : public Filter {
 public:
-    ComposeColorShadowReflectionFilter(Context* context);
+    explicit ComposeColorShadowReflectionFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
     void setOutput(Image* img) noexcept override;

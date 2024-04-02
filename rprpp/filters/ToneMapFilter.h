@@ -30,7 +30,7 @@ struct ToneMapParams {
 
 class ToneMapFilter : public Filter {
 public:
-    ToneMapFilter(Context* context);
+    explicit ToneMapFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
 
@@ -74,7 +74,6 @@ private:
     Image* m_input = nullptr;
     Image* m_output = nullptr;
     vk::helper::ShaderManager m_shaderManager;
-    vk::helper::DeviceContext* m_dctx;
     vk::raii::Semaphore m_finishedSemaphore;
     UniformObjectBuffer<ToneMapParams> m_ubo;
     vk::helper::CommandBuffer m_commandBuffer;

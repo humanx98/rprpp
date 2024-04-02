@@ -31,19 +31,9 @@ public:
         return m_objects.erase(iter);
     }
 
-    [[warning("Performance penalty")]]
     void erase(ContextObject* address)
     {
-        for (auto iter = m_objects.begin(); iter != m_objects.end(); ++iter) {
-            const ContextObject* ptr = iter->get();
-            if (!ptr)
-                continue;
-
-            if (ptr == address) {
-                m_objects.erase(iter);
-                break;
-            }
-        }
+        erase(address->tag());
     }
 
     boost::uuids::uuid generateNextTag();
