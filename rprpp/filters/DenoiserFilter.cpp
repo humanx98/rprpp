@@ -6,9 +6,9 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-DenoiserFilter::DenoiserFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx) noexcept
-    : m_dctx(dctx)
-    , m_finishedSemaphore(dctx->device.createSemaphore({}))
+DenoiserFilter::DenoiserFilter(Context* context) 
+    : Filter(context)
+    , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
 {
 }
 
@@ -40,7 +40,7 @@ vk::Semaphore DenoiserFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     }
 
     submitInfo.setSignalSemaphores(*m_finishedSemaphore);
-    m_dctx->queue.submit(submitInfo);
+    deviceContext().queue.submit(submitInfo);
     return *m_finishedSemaphore;
 }
 

@@ -4,14 +4,17 @@
 
 namespace rprpp {
 
+class Context;
+
 template <class T>
 class UniformObjectBuffer {
 public:
+    explicit UniformObjectBuffer(Context* context);
+
     UniformObjectBuffer(Buffer&& buffer) noexcept;
     UniformObjectBuffer(UniformObjectBuffer&&) noexcept = default;
     UniformObjectBuffer& operator=(UniformObjectBuffer&&) noexcept = default;
 
-    static UniformObjectBuffer create(const vk::helper::DeviceContext& dctx);
 
     T& data() noexcept;
     const T& data() const noexcept;
@@ -25,7 +28,9 @@ public:
     UniformObjectBuffer& operator=(const Buffer&) = delete;
 
 private:
-    bool m_dirty = true;
+    Buffer createBuffer(Context* context);
+
+    bool m_dirty;
     T m_data;
     Buffer m_buffer;
 };
@@ -37,14 +42,21 @@ UniformObjectBuffer<T>::UniformObjectBuffer(Buffer&& buffer) noexcept
 }
 
 template <class T>
-UniformObjectBuffer<T> UniformObjectBuffer<T>::create(const vk::helper::DeviceContext& dctx)
+Buffer UniformObjectBuffer<T>::createBuffer(Context* context)
 {
-    Buffer buffer = Buffer::create(dctx,
+    return Buffer(context,
         sizeof(T),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+}
 
-    return UniformObjectBuffer(std::move(buffer));
+
+
+template <class T>
+UniformObjectBuffer<T>::UniformObjectBuffer(Context* context)
+: m_buffer(createBuffer(context)), 
+  m_dirty(true)
+{
 }
 
 template <class T>

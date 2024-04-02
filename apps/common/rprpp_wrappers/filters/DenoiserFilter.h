@@ -6,7 +6,7 @@ namespace rprpp::wrappers::filters {
 
 class DenoiserFilter : public Filter {
 public:
-    DenoiserFilter(const Context& context);
+    explicit DenoiserFilter(const Context& context);
 };
 
 }

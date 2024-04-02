@@ -21,17 +21,9 @@ struct ComposeOpacityShadowParams {
 
 class ComposeOpacityShadowFilter : public Filter {
 public:
-    ComposeOpacityShadowFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
-        UniformObjectBuffer<ComposeOpacityShadowParams>&& ubo,
-        vk::raii::Sampler&& sampler) noexcept;
-    ComposeOpacityShadowFilter(ComposeOpacityShadowFilter&&) noexcept = default;
-    ComposeOpacityShadowFilter& operator=(ComposeOpacityShadowFilter&&) noexcept = default;
-
-    ComposeOpacityShadowFilter(const ComposeOpacityShadowFilter&) = delete;
-    ComposeOpacityShadowFilter& operator=(const ComposeOpacityShadowFilter&) = delete;
+    explicit ComposeOpacityShadowFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
-
     void setOutput(Image* img) noexcept override;
     void setInput(Image* img) noexcept override;
     void setAovShadowCatcher(Image* img) noexcept;
@@ -60,7 +52,6 @@ private:
     Image* m_aovBackground = nullptr;
     Image* m_output = nullptr;
     vk::helper::ShaderManager m_shaderManager;
-    std::shared_ptr<vk::helper::DeviceContext> m_dctx;
     vk::raii::Semaphore m_finishedSemaphore;
     UniformObjectBuffer<ComposeOpacityShadowParams> m_ubo;
     vk::raii::Sampler m_sampler;

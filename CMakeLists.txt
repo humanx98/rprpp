@@ -10,6 +10,8 @@ option(BUILD_APPS "Build testing applications" ON)
 option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set(OpenImageDenoise_DIR "${CMAKE_SOURCE_DIR}/ThirdParty/oidn/lib/cmake/OpenImageDenoise-2.2.2")
+
 include("${CMAKE_SOURCE_DIR}/cmake/CompileOptions.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/WindowsFileVersion.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/CopyFileToTarget.cmake")
@@ -17,9 +19,11 @@ include("${CMAKE_SOURCE_DIR}/cmake/VulkanTools.cmake")
 
 set(RPR_SDK_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/RadeonProRenderSDK")
 
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(Vulkan COMPONENTS shaderc_combined REQUIRED)
 find_package(Stb REQUIRED)
 find_package(RadeonProRenderSDK 3.1.0 REQUIRED COMPONENTS hybridpro)
+find_package(OpenImageDenoise REQUIRED)
 
 check_vulkan(${Vulkan_LIBRARY})
 

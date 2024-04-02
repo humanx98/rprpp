@@ -21,12 +21,7 @@ struct BloomParams {
 
 class BloomFilter : public Filter {
 public:
-    BloomFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx, UniformObjectBuffer<BloomParams>&& ubo) noexcept;
-    BloomFilter(BloomFilter&&) noexcept = default;
-    BloomFilter& operator=(BloomFilter&&) noexcept = default;
-
-    BloomFilter(const BloomFilter&) = delete;
-    BloomFilter& operator=(const BloomFilter&) = delete;
+    explicit BloomFilter(Context* context) noexcept;
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
     void setInput(Image* img) noexcept override;
@@ -35,8 +30,14 @@ public:
     void setRadius(float radius) noexcept;
     void setBrightnessScale(float brightnessScale) noexcept;
     void setThreshold(float threshold) noexcept;
+
+    [[nodiscard]]
     float getRadius() const noexcept;
+
+    [[nodiscard]]
     float getBrightnessScale() const noexcept;
+
+    [[nodiscard]]
     float getThreshold() const noexcept;
 
 private:
@@ -49,14 +50,14 @@ private:
     bool m_descriptorsDirty = true;
     Image* m_input = nullptr;
     Image* m_output = nullptr;
+
     vk::helper::ShaderManager m_shaderManager;
-    std::shared_ptr<vk::helper::DeviceContext> m_dctx;
     vk::raii::Semaphore m_verticalFinishedSemaphore;
     vk::raii::Semaphore m_horizontalFinishedSemaphore;
     UniformObjectBuffer<BloomParams> m_ubo;
     vk::helper::CommandBuffer m_verticalCommandBuffer;
     vk::helper::CommandBuffer m_horizontalCommandBuffer;
-    std::optional<Image> m_tmpImage;
+    std::unique_ptr<Image> m_tmpImage;
     std::optional<vk::raii::ShaderModule> m_verticalShaderModule;
     std::optional<vk::raii::ShaderModule> m_horizontalShaderModule;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;

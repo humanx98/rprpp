@@ -2,20 +2,23 @@
 
 namespace rprpp::wrappers::filters {
 
-ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(const Context& context)
-    : Filter(context)
+ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(const Context& _context)
+: Filter(_context)
 {
     RprPpError status;
 
-    status = rprppContextCreateComposeColorShadowReflectionFilter(m_context, &m_filter);
+    RprPpFilter filter;
+    status = rprppContextCreateComposeColorShadowReflectionFilter(context(), &filter);
     RPRPP_CHECK(status);
+
+    setFilter(filter);
 }
 
 void ComposeColorShadowReflectionFilter::setAovOpacity(const Image& img)
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetAovOpacity(m_filter, img.get());
+    status = rprppComposeColorShadowReflectionFilterSetAovOpacity(filter(), img.get());
     RPRPP_CHECK(status);
 }
 
@@ -23,7 +26,7 @@ void ComposeColorShadowReflectionFilter::setAovShadowCatcher(const Image& img)
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetAovShadowCatcher(m_filter, img.get());
+    status = rprppComposeColorShadowReflectionFilterSetAovShadowCatcher(filter(), img.get());
     RPRPP_CHECK(status);
 }
 
@@ -31,7 +34,7 @@ void ComposeColorShadowReflectionFilter::setAovReflectionCatcher(const Image& im
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetAovReflectionCatcher(m_filter, img.get());
+    status = rprppComposeColorShadowReflectionFilterSetAovReflectionCatcher(filter(), img.get());
     RPRPP_CHECK(status);
 }
 
@@ -39,7 +42,7 @@ void ComposeColorShadowReflectionFilter::setAovMattePass(const Image& img)
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetAovMattePass(m_filter, img.get());
+    status = rprppComposeColorShadowReflectionFilterSetAovMattePass(filter(), img.get());
     RPRPP_CHECK(status);
 }
 
@@ -47,7 +50,7 @@ void ComposeColorShadowReflectionFilter::setAovBackground(const Image& img)
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetAovBackground(m_filter, img.get());
+    status = rprppComposeColorShadowReflectionFilterSetAovBackground(filter(), img.get());
     RPRPP_CHECK(status);
 }
 
@@ -55,7 +58,7 @@ void ComposeColorShadowReflectionFilter::setTileOffset(int x, int y)
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetTileOffset(m_filter, x, y);
+    status = rprppComposeColorShadowReflectionFilterSetTileOffset(filter(), x, y);
     RPRPP_CHECK(status);
 }
 
@@ -63,7 +66,7 @@ void ComposeColorShadowReflectionFilter::setShadowIntensity(float shadowIntensit
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetShadowIntensity(m_filter, shadowIntensity);
+    status = rprppComposeColorShadowReflectionFilterSetShadowIntensity(filter(), shadowIntensity);
     RPRPP_CHECK(status);
 }
 
@@ -71,7 +74,7 @@ void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColor(float x
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColor(m_filter, x, y, z);
+    status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColor(filter(), x, y, z);
     RPRPP_CHECK(status);
 }
 
@@ -79,7 +82,7 @@ void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColorWeight(f
 {
     RprPpError status;
 
-    status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(m_filter, weight);
+    status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(filter(), weight);
     RPRPP_CHECK(status);
 }
 

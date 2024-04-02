@@ -1,18 +1,16 @@
 #include "ToneMapFilter.h"
 #include "rprpp/Error.h"
-#include "rprpp/rprpp.h"
 #include "rprpp/vk/DescriptorBuilder.h"
 
 constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-ToneMapFilter::ToneMapFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
-    UniformObjectBuffer<ToneMapParams>&& ubo) noexcept
-    : m_dctx(dctx)
-    , m_finishedSemaphore(dctx->device.createSemaphore({}))
-    , m_ubo(std::move(ubo))
-    , m_commandBuffer(dctx)
+ToneMapFilter::ToneMapFilter(Context* context) 
+    : Filter(context)
+    , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
+    , m_ubo(context)
+    , m_commandBuffer(&deviceContext())
 {
 }
 
@@ -23,7 +21,7 @@ void ToneMapFilter::createShaderModule()
         { "INPUT_FORMAT", to_glslformat(m_input->description().format) },
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
     };
-    m_shaderModule = m_shaderManager.getToneMapShader(m_dctx->device, macroDefinitions);
+    m_shaderModule = m_shaderManager.getToneMapShader(deviceContext().device, macroDefinitions);
 }
 
 void ToneMapFilter::createDescriptorSet()
@@ -32,19 +30,19 @@ void ToneMapFilter::createDescriptorSet()
     vk::DescriptorBufferInfo uboDescriptorInfo(m_ubo.buffer(), 0, m_ubo.size()); // binding 0
     builder.bindUniformBuffer(&uboDescriptorInfo);
 
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, m_output->view(), m_output->getLayout()); // binding 1
+    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_output->view(), m_output->layout()); // binding 1
     builder.bindStorageImage(&outputDescriptorInfo);
 
-    vk::DescriptorImageInfo inputDescriptorInfo(nullptr, m_input->view(), m_input->getLayout()); // binding 2
+    vk::DescriptorImageInfo inputDescriptorInfo(nullptr, *m_input->view(), m_input->layout()); // binding 2
     builder.bindStorageImage(&inputDescriptorInfo);
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
-    m_descriptorSetLayout = m_dctx->device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
-    m_descriptorPool = m_dctx->device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
-    m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx->device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
+    m_descriptorSetLayout = deviceContext().device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
+    m_descriptorPool = deviceContext().device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
+    m_descriptorSet = std::move(vk::raii::DescriptorSets(deviceContext().device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
 
     builder.updateDescriptorSet(*m_descriptorSet.value());
-    m_dctx->device.updateDescriptorSets(builder.writes(), nullptr);
+    deviceContext().device.updateDescriptorSets(builder.writes(), nullptr);
 }
 
 void ToneMapFilter::recordComputeCommandBuffer()
@@ -62,11 +60,11 @@ void ToneMapFilter::recordComputeCommandBuffer()
 void ToneMapFilter::createComputePipeline()
 {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo({}, *m_descriptorSetLayout.value());
-    m_pipelineLayout = vk::raii::PipelineLayout(m_dctx->device, pipelineLayoutInfo);
+    m_pipelineLayout = vk::raii::PipelineLayout(deviceContext().device, pipelineLayoutInfo);
 
     vk::PipelineShaderStageCreateInfo shaderStageInfo({}, vk::ShaderStageFlagBits::eCompute, *m_shaderModule.value(), "main");
     vk::ComputePipelineCreateInfo pipelineInfo({}, shaderStageInfo, *m_pipelineLayout.value());
-    m_computePipeline = m_dctx->device.createComputePipeline(nullptr, pipelineInfo);
+    m_computePipeline = deviceContext().device.createComputePipeline(nullptr, pipelineInfo);
 }
 
 void ToneMapFilter::validateInputsAndOutput()
@@ -122,7 +120,7 @@ vk::Semaphore ToneMapFilter::run(std::optional<vk::Semaphore> waitSemaphore)
 
     submitInfo.setSignalSemaphores(*m_finishedSemaphore);
     submitInfo.setCommandBuffers(*m_commandBuffer.get());
-    m_dctx->queue.submit(submitInfo);
+    deviceContext().queue.submit(submitInfo);
     return *m_finishedSemaphore;
 }
 

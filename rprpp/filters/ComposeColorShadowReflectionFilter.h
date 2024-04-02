@@ -23,14 +23,7 @@ struct ComposeColorShadowReflectionParams {
 
 class ComposeColorShadowReflectionFilter : public Filter {
 public:
-    ComposeColorShadowReflectionFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
-        UniformObjectBuffer<ComposeColorShadowReflectionParams>&& ubo,
-        vk::raii::Sampler&& sampler) noexcept;
-    ComposeColorShadowReflectionFilter(ComposeColorShadowReflectionFilter&&) noexcept = default;
-    ComposeColorShadowReflectionFilter& operator=(ComposeColorShadowReflectionFilter&&) noexcept = default;
-
-    ComposeColorShadowReflectionFilter(const ComposeColorShadowReflectionFilter&) = delete;
-    ComposeColorShadowReflectionFilter& operator=(const ComposeColorShadowReflectionFilter&) = delete;
+    explicit ComposeColorShadowReflectionFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
     void setOutput(Image* img) noexcept override;
@@ -55,6 +48,8 @@ public:
     float getShadowIntensity() const noexcept;
 
 private:
+    static vk::SamplerCreateInfo samplerParameters();
+
     bool allAovsAreSampledImages() const noexcept;
     bool allAovsAreStoreImages() const noexcept;
     void validateInputsAndOutput();
@@ -71,8 +66,8 @@ private:
     Image* m_aovMattePass = nullptr;
     Image* m_aovBackground = nullptr;
     Image* m_output = nullptr;
+
     vk::helper::ShaderManager m_shaderManager;
-    std::shared_ptr<vk::helper::DeviceContext> m_dctx;
     vk::raii::Semaphore m_finishedSemaphore;
     UniformObjectBuffer<ComposeColorShadowReflectionParams> m_ubo;
     vk::raii::Sampler m_sampler;

@@ -23,7 +23,7 @@ struct DeviceContext {
     std::vector<vk::raii::CommandBuffer> commandBuffers;
 
     vk::raii::CommandBuffer takeCommandBuffer();
-    void returnCommandBuffer(vk::raii::CommandBuffer buffer);
+    void returnCommandBuffer(vk::raii::CommandBuffer&& buffer);
 };
 
 void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet);

@@ -35,13 +35,24 @@ set(HEADERS
     vk/DeviceContext.h
     vk/ShaderManager.h
     vk/vk.h
+    VkSampledImage.h
+    DxImage.h
+    ImageSimple.h
     Context.h
+    ContextObject.h
+    ContextObjectContainer.h
+    ContextObjectHash.h
     rprpp.h
     Error.h
     Buffer.h
     Image.h
     ImageFormat.h
+    ImageDescription.h
+    ImageData.h
     UniformObjectBuffer.h
+    ContextObjectContainerHasher.h
+    ContextObjectContainerEqual.h
+
 )
 
 set(SOURCES
@@ -49,16 +60,24 @@ set(SOURCES
     filters/ComposeColorShadowReflectionFilter.cpp
     filters/ComposeOpacityShadowFilter.cpp
     filters/DenoiserFilter.cpp
+    filters/Filter.cpp
     filters/ToneMapFilter.cpp
     vk/CommandBuffer.cpp
     vk/DescriptorBuilder.cpp
     vk/DeviceContext.cpp
     vk/ShaderManager.cpp
+    ImageData.cpp
+    DxImage.cpp
+    ImageSimple.cpp
+    VkSampledImage.cpp
     Context.cpp
+    ContextObject.cpp
+    ContextObjectContainer.cpp
     rprpp.cpp
     Error.cpp
     Buffer.cpp
     Image.cpp
+    ImageDescription.cpp
 )
 
 add_library(rprpp SHARED 
@@ -74,11 +93,13 @@ endif()
 target_include_directories(rprpp
     PUBLIC ${CMAKE_SOURCE_DIR}
     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
+    PRIVATE ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(rprpp
     PRIVATE Vulkan::Vulkan
     PRIVATE Vulkan::shaderc_combined
+    PRIVATE OpenImageDenoise
 )
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
 

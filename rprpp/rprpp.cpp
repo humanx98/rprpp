@@ -66,15 +66,15 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 {
     assert(outContext);
 
-    auto result = safeCall(rprpp::Context::create, deviceId);
+    auto result = safeCall([&]() {
+        auto contextRef = std::make_unique<rprpp::Context>(deviceId);
+        *outContext = contextRef.get();
+
+        // avoid memleak
+        std::lock_guard<std::mutex> lock(Mutex);
+        GlobalContextObjects.emplace(contextRef.get(), std::move(contextRef));
+    }); 
     check(result);
-
-    rprpp::Context* context = result->get();
-    *outContext = context;
-
-    // avoid memleak
-    std::lock_guard<std::mutex> lock(Mutex);
-    GlobalContextObjects.emplace(context, std::move(*result));
 
     return RPRPP_SUCCESS;
 }

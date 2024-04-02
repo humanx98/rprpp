@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ContextObjectContainer.h"
+
 #include "Buffer.h"
 #include "Image.h"
 #include "filters/BloomFilter.h"
@@ -10,26 +12,29 @@
 #include "filters/ToneMapFilter.h"
 #include "vk/DeviceContext.h"
 
-#include <unordered_map>
+#include <boost/noncopyable.hpp>
+
+#include <OpenImageDenoise/oidn.hpp>
+
 
 template <class T>
 using map = std::unordered_map<T*, std::unique_ptr<T>>;
 
 namespace rprpp {
 
-class Context {
+class Context : public boost::noncopyable {
 public:
-    Context(const std::shared_ptr<vk::helper::DeviceContext>& dctx);
-    Context(Context&&) noexcept = default;
-    Context& operator=(Context&&) noexcept = default;
+    explicit Context(uint32_t deviceId);
 
-    Context(const Context&) = delete;
-    Context& operator=(const Context&) = delete;
-
-    static std::unique_ptr<Context> create(uint32_t deviceId);
+    [[nodiscard]]
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
+
+    [[nodiscard]]
     VkDevice getVkDevice() const noexcept;
+
+    [[nodiscard]]
     VkQueue getVkQueue() const noexcept;
+
     void waitQueueIdle();
 
     Buffer* createBuffer(size_t size);
@@ -40,6 +45,7 @@ public:
     filters::ComposeOpacityShadowFilter* createComposeOpacityShadowFilter();
     filters::ToneMapFilter* createToneMapFilter();
     filters::DenoiserFilter* createDenoiserFilter();
+
     void destroyFilter(filters::Filter* filter);
 
     Image* createImage(const ImageDescription& desc);
@@ -50,11 +56,21 @@ public:
     void copyImageToBuffer(Image* image, Buffer* buffer);
     void copyImage(Image* src, Image* dst);
 
+    [[nodiscard]]
+    boost::uuids::uuid generateNextTag() { return m_objects.generateNextTag(); }
+
+    [[nodiscard]]
+    vk::helper::DeviceContext& deviceContext() noexcept { return m_deviceContext; }
+
+    [[nodiscard]]
+    const vk::helper::DeviceContext& deviceContext() const noexcept { return m_deviceContext; }
+
 private:
-    std::shared_ptr<vk::helper::DeviceContext> m_deviceContext;
-    map<filters::Filter> m_filters;
-    map<Buffer> m_buffers;
-    map<Image> m_images;
+    vk::helper::DeviceContext m_deviceContext;
+    oidn::DeviceRef m_oidnDevice;
+
+    ContextObjectContainer m_objects;
+
 };
 
 }

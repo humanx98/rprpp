@@ -7,15 +7,25 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(const std::shared_ptr<vk::helper::DeviceContext>& dctx,
-    UniformObjectBuffer<ComposeColorShadowReflectionParams>&& ubo,
-    vk::raii::Sampler&& sampler) noexcept
-    : m_dctx(dctx)
-    , m_finishedSemaphore(dctx->device.createSemaphore({}))
-    , m_ubo(std::move(ubo))
-    , m_sampler(std::move(sampler))
-    , m_commandBuffer(dctx)
+ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(
+    Context* context) 
+    : Filter(context)
+    , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
+    , m_ubo(context)
+    , m_sampler(deviceContext().device, samplerParameters())
+    , m_commandBuffer(&deviceContext())
 {
+}
+
+vk::SamplerCreateInfo ComposeColorShadowReflectionFilter::samplerParameters()
+{
+    vk::SamplerCreateInfo samplerInfo;
+
+    samplerInfo.unnormalizedCoordinates = vk::True;
+    samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+    samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+
+    return samplerInfo;
 }
 
 void ComposeColorShadowReflectionFilter::createShaderModule()
@@ -26,7 +36,7 @@ void ComposeColorShadowReflectionFilter::createShaderModule()
         { "WORKGROUP_SIZE", std::to_string(WorkgroupSize) },
         { "AOVS_ARE_SAMPLED_IMAGES", allAovsAreSampledImages() ? "1" : "0" }
     };
-    m_shaderModule = m_shaderManager.getComposeColorShadowReflectionShader(m_dctx->device, macroDefinitions);
+    m_shaderModule = m_shaderManager.getComposeColorShadowReflectionShader(deviceContext().device, macroDefinitions);
 }
 
 void ComposeColorShadowReflectionFilter::createDescriptorSet()
@@ -35,7 +45,7 @@ void ComposeColorShadowReflectionFilter::createDescriptorSet()
     vk::DescriptorBufferInfo uboDescriptorInfo(m_ubo.buffer(), 0, m_ubo.size()); // binding 0
     builder.bindUniformBuffer(&uboDescriptorInfo);
 
-    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, m_output->view(), m_output->getLayout()); // binding 1
+    vk::DescriptorImageInfo outputDescriptorInfo(nullptr, *m_output->view(), m_output->layout()); // binding 1
     builder.bindStorageImage(&outputDescriptorInfo);
 
     std::vector<Image*> aovs = {
@@ -51,10 +61,10 @@ void ComposeColorShadowReflectionFilter::createDescriptorSet()
     descriptorImageInfos.reserve(aovs.size());
     for (auto img : aovs) {
         if (allAovsAreStoreImages()) {
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, img->view(), img->getLayout()));
+            descriptorImageInfos.push_back(vk::DescriptorImageInfo(nullptr, *img->view(), img->layout()));
             builder.bindStorageImage(&descriptorImageInfos.back());
         } else if (allAovsAreSampledImages()) {
-            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*m_sampler, img->view(), img->getLayout()));
+            descriptorImageInfos.push_back(vk::DescriptorImageInfo(*m_sampler, *img->view(), img->layout()));
             builder.bindCombinedImageSampler(&descriptorImageInfos.back());
         } else {
             throw InternalError("uknown image type");
@@ -62,12 +72,12 @@ void ComposeColorShadowReflectionFilter::createDescriptorSet()
     }
 
     const std::vector<vk::DescriptorPoolSize>& poolSizes = builder.poolSizes();
-    m_descriptorSetLayout = m_dctx->device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
-    m_descriptorPool = m_dctx->device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
-    m_descriptorSet = std::move(vk::raii::DescriptorSets(m_dctx->device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
+    m_descriptorSetLayout = deviceContext().device.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo({}, builder.bindings()));
+    m_descriptorPool = deviceContext().device.createDescriptorPool(vk::DescriptorPoolCreateInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes));
+    m_descriptorSet = std::move(vk::raii::DescriptorSets(deviceContext().device, vk::DescriptorSetAllocateInfo(*m_descriptorPool.value(), *m_descriptorSetLayout.value())).front());
 
     builder.updateDescriptorSet(*m_descriptorSet.value());
-    m_dctx->device.updateDescriptorSets(builder.writes(), nullptr);
+    deviceContext().device.updateDescriptorSets(builder.writes(), nullptr);
 }
 
 void ComposeColorShadowReflectionFilter::recordComputeCommandBuffer()
@@ -84,11 +94,11 @@ void ComposeColorShadowReflectionFilter::recordComputeCommandBuffer()
 void ComposeColorShadowReflectionFilter::createComputePipeline()
 {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo({}, *m_descriptorSetLayout.value());
-    m_pipelineLayout = vk::raii::PipelineLayout(m_dctx->device, pipelineLayoutInfo);
+    m_pipelineLayout = vk::raii::PipelineLayout(deviceContext().device, pipelineLayoutInfo);
 
     vk::PipelineShaderStageCreateInfo shaderStageInfo({}, vk::ShaderStageFlagBits::eCompute, *m_shaderModule.value(), "main");
     vk::ComputePipelineCreateInfo pipelineInfo({}, shaderStageInfo, *m_pipelineLayout.value());
-    m_computePipeline = m_dctx->device.createComputePipeline(nullptr, pipelineInfo);
+    m_computePipeline = deviceContext().device.createComputePipeline(nullptr, pipelineInfo);
 }
 
 bool ComposeColorShadowReflectionFilter::allAovsAreSampledImages() const noexcept
@@ -190,7 +200,7 @@ vk::Semaphore ComposeColorShadowReflectionFilter::run(std::optional<vk::Semaphor
 
     submitInfo.setSignalSemaphores(*m_finishedSemaphore);
     submitInfo.setCommandBuffers(*m_commandBuffer.get());
-    m_dctx->queue.submit(submitInfo);
+    deviceContext().queue.submit(submitInfo);
     return *m_finishedSemaphore;
 }
 

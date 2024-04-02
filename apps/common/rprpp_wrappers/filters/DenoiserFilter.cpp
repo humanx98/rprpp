@@ -2,13 +2,16 @@
 
 namespace rprpp::wrappers::filters {
 
-DenoiserFilter::DenoiserFilter(const Context& context)
-    : Filter(context)
+DenoiserFilter::DenoiserFilter(const Context& _context)
+    : Filter(_context)
 {
     RprPpError status;
 
-    status = rprppContextCreateDenoiserFilter(m_context, &m_filter);
+    RprPpFilter filter;
+    status = rprppContextCreateDenoiserFilter(context(), &filter);
     RPRPP_CHECK(status);
+
+    setFilter(filter);
 }
 
 }

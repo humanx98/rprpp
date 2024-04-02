@@ -60,12 +60,17 @@ Image Image::createImageFromDx11Texture(const Context& context, RprPpDx11Handle 
 
 Image::~Image()
 {
-    if (m_image != nullptr) {
-        RprPpError status;
+    if (!m_image)
+        return;
 
-        status = rprppContextDestroyImage(m_context, m_image);
-        RPRPP_CHECK(status);
-    }
+    RprPpError status;
+
+    status = rprppContextDestroyImage(m_context, m_image);
+    RPRPP_CHECK(status);
+
+#ifndef NDEBUG
+    m_image = nullptr;
+#endif
 }
 
 RprPpImage Image::get() const noexcept

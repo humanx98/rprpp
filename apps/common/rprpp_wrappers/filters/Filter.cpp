@@ -1,22 +1,34 @@
 #include "Filter.h"
+#include <cassert>
 
 namespace rprpp::wrappers::filters {
 
 Filter::Filter(const Context& context)
-    : m_context(context.get())
+: m_context(context.get()),
+  m_filter(nullptr)
 {
 }
 
 Filter::~Filter()
 {
-    RprPpError status;
+    if (!m_filter)
+        return;
 
+    RprPpError status;
     status = rprppContextDestroyFilter(m_context, m_filter);
     RPRPP_CHECK(status);
+
+#ifndef NDEBUG
+    m_context = nullptr;
+    m_filter = nullptr;
+#endif
 }
 
 RprPpVkSemaphore Filter::run(RprPpVkSemaphore waitSemaphore)
 {
+    assert(m_context);
+    assert(m_filter);
+
     RprPpError status;
     RprPpVkSemaphore finishedSemaphore;
 
@@ -45,6 +57,13 @@ void Filter::setOutput(const Image& image)
 RprPpFilter Filter::get() const noexcept
 {
     return m_filter;
+}
+
+
+void Filter::setFilter(RprPpFilter filter)
+{
+    assert(filter);
+    m_filter = filter;
 }
 
 }

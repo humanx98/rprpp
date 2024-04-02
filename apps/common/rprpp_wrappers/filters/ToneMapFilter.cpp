@@ -2,20 +2,23 @@
 
 namespace rprpp::wrappers::filters {
 
-ToneMapFilter::ToneMapFilter(const Context& context)
-    : Filter(context)
+ToneMapFilter::ToneMapFilter(const Context& _context)
+    : Filter(_context)
 {
     RprPpError status;
 
-    status = rprppContextCreateToneMapFilter(m_context, &m_filter);
+    RprPpFilter filter;
+    status = rprppContextCreateToneMapFilter(context(), &filter);
     RPRPP_CHECK(status);
+
+    setFilter(filter);
 }
 
 void ToneMapFilter::setGamma(float gamma)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetGamma(m_filter, gamma);
+    status = rprppToneMapFilterSetGamma(filter(), gamma);
     RPRPP_CHECK(status);
 }
 
@@ -23,7 +26,7 @@ void ToneMapFilter::setWhitepoint(float x, float y, float z)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetWhitepoint(m_filter, x, y, z);
+    status = rprppToneMapFilterSetWhitepoint(filter(), x, y, z);
     RPRPP_CHECK(status);
 }
 
@@ -31,7 +34,7 @@ void ToneMapFilter::setVignetting(float vignetting)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetVignetting(m_filter, vignetting);
+    status = rprppToneMapFilterSetVignetting(filter(), vignetting);
     RPRPP_CHECK(status);
 }
 
@@ -39,7 +42,7 @@ void ToneMapFilter::setCrushBlacks(float crushBlacks)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetCrushBlacks(m_filter, crushBlacks);
+    status = rprppToneMapFilterSetCrushBlacks(filter(), crushBlacks);
     RPRPP_CHECK(status);
 }
 
@@ -47,7 +50,7 @@ void ToneMapFilter::setBurnHighlights(float burnHighlights)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetBurnHighlights(m_filter, burnHighlights);
+    status = rprppToneMapFilterSetBurnHighlights(filter(), burnHighlights);
     RPRPP_CHECK(status);
 }
 
@@ -55,7 +58,7 @@ void ToneMapFilter::setSaturation(float saturation)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetSaturation(m_filter, saturation);
+    status = rprppToneMapFilterSetSaturation(filter(), saturation);
     RPRPP_CHECK(status);
 }
 
@@ -63,7 +66,7 @@ void ToneMapFilter::setCm2Factor(float cm2Factor)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetCm2Factor(m_filter, cm2Factor);
+    status = rprppToneMapFilterSetCm2Factor(filter(), cm2Factor);
     RPRPP_CHECK(status);
 }
 
@@ -71,7 +74,7 @@ void ToneMapFilter::setFilmIso(float filmIso)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetFilmIso(m_filter, filmIso);
+    status = rprppToneMapFilterSetFilmIso(filter(), filmIso);
     RPRPP_CHECK(status);
 }
 
@@ -79,7 +82,7 @@ void ToneMapFilter::setCameraShutter(float cameraShutter)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetCameraShutter(m_filter, cameraShutter);
+    status = rprppToneMapFilterSetCameraShutter(filter(), cameraShutter);
     RPRPP_CHECK(status);
 }
 
@@ -87,7 +90,7 @@ void ToneMapFilter::setFNumber(float fNumber)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetFNumber(m_filter, fNumber);
+    status = rprppToneMapFilterSetFNumber(filter(), fNumber);
     RPRPP_CHECK(status);
 }
 
@@ -95,7 +98,7 @@ void ToneMapFilter::setFocalLength(float focalLength)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetFocalLength(m_filter, focalLength);
+    status = rprppToneMapFilterSetFocalLength(filter(), focalLength);
     RPRPP_CHECK(status);
 }
 
@@ -103,7 +106,7 @@ void ToneMapFilter::setAperture(float aperture)
 {
     RprPpError status;
 
-    status = rprppToneMapFilterSetAperture(m_filter, aperture);
+    status = rprppToneMapFilterSetAperture(filter(), aperture);
     RPRPP_CHECK(status);
 }
 
