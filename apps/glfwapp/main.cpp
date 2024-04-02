@@ -7,9 +7,13 @@
 #define RENDERED_ITERATIONS 16
 #define INTEROP true
 #define DEVICE_ID 0
+#ifdef NDEBUG
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
 #define FRAMES_IN_FLIGHT 4
+#else
+#define FRAMES_IN_FLIGHT 1
+#endif
 
 DeviceInfo getDeviceInfoOf(int index)
 {
