@@ -7,11 +7,21 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
+constexpr vk::SamplerCreateInfo createSamplerInfo()
+{
+    vk::SamplerCreateInfo samplerInfo;
+    samplerInfo.unnormalizedCoordinates = vk::True;
+    samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+    samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+
+    return samplerInfo;
+}
+
 ComposeOpacityShadowFilter::ComposeOpacityShadowFilter(Context* context) 
     : Filter(context)
     , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
     , m_ubo(context)
-    , m_sampler(deviceContext().device, vk::SamplerCreateInfo {})
+    , m_sampler(deviceContext().device, createSamplerInfo())
     , m_commandBuffer(&deviceContext())
 {
 }
