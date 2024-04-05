@@ -168,7 +168,7 @@ vk::Semaphore ComposeOpacityShadowFilter::run(std::optional<vk::Semaphore> waitS
     return *m_finishedSemaphore;
 }
 
-void ComposeOpacityShadowFilter::setInput(Image* img) noexcept
+void ComposeOpacityShadowFilter::setInput(Image* img)
 {
     m_aovOpacity = img;
     m_descriptorsDirty = true;
@@ -186,7 +186,7 @@ void ComposeOpacityShadowFilter::setAovShadowCatcher(Image* img) noexcept
     m_descriptorsDirty = true;
 }
 
-void ComposeOpacityShadowFilter::setOutput(Image* img) noexcept
+void ComposeOpacityShadowFilter::setOutput(Image* img)
 {
     m_output = img;
     m_descriptorsDirty = true;

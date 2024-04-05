@@ -172,13 +172,13 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     return *m_horizontalFinishedSemaphore;
 }
 
-void BloomFilter::setInput(Image* image) noexcept
+void BloomFilter::setInput(Image* image)
 {
     m_input = image;
     m_descriptorsDirty = true;
 }
 
-void BloomFilter::setOutput(Image* image) noexcept
+void BloomFilter::setOutput(Image* image)
 {
     m_output = image;
     m_descriptorsDirty = true;

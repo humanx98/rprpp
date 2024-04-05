@@ -24,8 +24,8 @@ public:
     explicit BloomFilter(Context* context) noexcept;
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
-    void setInput(Image* img) noexcept override;
-    void setOutput(Image* img) noexcept override;
+    void setInput(Image* img) override;
+    void setOutput(Image* img) override;
 
     void setRadius(float radius) noexcept;
     void setBrightnessScale(float brightnessScale) noexcept;

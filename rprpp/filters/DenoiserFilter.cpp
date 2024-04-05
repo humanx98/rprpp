@@ -44,12 +44,12 @@ vk::Semaphore DenoiserFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     return *m_finishedSemaphore;
 }
 
-void DenoiserFilter::setInput(Image* image) noexcept
+void DenoiserFilter::setInput(Image* image)
 {
     m_input = image;
 }
 
-void DenoiserFilter::setOutput(Image* image) noexcept
+void DenoiserFilter::setOutput(Image* image)
 {
     m_output = image;
 }

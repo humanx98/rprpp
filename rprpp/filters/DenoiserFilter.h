@@ -17,8 +17,8 @@ public:
     explicit DenoiserFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
-    void setInput(Image* img) noexcept override;
-    void setOutput(Image* img) noexcept override;
+    void setInput(Image* img) override;
+    void setOutput(Image* img) override;
 
 private:
     void validateInputsAndOutput();

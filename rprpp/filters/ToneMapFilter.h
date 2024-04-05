@@ -34,8 +34,8 @@ public:
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
 
-    void setInput(Image* img) noexcept override;
-    void setOutput(Image* img) noexcept override;
+    void setInput(Image* img) override;
+    void setOutput(Image* img) override;
 
     void setGamma(float gamma) noexcept;
     void setWhitepoint(float x, float y, float z) noexcept;
