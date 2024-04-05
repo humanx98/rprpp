@@ -5,12 +5,10 @@
 #include "vk/DeviceContext.h"
 
 #include <cassert>
-#include <concepts>
 #include <functional>
 #include <mutex>
 #include <optional>
 #include <type_traits>
-#include <utility>
 
 #include <iostream>
 
