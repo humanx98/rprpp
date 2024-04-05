@@ -25,7 +25,7 @@ oidn::DeviceRef Context::createDenoiserDevice(uint32_t deviceId)
     if (deviceId >= numPhysicalDevices)
         throw std::runtime_error("Denoiser device is not available");
 
-    BOOST_LOG_TRIVIAL(info) << "denoiser has " << numPhysicalDevices << " available. Try to init deviceId " << deviceId;
+    BOOST_LOG_TRIVIAL(info) << "denoiser has " << numPhysicalDevices << " available. Try to init on device " << deviceId;
 
     oidn::DeviceRef device = oidn::newHIPDevice(deviceId, nullptr);
     device.commit();
@@ -35,8 +35,7 @@ oidn::DeviceRef Context::createDenoiserDevice(uint32_t deviceId)
         BOOST_LOG_TRIVIAL(error) << errorMessage;
         throw std::runtime_error(errorMessage);
     }
-
-    BOOST_LOG_TRIVIAL(trace) << "denoiser device initialized";
+    BOOST_LOG_TRIVIAL(trace) << "denoiser device initialized on gpu \"" << oidnGetPhysicalDeviceString(deviceId, "name") << "\"";
 
     return device;
 }

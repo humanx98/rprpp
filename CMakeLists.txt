@@ -31,6 +31,13 @@ check_vulkan(${Vulkan_LIBRARY})
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
 
+# workaround for dll's copies
+if(WIN32)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
+
 add_subdirectory(rprpp)
 if (BUILD_APPS)
     add_subdirectory(stbimpl)

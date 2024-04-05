@@ -49,7 +49,6 @@ vk::Semaphore DenoiserFilter::run(std::optional<vk::Semaphore> waitSemaphore)
 
     m_filter.execute();
 
-
     // Check for errors
     const char* errorMessage;
     if (m_device.getError(errorMessage) != oidn::Error::None) {
