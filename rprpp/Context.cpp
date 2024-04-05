@@ -13,17 +13,32 @@
 namespace rprpp {
 
 Context::Context(uint32_t deviceId)
- : m_deviceContext(vk::helper::createDeviceContext(deviceId))
+ : m_deviceContext(vk::helper::createDeviceContext(deviceId)), m_denoiserDevice(createDenoiserDevice(deviceId))
 {
-    // temporary GPU or CPU
-    m_oidnDevice = oidn::newHIPDevice(-1, nullptr);
-    m_oidnDevice.commit();
+}
+
+oidn::DeviceRef Context::createDenoiserDevice(uint32_t deviceId)
+{
+    BOOST_LOG_TRIVIAL(trace) << "Context::createDenoiserDevice";
+
+    int numPhysicalDevices = oidn::getNumPhysicalDevices();
+    if (deviceId >= numPhysicalDevices)
+        throw std::runtime_error("Denoiser device is not available");
+
+    BOOST_LOG_TRIVIAL(info) << "denoiser has " << numPhysicalDevices << " available. Try to init deviceId " << deviceId;
+
+    oidn::DeviceRef device = oidn::newHIPDevice(deviceId, nullptr);
+    device.commit();
 
     const char* errorMessage;
-    if (m_oidnDevice.getError(errorMessage) != oidn::Error::None) {
+    if (device.getError(errorMessage) != oidn::Error::None) {
         BOOST_LOG_TRIVIAL(error) << errorMessage;
         throw std::runtime_error(errorMessage);
     }
+
+    BOOST_LOG_TRIVIAL(trace) << "denoiser device initialized";
+
+    return device;
 }
 
 filters::BloomFilter* Context::createBloomFilter()
@@ -43,7 +58,7 @@ filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
 
 filters::DenoiserFilter* Context::createDenoiserFilter()
 {
-    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this, m_oidnDevice);
+    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this, m_denoiserDevice);
 }
 
 filters::ToneMapFilter* Context::createToneMapFilter()

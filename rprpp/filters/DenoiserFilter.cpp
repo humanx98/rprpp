@@ -94,6 +94,8 @@ void DenoiserFilter::initialize()
     m_filter.setImage("output", m_colorBuffer,  oidn::Format::Float3, width, height); // denoised beauty
     //m_filter.set("hdr", true); // beauty image is HDR
     m_filter.commit();
+
+    BOOST_LOG_TRIVIAL(debug) << "denoiser filter created";
 }
 
 void DenoiserFilter::setInput(Image* image)

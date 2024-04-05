@@ -37,6 +37,7 @@ public:
 
     void waitQueueIdle();
 
+    [[nodiscard]]
     Buffer* createBuffer(size_t size);
     void destroyBuffer(Buffer* buffer);
 
@@ -66,11 +67,14 @@ public:
     const vk::helper::DeviceContext& deviceContext() const noexcept { return m_deviceContext; }
 
 private:
+    static oidn::DeviceRef createDenoiserDevice(uint32_t deviceId);
+
+    // order is matter. First should be cleared all m_objects, then denoiser dev, than main graph. dev
+
     vk::helper::DeviceContext m_deviceContext;
-    oidn::DeviceRef m_oidnDevice;
+    oidn::DeviceRef m_denoiserDevice;
 
     ContextObjectContainer m_objects;
-
 };
 
 }

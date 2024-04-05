@@ -36,6 +36,7 @@ public:
         erase(address->tag());
     }
 
+    [[nodiscard]]
     boost::uuids::uuid generateNextTag();
 
 private:
