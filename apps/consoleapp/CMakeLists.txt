@@ -1,6 +1,7 @@
 add_executable(consoleapp main.cpp)
 target_link_libraries(consoleapp 
     PRIVATE appcommon
+    PRIVATE rprpp
 )
 
 # automatically copy all dll's deps.

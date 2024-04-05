@@ -8,11 +8,22 @@
 #include "VkSampledImage.h"
 #include "ImageSimple.h"
 
+#include <boost/log/trivial.hpp>
+
 namespace rprpp {
 
 Context::Context(uint32_t deviceId)
  : m_deviceContext(vk::helper::createDeviceContext(deviceId))
 {
+    // temporary GPU or CPU
+    m_oidnDevice = oidn::newHIPDevice(-1, nullptr);
+    m_oidnDevice.commit();
+
+    const char* errorMessage;
+    if (m_oidnDevice.getError(errorMessage) != oidn::Error::None) {
+        BOOST_LOG_TRIVIAL(error) << errorMessage;
+        throw std::runtime_error(errorMessage);
+    }
 }
 
 filters::BloomFilter* Context::createBloomFilter()
@@ -32,7 +43,7 @@ filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
 
 filters::DenoiserFilter* Context::createDenoiserFilter()
 {
-    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this);
+    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this, m_oidnDevice);
 }
 
 filters::ToneMapFilter* Context::createToneMapFilter()

@@ -11,18 +11,20 @@ class UniformObjectBuffer {
 public:
     explicit UniformObjectBuffer(Context* context);
 
-    UniformObjectBuffer(Buffer&& buffer) noexcept;
-    UniformObjectBuffer(UniformObjectBuffer&&) noexcept = default;
-    UniformObjectBuffer& operator=(UniformObjectBuffer&&) noexcept = default;
-
-
     T& data() noexcept;
     const T& data() const noexcept;
+
+    [[nodiscard]]
     size_t size() const noexcept;
+
+    [[nodiscard]]
     vk::Buffer buffer() const noexcept;
+
+    [[nodiscard]]
     bool dirty() const noexcept;
-    void update();
     void markDirty() noexcept;
+
+    void update();
 
     UniformObjectBuffer(const Buffer&) = delete;
     UniformObjectBuffer& operator=(const Buffer&) = delete;
@@ -36,12 +38,6 @@ private:
 };
 
 template <class T>
-UniformObjectBuffer<T>::UniformObjectBuffer(Buffer&& buffer) noexcept
-    : m_buffer(std::move(buffer))
-{
-}
-
-template <class T>
 Buffer UniformObjectBuffer<T>::createBuffer(Context* context)
 {
     return Buffer(context,
@@ -49,8 +45,6 @@ Buffer UniformObjectBuffer<T>::createBuffer(Context* context)
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
-
-
 
 template <class T>
 UniformObjectBuffer<T>::UniformObjectBuffer(Context* context)

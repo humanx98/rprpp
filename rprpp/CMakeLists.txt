@@ -96,10 +96,12 @@ target_include_directories(rprpp
     PRIVATE ${Boost_INCLUDE_DIRS}
 )
 
+#target_link_directories(rprpp PRIVATE ${Boost_LIBRARY_DIRS})
 target_link_libraries(rprpp
     PRIVATE Vulkan::Vulkan
     PRIVATE Vulkan::shaderc_combined
     PRIVATE OpenImageDenoise
+    PRIVATE Boost::log
 )
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
 

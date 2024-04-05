@@ -21,10 +21,9 @@ set(SOURCES
 add_executable(oidnapp ${SOURCES} ${HEADERS} main.cpp)
 
 target_link_libraries(oidnapp 
-    glfw 
-    appcommon
-    OpenImageDenoise
-    
+	PUBLIC glfw
+    PUBLIC appcommon
+    PUBLIC OpenImageDenoise
 )
 # automatically copy all dll's deps.
 add_custom_command(TARGET oidnapp POST_BUILD

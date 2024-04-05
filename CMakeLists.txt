@@ -19,7 +19,8 @@ include("${CMAKE_SOURCE_DIR}/cmake/VulkanTools.cmake")
 
 set(RPR_SDK_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/RadeonProRenderSDK")
 
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system log)
+
 find_package(Vulkan COMPONENTS shaderc_combined REQUIRED)
 find_package(Stb REQUIRED)
 find_package(RadeonProRenderSDK 3.1.0 REQUIRED COMPONENTS hybridpro)
