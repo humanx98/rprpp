@@ -23,8 +23,8 @@ public:
     void setOutput(Image* img) override;
 
 private:
-    void validateInputsAndOutput();
     void initialize();
+    void validateInputsAndOutput();
 
     bool m_dirty;
 

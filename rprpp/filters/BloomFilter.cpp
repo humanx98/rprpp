@@ -141,7 +141,9 @@ vk::Semaphore BloomFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     }
 
     if (m_ubo.dirty()) {
-        m_ubo.data().radiusInPixel = (uint32_t)(m_input->description().width * m_ubo.data().radius);
+        const float width = m_input->description().width;
+
+        m_ubo.data().radiusInPixel = width * m_ubo.data().radius;
         m_ubo.update();
     }
 

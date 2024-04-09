@@ -47,6 +47,7 @@ vk::Semaphore DenoiserFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     float* colorPtr = (float*)m_colorBuffer.getData();
     // copy image here
 
+    //m_filter.executeAsync();
     m_filter.execute();
 
     // Check for errors
@@ -99,13 +100,18 @@ void DenoiserFilter::initialize()
 
 void DenoiserFilter::setInput(Image* image)
 {
+    BOOST_LOG_TRIVIAL(trace) << "DenoiserFilter::setInput";
+
     assert(image);
+
     m_input = image;
     m_dirty = true;
 }
 
 void DenoiserFilter::setOutput(Image* image)
 {
+    BOOST_LOG_TRIVIAL(trace) << "DenoiserFilter::setOutput";
+
     m_output = image;
     m_dirty = true;
 }
