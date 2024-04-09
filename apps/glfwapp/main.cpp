@@ -5,7 +5,7 @@
 #define WIDTH 2000
 #define HEIGHT 1000
 #define RENDERED_ITERATIONS 16
-#define INTEROP true
+#define INTEROP false
 #define DEVICE_ID 0
 #ifdef NDEBUG
 // please note that when we use frames in flight > 1

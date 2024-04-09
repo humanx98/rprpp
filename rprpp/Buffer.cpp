@@ -1,33 +1,49 @@
 #include "Buffer.h"
-#include "Error.h"
 #include "Context.h"
+#include "Error.h"
 
 namespace rprpp {
 
-Buffer::Buffer(Context* parent, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
-: ContextObject(parent), 
-  m_size(size), 
-  m_buffer(createBuffer(context()->deviceContext(), size, usage)),
-  m_memory(allocateMemory(context()->deviceContext(), properties))
+Buffer::Buffer(Context* parent, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, bool oidnExportable)
+    : ContextObject(parent)
+    , m_size(size)
+    , m_buffer(createBuffer(context()->deviceContext(), size, usage, oidnExportable))
+    , m_memory(allocateMemory(context()->deviceContext(), properties, oidnExportable))
 {
     m_buffer.bindMemory(*m_memory, 0);
 }
 
-vk::raii::Buffer Buffer::createBuffer(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage)
+vk::raii::Buffer Buffer::createBuffer(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage, bool oidnExportable)
 {
-    return vk::raii::Buffer(dctx.device, vk::BufferCreateInfo({}, size, usage, vk::SharingMode::eExclusive));
+    vk::BufferCreateInfo info({}, size, usage, vk::SharingMode::eExclusive);
+    vk::ExternalMemoryBufferCreateInfo externalInfo(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32);
+    if (oidnExportable) {
+        info.pNext = &externalInfo;
+    }
+
+    return vk::raii::Buffer(dctx.device, info);
 }
 
-vk::raii::DeviceMemory Buffer::allocateMemory(const vk::helper::DeviceContext& dctx, const vk::MemoryPropertyFlags& properties)
+vk::raii::DeviceMemory Buffer::allocateMemory(const vk::helper::DeviceContext& dctx, const vk::MemoryPropertyFlags& properties, bool oidnExportable)
 {
     vk::MemoryRequirements memRequirements = m_buffer.getMemoryRequirements();
     uint32_t memoryType = vk::helper::findMemoryType(dctx.physicalDevice, memRequirements.memoryTypeBits, properties);
-    return dctx.device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryType));
+    vk::MemoryAllocateInfo info(memRequirements.size, memoryType);
+    vk::ExportMemoryAllocateInfo exportInfo(vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32);
+    if (oidnExportable) {
+        info.pNext = &exportInfo;
+    }
+    return dctx.device.allocateMemory(info);
 }
 
 vk::Buffer Buffer::get() const noexcept
 {
     return *m_buffer;
+}
+
+vk::DeviceMemory Buffer::memory() const noexcept
+{
+    return *m_memory;
 }
 
 void* Buffer::map(size_t size)

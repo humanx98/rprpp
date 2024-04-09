@@ -110,9 +110,6 @@ void Context::copyBufferToImage(Buffer* buffer, Image* image)
     if (buffer->size() < size) {
         throw InvalidParameter("buffer", "The provided buffer doesn't fit destination image");
     }
-    // wait for oidn async operations to sync up
-    //TODO: may be removed if GPU sync done correctly
-    m_denoiserDevice.sync();
 
     vk::AccessFlags oldAccess = image->access();
     vk::ImageLayout oldLayout = image->layout();
@@ -143,9 +140,6 @@ void Context::copyImageToBuffer(Image* image, Buffer* buffer)
     if (buffer->size() < size) {
         throw InvalidParameter("buffer", "The provided buffer doesn't fit destination image");
     }
-   // wait for oidn async operations to sync up
-    //TODO: may be removed if GPU sync done correctly
-    m_denoiserDevice.sync();
 
     vk::AccessFlags oldAccess = image->access();
     vk::ImageLayout oldLayout = image->layout();
@@ -175,10 +169,6 @@ void Context::copyImage(Image* src, Image* dst)
     if (src->description() != dst->description()) {
         throw InvalidParameter("dst", "Destination image description has to be equal to source description");
     }
-
-    // wait for oidn async operations to sync up
-    //TODO: may be removed if GPU sync done correctly
-    m_denoiserDevice.sync();
 
     vk::AccessFlags oldDstAccess = dst->access();
     vk::ImageLayout oldDstLayout = dst->layout();

@@ -25,21 +25,29 @@ public:
 private:
     void initialize();
     void validateInputsAndOutput();
+    void copyImageToBuffer(vk::helper::CommandBuffer& commandBuffer, Image* image, Buffer* buffer);
+    void copyBufferToImage(vk::helper::CommandBuffer& commandBuffer, Buffer* buffer, Image* image);
+
+    static std::unique_ptr<Buffer> createStagingBufferFor(Image* image);
 
     bool m_dirty;
 
     oidn::DeviceRef m_device;
-
+    oidn::FilterRef m_filter;
     oidn::BufferRef m_colorBuffer;
     oidn::BufferRef m_albedoBuffer;
     oidn::BufferRef m_normalBuffer;
-    oidn::BufferRef m_outputBuffer;
-
-    oidn::FilterRef m_filter;
-
+    std::unique_ptr<Buffer> m_stagingColorBuffer;
+    std::unique_ptr<Buffer> m_stagingAlbedoBuffer;
+    std::unique_ptr<Buffer> m_stagingNormalBuffer;
+    
     Image* m_input = nullptr;
+    Image* m_albedo = nullptr;
+    Image* m_normal = nullptr;
     Image* m_output = nullptr;
     vk::raii::Semaphore m_finishedSemaphore;
+    vk::helper::CommandBuffer m_copyInputsCommands;
+    vk::helper::CommandBuffer m_copyOutputCommand;
 };
 
 }

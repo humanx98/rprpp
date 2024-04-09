@@ -50,6 +50,7 @@ private:
     std::unique_ptr<rprpp::wrappers::Buffer> m_buffer;
     std::unique_ptr<rprpp::wrappers::Image> m_dx11output;
     std::unique_ptr<rprpp::wrappers::Image> m_output;
+    std::unique_ptr<rprpp::wrappers::Image> m_rgba32Output;
     std::unique_ptr<rprpp::wrappers::Image> m_aovColor;
     std::unique_ptr<rprpp::wrappers::Image> m_aovOpacity;
     std::unique_ptr<rprpp::wrappers::Image> m_aovShadowCatcher;

@@ -182,19 +182,20 @@ void WithAovsInteropApp::resize(int width, int height)
             };
             m_output = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, outputDesc));
             m_dx11output = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createImageFromDx11Texture(*m_ppContext, static_cast<RprPpDx11Handle>(sharedTextureHandle), outputDesc));
-            RprPpImageDescription aovsDesc = {
+            RprPpImageDescription rgba32Desc = {
                 .width = (uint32_t)width,
                 .height = (uint32_t)height,
                 .format = RPRPP_IMAGE_FROMAT_R32G32B32A32_SFLOAT,
             };
-            m_aovColor = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_COLOR), aovsDesc));
-            m_aovOpacity = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_OPACITY), aovsDesc));
-            m_aovShadowCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_SHADOW_CATCHER), aovsDesc));
-            m_aovReflectionCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_REFLECTION_CATCHER), aovsDesc));
-            m_aovMattePass = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS), aovsDesc));
-            m_aovBackground = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND), aovsDesc));
+            m_rgba32Output = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, rgba32Desc));
+            m_aovColor = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_COLOR), rgba32Desc));
+            m_aovOpacity = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_OPACITY), rgba32Desc));
+            m_aovShadowCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_SHADOW_CATCHER), rgba32Desc));
+            m_aovReflectionCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_REFLECTION_CATCHER), rgba32Desc));
+            m_aovMattePass = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS), rgba32Desc));
+            m_aovBackground = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND), rgba32Desc));
 
-            m_composeColorShadowReflectionFilter->setOutput(*m_output);
+            m_composeColorShadowReflectionFilter->setOutput(*m_rgba32Output);
             m_composeColorShadowReflectionFilter->setInput(*m_aovColor);
             m_composeColorShadowReflectionFilter->setAovOpacity(*m_aovOpacity);
             m_composeColorShadowReflectionFilter->setAovShadowCatcher(*m_aovShadowCatcher);
@@ -202,17 +203,17 @@ void WithAovsInteropApp::resize(int width, int height)
             m_composeColorShadowReflectionFilter->setAovMattePass(*m_aovMattePass);
             m_composeColorShadowReflectionFilter->setAovBackground(*m_aovBackground);
 
-            m_denoiserFilter->setOutput(*m_output);
-            m_denoiserFilter->setInput(*m_output);
+            m_denoiserFilter->setOutput(*m_rgba32Output);
+            m_denoiserFilter->setInput(*m_rgba32Output);
 
-            m_bloomFilter->setOutput(*m_output);
-            m_bloomFilter->setInput(*m_output);
+            m_bloomFilter->setOutput(*m_rgba32Output);
+            m_bloomFilter->setInput(*m_rgba32Output);
             m_bloomFilter->setRadius(0.03f);
             m_bloomFilter->setThreshold(0.0f);
             m_bloomFilter->setBrightnessScale(1.0f);
 
             m_tonemapFilter->setOutput(*m_output);
-            m_tonemapFilter->setInput(*m_output);
+            m_tonemapFilter->setInput(*m_rgba32Output);
             m_tonemapFilter->setFocalLength(m_hybridproRenderer->getFocalLength() / 1000.0f);
 
             m_composeOpacityShadowFilter->setOutput(*m_output);
@@ -261,11 +262,12 @@ void WithAovsInteropApp::mainLoop()
                         submitInfo.pSignalSemaphores = &aovsReleasedSemaphore;
                         RPRPP_CHECK(rprppVkQueueSubmit(m_ppContext->getVkQueue(), submitInfo, fence));
                     } else {
-                        RprPpVkSemaphore filterFinished = m_composeColorShadowReflectionFilter->run(aovsReadySemaphore);
-                        filterFinished = m_denoiserFilter->run(filterFinished);
-                        filterFinished = m_bloomFilter->run(filterFinished);
-                        filterFinished = m_tonemapFilter->run(filterFinished);
+                        RprPpVkSemaphore filterFinished = aovsReadySemaphore;
                         filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
+                        filterFinished = m_composeColorShadowReflectionFilter->run(filterFinished);
+                        filterFinished = m_denoiserFilter->run(filterFinished);
+                        //filterFinished = m_bloomFilter->run(filterFinished);
+                        filterFinished = m_tonemapFilter->run(filterFinished);
 
                         RprPpVkSubmitInfo submitInfo;
                         submitInfo.waitSemaphoreCount = 1;
