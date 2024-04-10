@@ -24,7 +24,7 @@ namespace rprpp {
 
 class Context : public boost::noncopyable {
 public:
-    explicit Context(uint32_t deviceId);
+    explicit Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize]);
 
     [[nodiscard]]
     VkPhysicalDevice getVkPhysicalDevice() const noexcept;
@@ -67,14 +67,12 @@ public:
     const vk::helper::DeviceContext& deviceContext() const noexcept { return m_deviceContext; }
 
 private:
-    static oidn::DeviceRef createDenoiserDevice(uint32_t deviceId);
-    static void printDenoiserDeviceNames(int maxDeviceId);
+    static oidn::DeviceRef createDenoiserDevice(uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize]);
 
     // order is matter. First should be cleared all m_objects, then denoiser dev, than main graph. dev
 
     vk::helper::DeviceContext m_deviceContext;
     oidn::DeviceRef m_denoiserDevice;
-
     ContextObjectContainer m_objects;
 };
 

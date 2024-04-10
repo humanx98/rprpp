@@ -65,7 +65,12 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
     assert(outContext);
 
     auto result = safeCall([&]() {
-        auto contextRef = std::make_unique<rprpp::Context>(deviceId);
+        uint8_t luid[vk::LuidSize];
+        uint8_t uuid[vk::UuidSize];
+        vk::helper::getDeviceInfo(deviceId, vk::helper::DeviceInfo::eLUID, luid, sizeof(luid), nullptr);
+        vk::helper::getDeviceInfo(deviceId, vk::helper::DeviceInfo::eUUID, uuid, sizeof(uuid), nullptr);
+
+        auto contextRef = std::make_unique<rprpp::Context>(deviceId, luid, uuid);
         *outContext = contextRef.get();
 
         // avoid memleak
