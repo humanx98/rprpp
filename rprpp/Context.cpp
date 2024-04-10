@@ -88,8 +88,10 @@ filters::DenoiserFilter* Context::createDenoiserFilter()
 {
     auto externalMemoryTypes = m_denoiserDevice.get<oidn::ExternalMemoryTypeFlags>("externalMemoryTypes");
     if ((externalMemoryTypes & oidn::ExternalMemoryTypeFlag::OpaqueWin32) == oidn::ExternalMemoryTypeFlag::OpaqueWin32) {
+        BOOST_LOG_TRIVIAL(info) << "Context::createDenoiserFilter(): create GPU denoiser";
         return m_objects.emplaceCastReturn<filters::DenoiserGpuFilter>(this, m_denoiserDevice);
     } else {
+        BOOST_LOG_TRIVIAL(info) << "Context::createDenoiserFilter(): create CPU denoiser";
         return m_objects.emplaceCastReturn<filters::DenoiserCpuFilter>(this, m_denoiserDevice);
     }
 }
