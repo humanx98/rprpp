@@ -19,6 +19,13 @@ Context::Context(uint32_t deviceId)
 {
 }
 
+void Context::printDenoiserDeviceNames(int maxDeviceId)
+{
+    for (int i = 0; i < maxDeviceId; ++i) {
+        BOOST_LOG_TRIVIAL(info) << "Denoiser Device id = " << i << ", name = " << oidnGetPhysicalDeviceString(i, "name");
+    }
+}
+
 oidn::DeviceRef Context::createDenoiserDevice(uint32_t deviceId)
 {
     BOOST_LOG_TRIVIAL(trace) << "Context::createDenoiserDevice";
@@ -27,9 +34,10 @@ oidn::DeviceRef Context::createDenoiserDevice(uint32_t deviceId)
     if (deviceId >= numPhysicalDevices)
         throw std::runtime_error("Denoiser device is not available");
 
-    BOOST_LOG_TRIVIAL(info) << "denoiser has " << numPhysicalDevices << " available. Try to init on device " << deviceId;
+    printDenoiserDeviceNames(numPhysicalDevices);
+    BOOST_LOG_TRIVIAL(debug) << "Initialize denoiser device " << deviceId;
 
-    //oidn::DeviceRef device = oidn::newCUDADevice(deviceId, nullptr);
+    //oidn::DeviceRef device = oidn::newCUDADevice(0, nullptr);
     oidn::DeviceRef device = oidn::newHIPDevice(deviceId, nullptr);
     device.commit();
 
@@ -39,7 +47,6 @@ oidn::DeviceRef Context::createDenoiserDevice(uint32_t deviceId)
         throw std::runtime_error(errorMessage);
     }
 
-    BOOST_LOG_TRIVIAL(trace) << "GPU \"" << oidnGetPhysicalDeviceString(deviceId, "name") << "\"";
 
     return device;
 }
