@@ -155,6 +155,8 @@ void NoAovsInteropApp::resize(int width, int height)
             m_aovReflectionCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, rgba32Desc));
             m_aovMattePass = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, rgba32Desc));
             m_aovBackground = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, rgba32Desc));
+            m_aovDiffuseAlbedo = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, rgba32Desc));
+            m_aovCameraNormal = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::create(*m_ppContext, rgba32Desc));
 
             m_composeColorShadowReflectionFilter->setOutput(*m_rgba32Output);
             m_composeColorShadowReflectionFilter->setInput(*m_aovColor);
@@ -166,6 +168,8 @@ void NoAovsInteropApp::resize(int width, int height)
 
             m_denoiserFilter->setOutput(*m_rgba32Output);
             m_denoiserFilter->setInput(*m_rgba32Output);
+            m_denoiserFilter->setAovAlbedo(*m_aovDiffuseAlbedo);
+            m_denoiserFilter->setAovNormal(*m_aovCameraNormal);
 
             m_bloomFilter->setOutput(*m_rgba32Output);
             m_bloomFilter->setInput(*m_rgba32Output);
@@ -225,6 +229,10 @@ void NoAovsInteropApp::mainLoop()
             m_ppContext->copyBufferToImage(m_buffer->get(), m_aovMattePass->get());
             copyRprFbToPpStagingBuffer(RPR_AOV_BACKGROUND);
             m_ppContext->copyBufferToImage(m_buffer->get(), m_aovBackground->get());
+            copyRprFbToPpStagingBuffer(RPR_AOV_DIFFUSE_ALBEDO);
+            m_ppContext->copyBufferToImage(m_buffer->get(), m_aovDiffuseAlbedo->get());
+            copyRprFbToPpStagingBuffer(RPR_AOV_CAMERA_NORMAL);
+            m_ppContext->copyBufferToImage(m_buffer->get(), m_aovCameraNormal->get());
 
             filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
             filterFinished = m_composeColorShadowReflectionFilter->run(filterFinished);

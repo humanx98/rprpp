@@ -7,7 +7,7 @@ namespace rprpp {
 
 class Buffer : public ContextObject {
 public:
-    explicit Buffer(Context* parent, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, bool oidnExportable = false);
+    explicit Buffer(Context* parent, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, bool win32Exportable = false);
 
     [[nodiscard]]
     size_t size() const noexcept { return m_size; }
@@ -23,8 +23,8 @@ public:
 
     void unmap();
 private:
-    vk::raii::Buffer createBuffer(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage, bool oidnExportable = false);
-    vk::raii::DeviceMemory allocateMemory(const vk::helper::DeviceContext& dctx, const vk::MemoryPropertyFlags& properties, bool oidnExportable = false);
+    vk::raii::Buffer createBuffer(const vk::helper::DeviceContext& dctx, vk::DeviceSize size, vk::BufferUsageFlags usage, bool win32Exportable = false);
+    vk::raii::DeviceMemory allocateMemory(const vk::helper::DeviceContext& dctx, const vk::MemoryPropertyFlags& properties, bool win32Exportable = false);
 
     size_t m_size;
     vk::raii::Buffer m_buffer;

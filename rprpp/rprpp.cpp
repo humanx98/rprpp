@@ -1126,6 +1126,32 @@ RprPpError rprppToneMapFilterGetGamma(RprPpFilter filter, float* gamma)
     return RPRPP_SUCCESS;
 }
 
+RprPpError rprppDenoiserFilterSetAovAlbedo(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::DenoiserFilter* f = static_cast<rprpp::filters::DenoiserFilter*>(filter);
+        f->setAovAlbedo(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppDenoiserFilterSetAovNormal(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::DenoiserFilter* f = static_cast<rprpp::filters::DenoiserFilter*>(filter);
+        f->setAovNormal(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
 RprPpError rprppBufferMap(RprPpBuffer buffer, size_t size, void** outdata)
 {
     assert(buffer);

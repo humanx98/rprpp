@@ -57,6 +57,8 @@ private:
     std::unique_ptr<rprpp::wrappers::Image> m_aovReflectionCatcher;
     std::unique_ptr<rprpp::wrappers::Image> m_aovMattePass;
     std::unique_ptr<rprpp::wrappers::Image> m_aovBackground;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovDiffuseAlbedo;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovCameraNormal;
     HybridProRenderer m_hybridproRenderer;
     void initWindow();
     void findAdapter();

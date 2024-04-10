@@ -28,6 +28,8 @@ set(HEADERS
     filters/ComposeColorShadowReflectionFilter.h
     filters/ComposeOpacityShadowFilter.h
     filters/DenoiserFilter.h
+    filters/DenoiserGpuFilter.h
+    filters/DenoiserCpuFilter.h
     filters/Filter.h
     filters/ToneMapFilter.h
     vk/CommandBuffer.h
@@ -60,6 +62,8 @@ set(SOURCES
     filters/ComposeColorShadowReflectionFilter.cpp
     filters/ComposeOpacityShadowFilter.cpp
     filters/DenoiserFilter.cpp
+    filters/DenoiserGpuFilter.cpp
+    filters/DenoiserCpuFilter.cpp
     filters/Filter.cpp
     filters/ToneMapFilter.cpp
     vk/CommandBuffer.cpp

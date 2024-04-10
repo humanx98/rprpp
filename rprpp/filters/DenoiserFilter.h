@@ -18,20 +18,18 @@ class DenoiserFilter : public Filter {
 public:
     explicit DenoiserFilter(Context* context, oidn::DeviceRef& device);
 
-    vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
     void setInput(Image* img) override;
     void setOutput(Image* img) override;
 
-private:
-    void initialize();
+    void setAovAlbedo(Image* img);
+    void setAovNormal(Image* img);
+
+protected:
     void validateInputsAndOutput();
     void copyImageToBuffer(vk::helper::CommandBuffer& commandBuffer, Image* image, Buffer* buffer);
     void copyBufferToImage(vk::helper::CommandBuffer& commandBuffer, Buffer* buffer, Image* image);
 
-    static std::unique_ptr<Buffer> createStagingBufferFor(Image* image);
-
-    bool m_dirty;
-
+    bool m_dirty = true;
     oidn::DeviceRef m_device;
     oidn::FilterRef m_filter;
     oidn::BufferRef m_colorBuffer;
@@ -40,7 +38,7 @@ private:
     std::unique_ptr<Buffer> m_stagingColorBuffer;
     std::unique_ptr<Buffer> m_stagingAlbedoBuffer;
     std::unique_ptr<Buffer> m_stagingNormalBuffer;
-    
+
     Image* m_input = nullptr;
     Image* m_albedo = nullptr;
     Image* m_normal = nullptr;

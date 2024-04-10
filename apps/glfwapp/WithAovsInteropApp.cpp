@@ -194,6 +194,8 @@ void WithAovsInteropApp::resize(int width, int height)
             m_aovReflectionCatcher = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_REFLECTION_CATCHER), rgba32Desc));
             m_aovMattePass = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_MATTE_PASS), rgba32Desc));
             m_aovBackground = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_BACKGROUND), rgba32Desc));
+            m_aovDiffuseAlbedo = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_DIFFUSE_ALBEDO), rgba32Desc));
+            m_aovCameraNormal = std::make_unique<rprpp::wrappers::Image>(rprpp::wrappers::Image::createFromVkSampledImage(*m_ppContext, (RprPpVkImage)m_hybridproRenderer->getAovVkImage(RPR_AOV_CAMERA_NORMAL), rgba32Desc));
 
             m_composeColorShadowReflectionFilter->setOutput(*m_rgba32Output);
             m_composeColorShadowReflectionFilter->setInput(*m_aovColor);
@@ -205,6 +207,8 @@ void WithAovsInteropApp::resize(int width, int height)
 
             m_denoiserFilter->setOutput(*m_rgba32Output);
             m_denoiserFilter->setInput(*m_rgba32Output);
+            m_denoiserFilter->setAovAlbedo(*m_aovDiffuseAlbedo);
+            m_denoiserFilter->setAovNormal(*m_aovCameraNormal);
 
             m_bloomFilter->setOutput(*m_rgba32Output);
             m_bloomFilter->setInput(*m_rgba32Output);

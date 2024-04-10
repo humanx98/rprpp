@@ -147,6 +147,9 @@ RPRPP_API RprPpError rprppToneMapFilterGetFNumber(RprPpFilter filter, float* fNu
 RPRPP_API RprPpError rprppToneMapFilterGetFocalLength(RprPpFilter filter, float* focalLength);
 RPRPP_API RprPpError rprppToneMapFilterGetAperture(RprPpFilter filter, float* aperture);
 RPRPP_API RprPpError rprppToneMapFilterGetGamma(RprPpFilter filter, float* gamma);
+// Denoiser Filter
+RPRPP_API RprPpError rprppDenoiserFilterSetAovAlbedo(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppDenoiserFilterSetAovNormal(RprPpFilter filter, RprPpImage image);
 
 // buffer functions
 RPRPP_API RprPpError rprppBufferMap(RprPpBuffer buffer, size_t size, void** outdata);

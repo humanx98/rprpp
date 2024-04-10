@@ -53,6 +53,8 @@ private:
     std::unique_ptr<rprpp::wrappers::Image> m_aovReflectionCatcher;
     std::unique_ptr<rprpp::wrappers::Image> m_aovMattePass;
     std::unique_ptr<rprpp::wrappers::Image> m_aovBackground;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovDiffuseAlbedo;
+    std::unique_ptr<rprpp::wrappers::Image> m_aovCameraNormal;
     std::unique_ptr<rprpp::wrappers::filters::BloomFilter> m_bloomFilter;
     std::unique_ptr<rprpp::wrappers::filters::ComposeColorShadowReflectionFilter> m_composeColorShadowReflectionFilter;
     std::unique_ptr<rprpp::wrappers::filters::ComposeOpacityShadowFilter> m_composeOpacityShadowFilter;

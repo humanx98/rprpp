@@ -3,6 +3,8 @@
 #include "filters/BloomFilter.h"
 #include "filters/ComposeColorShadowReflectionFilter.h"
 #include "filters/ComposeOpacityShadowFilter.h"
+#include "filters/DenoiserCpuFilter.h"
+#include "filters/DenoiserGpuFilter.h"
 #include "filters/ToneMapFilter.h"
 #include "DxImage.h"
 #include "VkSampledImage.h"
@@ -57,7 +59,7 @@ filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
 
 filters::DenoiserFilter* Context::createDenoiserFilter()
 {
-    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this, m_denoiserDevice);
+    return m_objects.emplaceCastReturn<filters::DenoiserGpuFilter>(this, m_denoiserDevice);
 }
 
 filters::ToneMapFilter* Context::createToneMapFilter()
