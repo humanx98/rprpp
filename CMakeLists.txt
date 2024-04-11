@@ -8,6 +8,7 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 option(RPRPP_EXPORT_API "Export dll symbols" ON)
 option(BUILD_APPS "Build testing applications" ON)
 option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+option(INSTALL_DEPENDENCIES "Install ThirdParty dependencies (dlls)" TRUE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 set(OpenImageDenoise_DIR "${CMAKE_SOURCE_DIR}/ThirdParty/oidn/lib/cmake/OpenImageDenoise-2.2.2")
@@ -28,6 +29,7 @@ find_package(OpenImageDenoise REQUIRED)
 
 check_vulkan(${Vulkan_LIBRARY})
 
+include(GNUInstallDirs)
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
 

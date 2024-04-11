@@ -108,4 +108,16 @@ target_link_libraries(rprpp
 )
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
 
-install(TARGETS rprpp RUNTIME PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rprpp)
+install(TARGETS rprpp
+        RUNTIME PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rprpp)
+
+if (INSTALL_DEPENDENCIES)
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoise.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoise_core.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoise_device_cpu.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoise_device_cuda.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoise_device_hip.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbb12.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbbmalloc.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbbmalloc.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
