@@ -68,6 +68,7 @@ public:
 
 private:
     static oidn::DeviceRef createDenoiserDevice(uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize]);
+    static void printAllDenoiserDevices(int maxDevicesId);
 
     // order is matter. First should be cleared all m_objects, then denoiser dev, than main graph. dev
 

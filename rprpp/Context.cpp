@@ -19,11 +19,21 @@ Context::Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk:
 {
 }
 
+
+void Context::printAllDenoiserDevices(int maxDevicesNumber)
+{
+    for (int deviceId = 0; deviceId < maxDevicesNumber; ++deviceId) {
+        BOOST_LOG_TRIVIAL(info) << "Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
+    }
+}
+
 oidn::DeviceRef Context::createDenoiserDevice(uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
 {
     BOOST_LOG_TRIVIAL(trace) << "Context::createDenoiserDevice";
 
     int numPhysicalDevices = oidn::getNumPhysicalDevices();
+    printAllDenoiserDevices(numPhysicalDevices);
+
     int deviceId = -1;
     int cpuId = -1;
     for (int i = 0; i < numPhysicalDevices; i++) {
