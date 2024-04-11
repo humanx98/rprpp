@@ -32,9 +32,9 @@ target_include_directories(appcommon PUBLIC
     PUBLIC ${CMAKE_SOURCE_DIR}/apps
 )
 
-target_link_libraries(appcommon PUBLIC
-    RadeonProRenderSDK::RPR
-    rprpp
-    stbimpl
+target_link_libraries(appcommon
+	PUBLIC RadeonProRenderSDK::RPR
+	PUBLIC stbimpl
+	PUBLIC rprpp
 )
 

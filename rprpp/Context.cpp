@@ -3,16 +3,80 @@
 #include "filters/BloomFilter.h"
 #include "filters/ComposeColorShadowReflectionFilter.h"
 #include "filters/ComposeOpacityShadowFilter.h"
+#include "filters/DenoiserCpuFilter.h"
+#include "filters/DenoiserGpuFilter.h"
 #include "filters/ToneMapFilter.h"
 #include "DxImage.h"
 #include "VkSampledImage.h"
 #include "ImageSimple.h"
 
+#include <boost/log/trivial.hpp>
+
 namespace rprpp {
 
-Context::Context(uint32_t deviceId)
- : m_deviceContext(vk::helper::createDeviceContext(deviceId))
+Context::Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
+    : m_deviceContext(vk::helper::createDeviceContext(deviceId)), m_denoiserDevice(createDenoiserDevice(luid, uuid))
 {
+}
+
+
+void Context::printAllDenoiserDevices(int maxDevicesNumber)
+{
+    for (int deviceId = 0; deviceId < maxDevicesNumber; ++deviceId) {
+        BOOST_LOG_TRIVIAL(info) << "Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
+    }
+}
+
+oidn::DeviceRef Context::createDenoiserDevice(uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
+{
+    BOOST_LOG_TRIVIAL(trace) << "Context::createDenoiserDevice";
+
+    int numPhysicalDevices = oidn::getNumPhysicalDevices();
+    printAllDenoiserDevices(numPhysicalDevices);
+
+    int deviceId = -1;
+    int cpuId = -1;
+    for (int i = 0; i < numPhysicalDevices; i++) {
+        oidn::PhysicalDeviceRef physicalDevice(i);
+        if (physicalDevice.get<bool>("luidSupported")) {
+            oidn::LUID oidnLUID =  physicalDevice.get<oidn::LUID>("luid");
+            if (std::equal(std::begin(oidnLUID.bytes), std::end(oidnLUID.bytes), luid))
+            {
+                deviceId = i;
+                break;
+            }
+        }
+        
+        if (physicalDevice.get<bool>("uuidSupported")) {
+            oidn::UUID oidnUUID = physicalDevice.get<oidn::UUID>("uuid");
+            if (std::equal(std::begin(oidnUUID.bytes), std::end(oidnUUID.bytes), uuid)) {
+                deviceId = i;
+                break;
+            }
+        }
+
+        if (physicalDevice.get<oidn::DeviceType>("type") == oidn::DeviceType::CPU) {
+            cpuId = i;
+        }
+    }
+
+    // cpu fallback
+    if (deviceId < 0) {
+        deviceId = cpuId;
+    }
+    
+    BOOST_LOG_TRIVIAL(info) << "Initialize Selected Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
+    oidn::DeviceRef device = oidn::newDevice(deviceId);
+    device.commit();
+
+    const char* errorMessage;
+    if (device.getError(errorMessage) != oidn::Error::None) {
+        BOOST_LOG_TRIVIAL(error) << errorMessage;
+        throw std::runtime_error(errorMessage);
+    }
+
+
+    return device;
 }
 
 filters::BloomFilter* Context::createBloomFilter()
@@ -32,7 +96,14 @@ filters::ComposeOpacityShadowFilter* Context::createComposeOpacityShadowFilter()
 
 filters::DenoiserFilter* Context::createDenoiserFilter()
 {
-    return m_objects.emplaceCastReturn<filters::DenoiserFilter>(this);
+    auto externalMemoryTypes = m_denoiserDevice.get<oidn::ExternalMemoryTypeFlags>("externalMemoryTypes");
+    if ((externalMemoryTypes & oidn::ExternalMemoryTypeFlag::OpaqueWin32) == oidn::ExternalMemoryTypeFlag::OpaqueWin32) {
+        BOOST_LOG_TRIVIAL(info) << "Context::createDenoiserFilter(): create GPU denoiser";
+        return m_objects.emplaceCastReturn<filters::DenoiserGpuFilter>(this, m_denoiserDevice);
+    } else {
+        BOOST_LOG_TRIVIAL(info) << "Context::createDenoiserFilter(): create CPU denoiser";
+        return m_objects.emplaceCastReturn<filters::DenoiserCpuFilter>(this, m_denoiserDevice);
+    }
 }
 
 filters::ToneMapFilter* Context::createToneMapFilter()

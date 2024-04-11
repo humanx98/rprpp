@@ -24,8 +24,8 @@ public:
     explicit ComposeOpacityShadowFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
-    void setOutput(Image* img) noexcept override;
-    void setInput(Image* img) noexcept override;
+    void setOutput(Image* img) override;
+    void setInput(Image* img) override;
     void setAovShadowCatcher(Image* img) noexcept;
 
     void setTileOffset(uint32_t x, uint32_t y) noexcept;

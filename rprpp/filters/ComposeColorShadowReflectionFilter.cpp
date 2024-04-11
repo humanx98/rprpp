@@ -204,7 +204,7 @@ vk::Semaphore ComposeColorShadowReflectionFilter::run(std::optional<vk::Semaphor
     return *m_finishedSemaphore;
 }
 
-void ComposeColorShadowReflectionFilter::setInput(Image* img) noexcept
+void ComposeColorShadowReflectionFilter::setInput(Image* img)
 {
     m_aovColor = img;
     m_descriptorsDirty = true;
@@ -246,7 +246,7 @@ void ComposeColorShadowReflectionFilter::setAovBackground(Image* img) noexcept
     m_descriptorsDirty = true;
 }
 
-void ComposeColorShadowReflectionFilter::setOutput(Image* img) noexcept
+void ComposeColorShadowReflectionFilter::setOutput(Image* img)
 {
     m_output = img;
     m_descriptorsDirty = true;

@@ -124,13 +124,13 @@ vk::Semaphore ToneMapFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     return *m_finishedSemaphore;
 }
 
-void ToneMapFilter::setInput(Image* image) noexcept
+void ToneMapFilter::setInput(Image* image)
 {
     m_input = image;
     m_descriptorsDirty = true;
 }
 
-void ToneMapFilter::setOutput(Image* image) noexcept
+void ToneMapFilter::setOutput(Image* image)
 {
     m_output = image;
     m_descriptorsDirty = true;

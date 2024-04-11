@@ -26,8 +26,8 @@ public:
     explicit ComposeColorShadowReflectionFilter(Context* context);
 
     vk::Semaphore run(std::optional<vk::Semaphore> waitSemaphore) override;
-    void setOutput(Image* img) noexcept override;
-    void setInput(Image* img) noexcept override;
+    void setOutput(Image* img) override;
+    void setInput(Image* img) override;
 
     void setAovOpacity(Image* img) noexcept;
     void setAovShadowCatcher(Image* img) noexcept;

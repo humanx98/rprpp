@@ -2,6 +2,7 @@
 
 #include "rprpp.h"
 #include "vk/vk.h"
+#include "Error.h"
 
 namespace rprpp {
 
@@ -19,8 +20,9 @@ inline vk::Format to_vk_format(ImageFormat from)
     case ImageFormat::eB8G8R8A8Unorm:
         return vk::Format::eB8G8R8A8Unorm;
     case ImageFormat::eR32G32B32A32Sfloat:
-    default:
         return vk::Format::eR32G32B32A32Sfloat;
+    default:
+        throw InternalError("not implemented image format");
     }
 }
 
@@ -31,8 +33,9 @@ inline size_t to_pixel_size(ImageFormat from)
     case ImageFormat::eB8G8R8A8Unorm:
         return 4 * sizeof(uint8_t);
     case ImageFormat::eR32G32B32A32Sfloat:
-    default:
         return 4 * sizeof(float);
+    default:
+        throw InternalError("not implemented image format");
     }
 }
 
@@ -43,8 +46,22 @@ inline std::string to_glslformat(ImageFormat from)
     case ImageFormat::eB8G8R8A8Unorm:
         return "rgba8";
     case ImageFormat::eR32G32B32A32Sfloat:
-    default:
         return "rgba32f";
+    default:
+        throw InternalError("not implemented image format");
+    }
+}
+
+inline bool is_ldr(ImageFormat format)
+{
+    switch (format) {
+    case ImageFormat::eR8G8B8A8Unorm:
+    case ImageFormat::eB8G8R8A8Unorm:
+        return true;
+    case ImageFormat::eR32G32B32A32Sfloat:
+        return false;
+    default:
+        throw InternalError("not implemented image format");
     }
 }
 

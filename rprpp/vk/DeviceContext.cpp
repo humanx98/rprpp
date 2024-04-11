@@ -247,13 +247,24 @@ void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, 
         break;
     }
     case DeviceInfo::eLUID: {
-        size_t len = VK_LUID_SIZE;
+        size_t len = vk::LuidSize;
         if (sizeRet != nullptr) {
             *sizeRet = len;
         }
 
         if (data != nullptr && size <= len) {
             std::memcpy(data, idprops.deviceLUID, len);
+        }
+        break;
+    }
+    case DeviceInfo::eUUID: {
+        size_t len = vk::UuidSize;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && size <= len) {
+            std::memcpy(data, idprops.deviceUUID, len);
         }
         break;
     }

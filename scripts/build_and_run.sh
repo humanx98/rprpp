@@ -23,4 +23,4 @@ root_dir=$(realpath "$script_dir/..")
 
 cmake --build "$root_dir/build" --config $build_type
 
-"$root_dir/build/apps/$app_name/$build_type/$app_name.exe"
+"$root_dir/build/bin/$build_type/$app_name.exe"

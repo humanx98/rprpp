@@ -14,4 +14,20 @@ DenoiserFilter::DenoiserFilter(const Context& _context)
     setFilter(filter);
 }
 
+void DenoiserFilter::setAovAlbedo(const Image& image)
+{
+    RprPpError status;
+
+    status = rprppDenoiserFilterSetAovAlbedo(filter(), image.get());
+    RPRPP_CHECK(status);
+}
+
+void DenoiserFilter::setAovNormal(const Image& image)
+{
+    RprPpError status;
+
+    status = rprppDenoiserFilterSetAovNormal(filter(), image.get());
+    RPRPP_CHECK(status);
+}
+
 }

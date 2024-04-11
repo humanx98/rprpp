@@ -28,7 +28,8 @@ typedef enum RprPpError {
 typedef enum RprPpDeviceInfo {
     RPRPP_DEVICE_INFO_NAME = 0,
     RPRPP_DEVICE_INFO_LUID = 1,
-    RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING = 2,
+    RPRPP_DEVICE_INFO_UUID = 2,
+    RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING = 3,
 } RprPpDeviceInfo;
 
 typedef enum RprPpImageFormat {
@@ -147,6 +148,9 @@ RPRPP_API RprPpError rprppToneMapFilterGetFNumber(RprPpFilter filter, float* fNu
 RPRPP_API RprPpError rprppToneMapFilterGetFocalLength(RprPpFilter filter, float* focalLength);
 RPRPP_API RprPpError rprppToneMapFilterGetAperture(RprPpFilter filter, float* aperture);
 RPRPP_API RprPpError rprppToneMapFilterGetGamma(RprPpFilter filter, float* gamma);
+// Denoiser Filter
+RPRPP_API RprPpError rprppDenoiserFilterSetAovAlbedo(RprPpFilter filter, RprPpImage image);
+RPRPP_API RprPpError rprppDenoiserFilterSetAovNormal(RprPpFilter filter, RprPpImage image);
 
 // buffer functions
 RPRPP_API RprPpError rprppBufferMap(RprPpBuffer buffer, size_t size, void** outdata);

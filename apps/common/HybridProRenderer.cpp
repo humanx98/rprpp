@@ -251,6 +251,8 @@ void HybridProRenderer::resize(uint32_t width, uint32_t height)
             RPR_AOV_REFLECTION_CATCHER,
             RPR_AOV_MATTE_PASS,
             RPR_AOV_BACKGROUND,
+            RPR_AOV_DIFFUSE_ALBEDO,
+            RPR_AOV_CAMERA_NORMAL,
         };
 
         const rpr_framebuffer_desc desc = { width, height };

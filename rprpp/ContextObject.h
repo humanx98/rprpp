@@ -1,11 +1,8 @@
 #pragma once
 
-#include <boost/uuid/uuid.hpp>
-
-#include <boost/noncopyable.hpp>
-
 #include "rprpp/vk/DeviceContext.h"
-
+#include <boost/uuid/uuid.hpp>
+#include <boost/noncopyable.hpp>
 #include <memory>
 
 namespace rprpp

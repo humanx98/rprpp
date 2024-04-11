@@ -5,12 +5,10 @@
 #include "vk/DeviceContext.h"
 
 #include <cassert>
-#include <concepts>
 #include <functional>
 #include <mutex>
 #include <optional>
 #include <type_traits>
-#include <utility>
 
 #include <iostream>
 
@@ -67,7 +65,12 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
     assert(outContext);
 
     auto result = safeCall([&]() {
-        auto contextRef = std::make_unique<rprpp::Context>(deviceId);
+        uint8_t luid[vk::LuidSize];
+        uint8_t uuid[vk::UuidSize];
+        vk::helper::getDeviceInfo(deviceId, vk::helper::DeviceInfo::eLUID, luid, sizeof(luid), nullptr);
+        vk::helper::getDeviceInfo(deviceId, vk::helper::DeviceInfo::eUUID, uuid, sizeof(uuid), nullptr);
+
+        auto contextRef = std::make_unique<rprpp::Context>(deviceId, luid, uuid);
         *outContext = contextRef.get();
 
         // avoid memleak
@@ -1122,6 +1125,32 @@ RprPpError rprppToneMapFilterGetGamma(RprPpFilter filter, float* gamma)
         if (gamma != nullptr) {
             *gamma = f->getGamma();
         }
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppDenoiserFilterSetAovAlbedo(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::DenoiserFilter* f = static_cast<rprpp::filters::DenoiserFilter*>(filter);
+        f->setAovAlbedo(static_cast<rprpp::Image*>(image));
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppDenoiserFilterSetAovNormal(RprPpFilter filter, RprPpImage image)
+{
+    assert(filter);
+
+    auto result = safeCall([&] {
+        rprpp::filters::DenoiserFilter* f = static_cast<rprpp::filters::DenoiserFilter*>(filter);
+        f->setAovNormal(static_cast<rprpp::Image*>(image));
     });
     check(result);
 
