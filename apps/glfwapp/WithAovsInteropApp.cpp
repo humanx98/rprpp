@@ -299,7 +299,7 @@ void WithAovsInteropApp::mainLoop()
         double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
         if (deltaTimeInSeconds > 1.0) { // every second
             std::cout << "Iterations per second = "
-                      << frames
+                      << frames / deltaTimeInSeconds
                       << ", Time per iteration = "
                       << deltaTimeInSeconds * 1000.0 / frames
                       << "ms"
