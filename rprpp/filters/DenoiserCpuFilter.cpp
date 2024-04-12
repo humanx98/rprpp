@@ -39,24 +39,12 @@ vk::Semaphore DenoiserCpuFilter::run(std::optional<vk::Semaphore> waitSemaphore)
     deviceContext().queue.submit(submitInfo);
     deviceContext().queue.waitIdle();
 
-    std::memcpy(m_colorBuffer.getData(), m_stagingColorBuffer.get()->map(m_colorBuffer.getSize()), m_colorBuffer.getSize());
-    m_stagingColorBuffer.get()->unmap();
-    if (m_stagingAlbedoBuffer.get() && m_stagingNormalBuffer.get()) {
-        std::memcpy(m_albedoBuffer.getData(), m_stagingAlbedoBuffer.get()->map(m_albedoBuffer.getSize()), m_albedoBuffer.getSize());
-        m_stagingAlbedoBuffer.get()->unmap();
-        std::memcpy(m_normalBuffer.getData(), m_stagingNormalBuffer.get()->map(m_normalBuffer.getSize()), m_normalBuffer.getSize());
-        m_stagingNormalBuffer.get()->unmap();
-    }
-
     m_filter.execute();
     const char* errorMessage;
     if (m_device.getError(errorMessage) != oidn::Error::None) {
         BOOST_LOG_TRIVIAL(error) << errorMessage;
         throw InternalError(std::string("oidn error: ") + errorMessage);
     }
-
-    std::memcpy(m_stagingColorBuffer.get()->map(m_colorBuffer.getSize()), m_colorBuffer.getData(), m_colorBuffer.getSize());
-    m_stagingColorBuffer.get()->unmap();
 
     submitInfo = vk::SubmitInfo();
     submitInfo.setCommandBuffers(*m_copyOutputCommand.get());
@@ -97,15 +85,12 @@ void DenoiserCpuFilter::initialize()
 
     const uint32_t width = m_input->description().width;
     const uint32_t height = m_input->description().height;
-    m_colorBuffer = m_device.newBuffer(m_stagingColorBuffer->size());
-    m_filter.setImage("color", m_colorBuffer, oidn::Format::Float3, width, height, 0, to_pixel_size(m_input->description().format), 0);
-    m_filter.setImage("output", m_colorBuffer, oidn::Format::Float3, width, height, 0, to_pixel_size(m_output->description().format), 0);
+    void* mappedStaginColorBuffer = m_stagingColorBuffer->map(m_stagingColorBuffer->size());
+    m_filter.setImage("color", mappedStaginColorBuffer, oidn::Format::Float3, width, height, 0, to_pixel_size(m_input->description().format), 0);
+    m_filter.setImage("output", mappedStaginColorBuffer, oidn::Format::Float3, width, height, 0, to_pixel_size(m_output->description().format), 0);
     if (m_stagingAlbedoBuffer.get() && m_stagingNormalBuffer.get()) {
-        m_albedoBuffer = m_device.newBuffer(m_stagingAlbedoBuffer->size());
-        m_filter.setImage("albedo", m_albedoBuffer, oidn::Format::Float3, width, height, 0, to_pixel_size(m_albedo->description().format), 0);
-
-        m_normalBuffer = m_device.newBuffer(m_stagingNormalBuffer->size());
-        m_filter.setImage("normal", m_normalBuffer, oidn::Format::Float3, width, height, 0, to_pixel_size(m_normal->description().format), 0);
+        m_filter.setImage("albedo", m_stagingAlbedoBuffer->map(m_stagingAlbedoBuffer->size()), oidn::Format::Float3, width, height, 0, to_pixel_size(m_albedo->description().format), 0);
+        m_filter.setImage("normal", m_stagingNormalBuffer->map(m_stagingNormalBuffer->size()), oidn::Format::Float3, width, height, 0, to_pixel_size(m_normal->description().format), 0);
     }
     m_filter.set("hdr", true); // beauty image is HDR
     m_filter.commit();
