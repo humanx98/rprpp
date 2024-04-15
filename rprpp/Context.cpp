@@ -15,68 +15,8 @@
 namespace rprpp {
 
 Context::Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
-    : m_deviceContext(vk::helper::createDeviceContext(deviceId)), m_denoiserDevice(createDenoiserDevice(luid, uuid))
+    : m_deviceContext(vk::helper::DeviceContext::create(deviceId)), m_denoiserDevice(oidn::helper::createDevice(luid, uuid))
 {
-}
-
-
-void Context::printAllDenoiserDevices(int maxDevicesNumber)
-{
-    for (int deviceId = 0; deviceId < maxDevicesNumber; ++deviceId) {
-        BOOST_LOG_TRIVIAL(info) << "Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
-    }
-}
-
-oidn::DeviceRef Context::createDenoiserDevice(uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
-{
-    BOOST_LOG_TRIVIAL(trace) << "Context::createDenoiserDevice";
-
-    int numPhysicalDevices = oidn::getNumPhysicalDevices();
-    printAllDenoiserDevices(numPhysicalDevices);
-
-    int deviceId = -1;
-    int cpuId = -1;
-    for (int i = 0; i < numPhysicalDevices; i++) {
-        oidn::PhysicalDeviceRef physicalDevice(i);
-        if (physicalDevice.get<bool>("luidSupported")) {
-            oidn::LUID oidnLUID =  physicalDevice.get<oidn::LUID>("luid");
-            if (std::equal(std::begin(oidnLUID.bytes), std::end(oidnLUID.bytes), luid))
-            {
-                deviceId = i;
-                break;
-            }
-        }
-        
-        if (physicalDevice.get<bool>("uuidSupported")) {
-            oidn::UUID oidnUUID = physicalDevice.get<oidn::UUID>("uuid");
-            if (std::equal(std::begin(oidnUUID.bytes), std::end(oidnUUID.bytes), uuid)) {
-                deviceId = i;
-                break;
-            }
-        }
-
-        if (physicalDevice.get<oidn::DeviceType>("type") == oidn::DeviceType::CPU) {
-            cpuId = i;
-        }
-    }
-
-    // cpu fallback
-    if (deviceId < 0) {
-        deviceId = cpuId;
-    }
-    
-    BOOST_LOG_TRIVIAL(info) << "Initialize Selected Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
-    oidn::DeviceRef device = oidn::newDevice(deviceId);
-    device.commit();
-
-    const char* errorMessage;
-    if (device.getError(errorMessage) != oidn::Error::None) {
-        BOOST_LOG_TRIVIAL(error) << errorMessage;
-        throw std::runtime_error(errorMessage);
-    }
-
-
-    return device;
 }
 
 filters::BloomFilter* Context::createBloomFilter()

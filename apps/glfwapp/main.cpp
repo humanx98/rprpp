@@ -30,11 +30,15 @@ DeviceInfo getDeviceInfoOf(int index)
 
     uint32_t supportHardwareRT;
     RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING, &supportHardwareRT, sizeof(supportHardwareRT), nullptr));
+
+    uint32_t supportGpuDenoiser;
+    RPRPP_CHECK(rprppGetDeviceInfo(index, RPRPP_DEVICE_INFO_SUPPORT_GPU_DENOISER, &supportGpuDenoiser, sizeof(supportGpuDenoiser), nullptr));
     return {
         .index = index,
         .name = std::string(deviceName.begin(), deviceName.end()),
         .LUID = deviceLUID,
         .supportHardwareRT = supportHardwareRT == RPRPP_TRUE ? true : false,
+        .supportGpuDenoiser = supportGpuDenoiser == RPRPP_TRUE ? true : false,
     };
 }
 
@@ -55,7 +59,11 @@ int main(int argc, const char* argv[])
         deviceInfos.push_back(getDeviceInfoOf(i));
         std::cout << "Device id = " << i << ", name = " << deviceInfos[i].name;
         if (deviceInfos[i].supportHardwareRT) {
-            std::cout << ", support Hardware Ray Tracing.";
+            std::cout << ", support Hardware Ray Tracing";
+        }
+
+        if (deviceInfos[i].supportGpuDenoiser) {
+            std::cout << ", support Gpu Denoiser";
         }
         std::cout << std::endl;
     }

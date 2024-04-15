@@ -15,6 +15,113 @@
 static std::mutex Mutex;
 static map<rprpp::Context> GlobalContextObjects;
 
+void getDeviceInfo(uint32_t deviceId, RprPpDeviceInfo info, void* data, size_t size, size_t* sizeRet)
+{
+    vk::raii::Context context;
+    vk::helper::Instance instance = vk::helper::createInstance(context, false);
+    vk::raii::PhysicalDevices physicalDevices(instance.get());
+
+    if (physicalDevices.size() <= deviceId) {
+        throw rprpp::InvalidDevice(deviceId);
+    }
+
+    vk::raii::PhysicalDevice physicalDevice = std::move(physicalDevices[deviceId]);
+
+    auto props2 = physicalDevice.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceIDProperties>();
+    vk::PhysicalDeviceProperties props = props2.get<vk::PhysicalDeviceProperties2>().properties;
+    vk::PhysicalDeviceIDProperties idprops = props2.get<vk::PhysicalDeviceIDProperties>();
+
+    switch (info) {
+    case RPRPP_DEVICE_INFO_NAME: {
+        size_t len = std::strlen(props.deviceName) + 1;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && len <= size) {
+            std::strcpy((char*)data, props.deviceName);
+        }
+        break;
+    }
+    case RPRPP_DEVICE_INFO_LUID: {
+        size_t len = vk::LuidSize;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && len <= size) {
+            std::memcpy(data, idprops.deviceLUID, len);
+        }
+        break;
+    }
+    case RPRPP_DEVICE_INFO_UUID: {
+        size_t len = vk::UuidSize;
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && len <= size) {
+            std::memcpy(data, idprops.deviceUUID, len);
+        }
+        break;
+    }
+    case RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING: {
+        size_t len = sizeof(uint32_t);
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && len <= size) {
+            std::vector<const char*> availableExtensions;
+            const std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
+            availableExtensions.reserve(extensionProperties.size());
+            for (const vk::ExtensionProperties& property : extensionProperties) {
+                availableExtensions.push_back(property.extensionName);
+            }
+            std::vector<const char*> rayTracingExtensions = vk::helper::getRayTracingExtensions();
+            uint32_t supportHardwareRT = vk::helper::validateRequiredExtensions(availableExtensions, rayTracingExtensions)
+                ? RPRPP_TRUE
+                : RPRPP_FALSE;
+            std::memcpy(data, &supportHardwareRT, len);
+        }
+        break;
+    }
+    case RPRPP_DEVICE_INFO_SUPPORT_GPU_DENOISER: {
+        size_t len = sizeof(uint32_t);
+        if (sizeRet != nullptr) {
+            *sizeRet = len;
+        }
+
+        if (data != nullptr && len <= size) {
+            int numPhysicalDevices = oidn::getNumPhysicalDevices();
+            uint32_t supportGpuDenoiser = RPRPP_FALSE;
+            for (int i = 0; i < numPhysicalDevices; i++) {
+                oidn::PhysicalDeviceRef physicalDevice(i);
+                if (physicalDevice.get<bool>("luidSupported")) {
+                    oidn::LUID oidnLUID = physicalDevice.get<oidn::LUID>("luid");
+                    if (std::equal(std::begin(oidnLUID.bytes), std::end(oidnLUID.bytes), idprops.deviceLUID.begin())) {
+                        supportGpuDenoiser = RPRPP_TRUE;
+                        break;
+                    }
+                }
+
+                if (physicalDevice.get<bool>("uuidSupported")) {
+                    oidn::UUID oidnUUID = physicalDevice.get<oidn::UUID>("uuid");
+                    if (std::equal(std::begin(oidnUUID.bytes), std::end(oidnUUID.bytes), idprops.deviceUUID.begin())) {
+                        supportGpuDenoiser = RPRPP_TRUE;
+                        break;
+                    }
+                }
+            }
+            std::memcpy(data, &supportGpuDenoiser, len);
+        }
+        break;
+    }
+    default:
+        throw rprpp::InvalidParameter("deviceInfo", "Not supported device info type");
+    }
+}
+
 template <class Function,
     class... Params>
 [[nodiscard("Please, don't ignore result")]] inline auto safeCall(Function function, Params&&... params) noexcept -> std::expected<std::invoke_result_t<Function, Params&&...>, RprPpError>
@@ -54,7 +161,7 @@ RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
 
 RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet)
 {
-    auto result = safeCall(vk::helper::getDeviceInfo, deviceId, static_cast<vk::helper::DeviceInfo>(deviceInfo), data, size, sizeRet);
+    auto result = safeCall(getDeviceInfo, deviceId, deviceInfo, data, size, sizeRet);
     check(result);
 
     return RPRPP_SUCCESS;
@@ -67,8 +174,8 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
     auto result = safeCall([&]() {
         uint8_t luid[vk::LuidSize];
         uint8_t uuid[vk::UuidSize];
-        vk::helper::getDeviceInfo(deviceId, vk::helper::DeviceInfo::eLUID, luid, sizeof(luid), nullptr);
-        vk::helper::getDeviceInfo(deviceId, vk::helper::DeviceInfo::eUUID, uuid, sizeof(uuid), nullptr);
+        getDeviceInfo(deviceId, RPRPP_DEVICE_INFO_LUID, luid, sizeof(luid), nullptr);
+        getDeviceInfo(deviceId, RPRPP_DEVICE_INFO_UUID, uuid, sizeof(uuid), nullptr);
 
         auto contextRef = std::make_unique<rprpp::Context>(deviceId, luid, uuid);
         *outContext = contextRef.get();

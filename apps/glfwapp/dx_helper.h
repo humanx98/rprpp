@@ -21,6 +21,7 @@ struct DeviceInfo {
     std::string name;
     std::vector<uint8_t> LUID;
     bool supportHardwareRT;
+    bool supportGpuDenoiser;
 };
 
 struct Paths {

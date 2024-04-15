@@ -30,6 +30,7 @@ typedef enum RprPpDeviceInfo {
     RPRPP_DEVICE_INFO_LUID = 1,
     RPRPP_DEVICE_INFO_UUID = 2,
     RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING = 3,
+    RPRPP_DEVICE_INFO_SUPPORT_GPU_DENOISER = 4,
 } RprPpDeviceInfo;
 
 typedef enum RprPpImageFormat {

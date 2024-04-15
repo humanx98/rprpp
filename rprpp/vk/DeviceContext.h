@@ -1,20 +1,17 @@
 #pragma once
 
 #include "rprpp/rprpp.h"
-#include "vk.h"
+#include "vk_helper.h"
 
 namespace vk::helper {
 
-enum class DeviceInfo {
-    eName = RPRPP_DEVICE_INFO_NAME,
-    eLUID = RPRPP_DEVICE_INFO_LUID,
-    eUUID = RPRPP_DEVICE_INFO_UUID,
-    eSupportHardwareRayTracing = RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING,
-};
-
 struct DeviceContext {
+    static DeviceContext create(uint32_t deviceId);
+    vk::raii::CommandBuffer takeCommandBuffer();
+    void returnCommandBuffer(vk::raii::CommandBuffer&& buffer);
+
     vk::raii::Context context;
-    vk::raii::Instance instance;
+    vk::helper::Instance instance;
     std::optional<vk::raii::DebugUtilsMessengerEXT> debugUtilMessenger;
     vk::raii::PhysicalDevice physicalDevice;
     vk::raii::Device device;
@@ -22,15 +19,6 @@ struct DeviceContext {
     uint32_t queueFamilyIndex;
     std::vector<vk::raii::CommandPool> commandPools;
     std::vector<vk::raii::CommandBuffer> commandBuffers;
-
-    vk::raii::CommandBuffer takeCommandBuffer();
-    void returnCommandBuffer(vk::raii::CommandBuffer&& buffer);
 };
-
-void getDeviceInfo(uint32_t deviceId, DeviceInfo info, void* data, size_t size, size_t* sizeRet);
-uint32_t getDeviceCount();
-
-uint32_t findMemoryType(const vk::raii::PhysicalDevice& physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-DeviceContext createDeviceContext(uint32_t deviceId);
 
 }

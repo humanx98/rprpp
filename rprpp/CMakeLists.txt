@@ -36,6 +36,7 @@ set(HEADERS
     vk/DescriptorBuilder.h
     vk/DeviceContext.h
     vk/ShaderManager.h
+    vk/vk_helper.h
     vk/vk.h
     VkSampledImage.h
     DxImage.h
@@ -44,6 +45,7 @@ set(HEADERS
     ContextObject.h
     ContextObjectContainer.h
     ContextObjectHash.h
+    oidn_helper.h
     rprpp.h
     Error.h
     Buffer.h
@@ -70,6 +72,7 @@ set(SOURCES
     vk/DescriptorBuilder.cpp
     vk/DeviceContext.cpp
     vk/ShaderManager.cpp
+    vk/vk_helper.cpp
     ImageData.cpp
     DxImage.cpp
     ImageSimple.cpp
@@ -77,6 +80,7 @@ set(SOURCES
     Context.cpp
     ContextObject.cpp
     ContextObjectContainer.cpp
+    oidn_helper.cpp
     rprpp.cpp
     Error.cpp
     Buffer.cpp
