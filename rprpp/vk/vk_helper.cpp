@@ -1,13 +1,14 @@
 #include "vk_helper.h"
 #include "rprpp/Error.h"
-#include <iostream>
+#include <boost/log/trivial.hpp>
+
 
 namespace vk::helper {
 
 namespace {
     VKAPI_ATTR VkBool32 debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        BOOST_LOG_TRIVIAL(info) << "validation layer: " << pCallbackData->pMessage << std::endl;
         return VK_FALSE;
     }
 } // namespace

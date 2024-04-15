@@ -1,9 +1,9 @@
 #include "ShaderManager.h"
 #include "rprpp/Error.h"
-#include <iostream>
 #include <mutex>
 #include <rprpp_config.h>
 #include <shaderc/shaderc.hpp>
+#include <boost/log/trivial.hpp>
 
 namespace vk::helper {
 
@@ -36,7 +36,7 @@ vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device,
             options);
 
         if (spv.GetCompilationStatus() != shaderc_compilation_status_success) {
-            std::cerr << spv.GetErrorMessage() << std::endl;
+            BOOST_LOG_TRIVIAL(error) << spv.GetErrorMessage() << std::endl;
             throw rprpp::ShaderCompilationError("Shader compilation failed with: " + spv.GetErrorMessage());
         }
 

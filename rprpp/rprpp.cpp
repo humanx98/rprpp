@@ -9,8 +9,7 @@
 #include <mutex>
 #include <optional>
 #include <type_traits>
-
-#include <iostream>
+#include <boost/log/trivial.hpp>
 
 static std::mutex Mutex;
 static map<rprpp::Context> GlobalContextObjects;
@@ -134,13 +133,13 @@ template <class Function,
             return {};
         }
     } catch (const rprpp::Error& e) {
-        std::cerr << e.what();
+        BOOST_LOG_TRIVIAL(error) << e.what();
         return std::unexpected(static_cast<RprPpError>(e.getErrorCode()));
     } catch (const std::exception& e) {
-        std::cerr << e.what();
+        BOOST_LOG_TRIVIAL(error) << e.what();
         return std::unexpected(RPRPP_ERROR_INTERNAL_ERROR);
     } catch (...) {
-        std::cerr << "unkown error";
+        BOOST_LOG_TRIVIAL(error) << "unkown error";
         return std::unexpected(RPRPP_ERROR_INTERNAL_ERROR);
     }
 }
@@ -192,7 +191,7 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
 RprPpError rprppDestroyContext(RprPpContext context)
 {
     if (!context) {
-        std::cerr << "[WARING] context in null, but it should never be";
+        BOOST_LOG_TRIVIAL(error) << "[WARING] context in null, but it should never be";
         return RPRPP_SUCCESS;
     }
 
