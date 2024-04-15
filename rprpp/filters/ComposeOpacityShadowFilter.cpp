@@ -17,7 +17,7 @@ constexpr vk::SamplerCreateInfo createSamplerInfo()
     return samplerInfo;
 }
 
-ComposeOpacityShadowFilter::ComposeOpacityShadowFilter(Context* context) 
+ComposeOpacityShadowFilter::ComposeOpacityShadowFilter(Context* context)
     : Filter(context)
     , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
     , m_ubo(context)

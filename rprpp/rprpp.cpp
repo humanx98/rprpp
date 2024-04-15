@@ -183,7 +183,7 @@ RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
         // avoid memleak
         std::lock_guard<std::mutex> lock(Mutex);
         GlobalContextObjects.emplace(contextRef.get(), std::move(contextRef));
-    }); 
+    });
     check(result);
 
     return RPRPP_SUCCESS;
@@ -769,7 +769,7 @@ RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColo
         rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
         float color[3];
         f->getNotRefractiveBackgroundColor(color[0], color[1], color[2]);
-        
+
         if (x != nullptr) {
             *x = color[0];
         }

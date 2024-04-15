@@ -1,17 +1,16 @@
 #include "VkSampledImage.h"
 #include "Context.h"
 
-namespace rprpp
-{
+namespace rprpp {
 VkSampledImage::VkSampledImage(rprpp::Context* context, vk::Image image, const rprpp::ImageDescription& desc)
-: Image(context),
-  m_notOwnedImage(image),
-  m_description(desc),
-  m_view(createImageView(context, image, desc)),
-  m_usage(vk::ImageUsageFlagBits::eSampled),
-  m_access(vk::AccessFlagBits::eShaderRead),
-  m_layout(vk::ImageLayout::eShaderReadOnlyOptimal),
-  m_stages(vk::PipelineStageFlagBits::eComputeShader)
+    : Image(context)
+    , m_notOwnedImage(image)
+    , m_description(desc)
+    , m_view(createImageView(context, image, desc))
+    , m_usage(vk::ImageUsageFlagBits::eSampled)
+    , m_access(vk::AccessFlagBits::eShaderRead)
+    , m_layout(vk::ImageLayout::eShaderReadOnlyOptimal)
+    , m_stages(vk::PipelineStageFlagBits::eComputeShader)
 {
 }
 
@@ -28,14 +27,12 @@ vk::raii::ImageView VkSampledImage::createImageView(Context* context, vk::Image 
     return view;
 }
 
-[[nodiscard]]
-bool VkSampledImage::IsStorage() const
+[[nodiscard]] bool VkSampledImage::IsStorage() const
 {
     return (m_usage & vk::ImageUsageFlagBits::eStorage) == vk::ImageUsageFlagBits::eStorage;
 }
 
-[[nodiscard]]
-bool VkSampledImage::IsSampled() const
+[[nodiscard]] bool VkSampledImage::IsSampled() const
 {
     return (m_usage & vk::ImageUsageFlagBits::eSampled) == vk::ImageUsageFlagBits::eSampled;
 }

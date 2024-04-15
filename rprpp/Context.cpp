@@ -1,21 +1,22 @@
 #include "Context.h"
+#include "DxImage.h"
 #include "Error.h"
+#include "ImageSimple.h"
+#include "VkSampledImage.h"
 #include "filters/BloomFilter.h"
 #include "filters/ComposeColorShadowReflectionFilter.h"
 #include "filters/ComposeOpacityShadowFilter.h"
 #include "filters/DenoiserCpuFilter.h"
 #include "filters/DenoiserGpuFilter.h"
 #include "filters/ToneMapFilter.h"
-#include "DxImage.h"
-#include "VkSampledImage.h"
-#include "ImageSimple.h"
 
 #include <boost/log/trivial.hpp>
 
 namespace rprpp {
 
 Context::Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
-    : m_deviceContext(vk::helper::DeviceContext::create(deviceId)), m_denoiserDevice(oidn::helper::createDevice(luid, uuid))
+    : m_deviceContext(vk::helper::DeviceContext::create(deviceId))
+    , m_denoiserDevice(oidn::helper::createDevice(luid, uuid))
 {
 }
 

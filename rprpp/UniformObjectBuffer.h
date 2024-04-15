@@ -14,14 +14,11 @@ public:
     T& data() noexcept;
     const T& data() const noexcept;
 
-    [[nodiscard]]
-    size_t size() const noexcept;
+    [[nodiscard]] size_t size() const noexcept;
 
-    [[nodiscard]]
-    vk::Buffer buffer() const noexcept;
+    [[nodiscard]] vk::Buffer buffer() const noexcept;
 
-    [[nodiscard]]
-    bool dirty() const noexcept;
+    [[nodiscard]] bool dirty() const noexcept;
     void markDirty() noexcept;
 
     void update();
@@ -48,8 +45,8 @@ Buffer UniformObjectBuffer<T>::createBuffer(Context* context)
 
 template <class T>
 UniformObjectBuffer<T>::UniformObjectBuffer(Context* context)
-: m_buffer(createBuffer(context)), 
-  m_dirty(true)
+    : m_buffer(createBuffer(context))
+    , m_dirty(true)
 {
 }
 

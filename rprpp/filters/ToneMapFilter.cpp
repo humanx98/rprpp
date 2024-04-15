@@ -6,7 +6,7 @@ constexpr int WorkgroupSize = 32;
 
 namespace rprpp::filters {
 
-ToneMapFilter::ToneMapFilter(Context* context) 
+ToneMapFilter::ToneMapFilter(Context* context)
     : Filter(context)
     , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
     , m_ubo(context)

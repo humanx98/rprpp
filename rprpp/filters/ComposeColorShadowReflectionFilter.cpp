@@ -8,7 +8,7 @@ constexpr int WorkgroupSize = 32;
 namespace rprpp::filters {
 
 ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(
-    Context* context) 
+    Context* context)
     : Filter(context)
     , m_finishedSemaphore(deviceContext().device.createSemaphore({}))
     , m_ubo(context)

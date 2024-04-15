@@ -4,7 +4,7 @@
 #include "rprpp/ContextObject.h"
 
 namespace rprpp {
-    class Image;
+class Image;
 }
 
 namespace rprpp::filters {

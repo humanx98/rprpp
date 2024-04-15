@@ -33,8 +33,7 @@ void DenoiserFilter::validateInputsAndOutput()
         throw InvalidParameter("output and input", "output and input cannot be in low dynamic range");
     }
 
-    if (m_albedo && m_normal)
-    {
+    if (m_albedo && m_normal) {
         if (is_ldr(m_albedo->description().format) || is_ldr(m_normal->description().format)) {
             throw InvalidParameter("albedo and normal", "albedo and normal cannot be in low dynamic range");
         }

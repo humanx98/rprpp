@@ -270,7 +270,7 @@ void WithAovsInteropApp::mainLoop()
                         filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
                         filterFinished = m_composeColorShadowReflectionFilter->run(filterFinished);
                         filterFinished = m_denoiserFilter->run(filterFinished);
-                        //filterFinished = m_bloomFilter->run(filterFinished);
+                        // filterFinished = m_bloomFilter->run(filterFinished);
                         filterFinished = m_tonemapFilter->run(filterFinished);
 
                         RprPpVkSubmitInfo submitInfo;

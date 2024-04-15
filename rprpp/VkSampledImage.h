@@ -2,38 +2,28 @@
 
 #include "Image.h"
 
-namespace rprpp
-{
+namespace rprpp {
 
 // non-owning image
-class VkSampledImage : public Image
-{
+class VkSampledImage : public Image {
 public:
     VkSampledImage(Context* context, vk::Image image, const ImageDescription& desc);
 
-    [[nodiscard]]
-    bool IsStorage() const override;
+    [[nodiscard]] bool IsStorage() const override;
 
-    [[nodiscard]]
-    bool IsSampled() const override;
+    [[nodiscard]] bool IsSampled() const override;
 
-    [[nodiscard]]
-    const ImageDescription& description() const override;
+    [[nodiscard]] const ImageDescription& description() const override;
 
-    [[nodiscard]]
-    const vk::raii::ImageView& view() const override;
+    [[nodiscard]] const vk::raii::ImageView& view() const override;
 
-    [[nodiscard]]
-    const vk::ImageLayout& layout() const override;
+    [[nodiscard]] const vk::ImageLayout& layout() const override;
 
-    [[nodiscard]]
-    const vk::PipelineStageFlags& stages() const override;
+    [[nodiscard]] const vk::PipelineStageFlags& stages() const override;
 
-    [[nodiscard]]
-    const vk::AccessFlags& access() const override;
+    [[nodiscard]] const vk::AccessFlags& access() const override;
 
-    [[nodiscard]]
-    const vk::Image& image() const override;
+    [[nodiscard]] const vk::Image& image() const override;
 
 protected:
     void updateLayout(vk::ImageLayout newLayout) override;
@@ -45,7 +35,6 @@ private:
 
     vk::Image m_notOwnedImage;
     ImageDescription m_description;
-    //vk::raii::DeviceMemory m_memory;
     vk::raii::ImageView m_view;
 
     vk::ImageUsageFlags m_usage;

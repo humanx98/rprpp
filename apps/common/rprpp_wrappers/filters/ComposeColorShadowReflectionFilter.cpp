@@ -3,7 +3,7 @@
 namespace rprpp::wrappers::filters {
 
 ComposeColorShadowReflectionFilter::ComposeColorShadowReflectionFilter(const Context& _context)
-: Filter(_context)
+    : Filter(_context)
 {
     RprPpError status;
 
@@ -85,6 +85,5 @@ void ComposeColorShadowReflectionFilter::setNotRefractiveBackgroundColorWeight(f
     status = rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(filter(), weight);
     RPRPP_CHECK(status);
 }
-
 
 }

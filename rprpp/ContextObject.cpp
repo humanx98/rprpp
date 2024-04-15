@@ -2,12 +2,11 @@
 #include "Context.h"
 #include <cassert>
 
-namespace rprpp
-{
+namespace rprpp {
 
 ContextObject::ContextObject(Context* parent)
-: m_parent(parent),
-  m_tag(parent->generateNextTag())
+    : m_parent(parent)
+    , m_tag(parent->generateNextTag())
 {
     assert(m_parent);
 }

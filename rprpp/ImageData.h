@@ -2,8 +2,7 @@
 
 #include "Image.h"
 
-namespace rprpp
-{
+namespace rprpp {
 
 class ImageData : public Image {
 public:
@@ -17,32 +16,24 @@ public:
         vk::ImageLayout _layout,
         vk::PipelineStageFlags _stages);
 
-    [[nodiscard]]
-    bool IsStorage() const override;
+    [[nodiscard]] bool IsStorage() const override;
 
-    [[nodiscard]]
-    bool IsSampled() const override;
+    [[nodiscard]] bool IsSampled() const override;
 
-    [[nodiscard]]
-    const ImageDescription& description() const override;
+    [[nodiscard]] const ImageDescription& description() const override;
 
-    [[nodiscard]]
-    const vk::raii::ImageView& view() const override;
+    [[nodiscard]] const vk::raii::ImageView& view() const override;
 
-    [[nodiscard]]
-    const vk::ImageLayout& layout() const override;
+    [[nodiscard]] const vk::ImageLayout& layout() const override;
 
-    [[nodiscard]]
-    const vk::PipelineStageFlags& stages() const override;
+    [[nodiscard]] const vk::PipelineStageFlags& stages() const override;
 
-    [[nodiscard]]
-    const vk::AccessFlags& access() const override;
+    [[nodiscard]] const vk::AccessFlags& access() const override;
 
-    [[nodiscard]]
-    const vk::Image& image() const override;
+    [[nodiscard]] const vk::Image& image() const override;
 
-    void updateLayout(vk::ImageLayout newLayout) override ;
-    void updateStages(vk::PipelineStageFlags newPipelineStageFlags) override ;
+    void updateLayout(vk::ImageLayout newLayout) override;
+    void updateStages(vk::PipelineStageFlags newPipelineStageFlags) override;
     void updateAccess(vk::AccessFlags newFlags) override;
 
 private:

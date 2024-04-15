@@ -13,14 +13,13 @@ public:
     Instance(const Instance&) = delete;
     Instance& operator=(const Instance&) = delete;
 
-    [[nodiscard]] 
-    vk::raii::Instance& get() noexcept
+    [[nodiscard]] vk::raii::Instance& get() noexcept
     {
         return m_instance;
     }
 
-    [[nodiscard]]
-    const std::vector<const char*>& enabledLayers() const noexcept {
+    [[nodiscard]] const std::vector<const char*>& enabledLayers() const noexcept
+    {
         return m_enabledLayers;
     }
 
@@ -28,7 +27,6 @@ private:
     vk::raii::Instance m_instance;
     std::vector<const char*> m_enabledLayers;
 };
-
 
 vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT();
 bool validateRequiredExtensions(const std::vector<const char*>& extensions, const std::vector<const char*>& requiredExtensions);

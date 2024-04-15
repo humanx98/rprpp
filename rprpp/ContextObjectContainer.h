@@ -1,16 +1,14 @@
 #pragma once
 
 #include "ContextObject.h"
-#include "ContextObjectContainerHasher.h"
 #include "ContextObjectContainerEqual.h"
+#include "ContextObjectContainerHasher.h"
 #include <boost/uuid/uuid_generators.hpp>
 #include <unordered_set>
 
-namespace rprpp
-{
+namespace rprpp {
 
-class ContextObjectContainer : public boost::noncopyable
-{
+class ContextObjectContainer : public boost::noncopyable {
 public:
     template <class T, class... Params>
     auto emplace(Params&&... params)
@@ -36,8 +34,7 @@ public:
         erase(address->tag());
     }
 
-    [[nodiscard]]
-    boost::uuids::uuid generateNextTag();
+    [[nodiscard]] boost::uuids::uuid generateNextTag();
 
 private:
     boost::uuids::random_generator m_tagGenerator;

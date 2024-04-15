@@ -4,8 +4,8 @@
 namespace rprpp::wrappers::filters {
 
 Filter::Filter(const Context& context)
-: m_context(context.get()),
-  m_filter(nullptr)
+    : m_context(context.get())
+    , m_filter(nullptr)
 {
 }
 
@@ -58,7 +58,6 @@ RprPpFilter Filter::get() const noexcept
 {
     return m_filter;
 }
-
 
 void Filter::setFilter(RprPpFilter filter)
 {

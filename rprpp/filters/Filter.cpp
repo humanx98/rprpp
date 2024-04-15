@@ -3,7 +3,7 @@
 namespace rprpp::filters {
 
 Filter::Filter(Context* context)
-: ContextObject(context)
+    : ContextObject(context)
 {
 }
 

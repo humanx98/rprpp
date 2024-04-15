@@ -3,7 +3,7 @@
 namespace rprpp::wrappers::filters {
 
 ComposeOpacityShadowFilter::ComposeOpacityShadowFilter(const Context& _context)
-: Filter(_context)
+    : Filter(_context)
 {
     RprPpError status;
 

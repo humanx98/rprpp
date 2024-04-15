@@ -10,11 +10,10 @@
 #include "filters/DenoiserFilter.h"
 #include "filters/Filter.h"
 #include "filters/ToneMapFilter.h"
-#include "vk/DeviceContext.h"
 #include "oidn_helper.h"
+#include "vk/DeviceContext.h"
 
 #include <boost/noncopyable.hpp>
-
 
 template <class T>
 using map = std::unordered_map<T*, std::unique_ptr<T>>;
@@ -25,19 +24,15 @@ class Context : public boost::noncopyable {
 public:
     explicit Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize]);
 
-    [[nodiscard]]
-    VkPhysicalDevice getVkPhysicalDevice() const noexcept;
+    [[nodiscard]] VkPhysicalDevice getVkPhysicalDevice() const noexcept;
 
-    [[nodiscard]]
-    VkDevice getVkDevice() const noexcept;
+    [[nodiscard]] VkDevice getVkDevice() const noexcept;
 
-    [[nodiscard]]
-    VkQueue getVkQueue() const noexcept;
+    [[nodiscard]] VkQueue getVkQueue() const noexcept;
 
     void waitQueueIdle();
 
-    [[nodiscard]]
-    Buffer* createBuffer(size_t size);
+    [[nodiscard]] Buffer* createBuffer(size_t size);
     void destroyBuffer(Buffer* buffer);
 
     filters::BloomFilter* createBloomFilter();
@@ -56,14 +51,11 @@ public:
     void copyImageToBuffer(Image* image, Buffer* buffer);
     void copyImage(Image* src, Image* dst);
 
-    [[nodiscard]]
-    boost::uuids::uuid generateNextTag() { return m_objects.generateNextTag(); }
+    [[nodiscard]] boost::uuids::uuid generateNextTag() { return m_objects.generateNextTag(); }
 
-    [[nodiscard]]
-    vk::helper::DeviceContext& deviceContext() noexcept { return m_deviceContext; }
+    [[nodiscard]] vk::helper::DeviceContext& deviceContext() noexcept { return m_deviceContext; }
 
-    [[nodiscard]]
-    const vk::helper::DeviceContext& deviceContext() const noexcept { return m_deviceContext; }
+    [[nodiscard]] const vk::helper::DeviceContext& deviceContext() const noexcept { return m_deviceContext; }
 
 private:
     // order is matter. First should be cleared all m_objects, then denoiser dev, than main graph. dev

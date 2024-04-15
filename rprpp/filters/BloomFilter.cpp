@@ -1,9 +1,9 @@
 #include "BloomFilter.h"
+#include "rprpp/Context.h"
 #include "rprpp/Error.h"
+#include "rprpp/ImageSimple.h"
 #include "rprpp/rprpp.h"
 #include "rprpp/vk/DescriptorBuilder.h"
-#include "rprpp/Context.h"
-#include "rprpp/ImageSimple.h"
 
 constexpr int WorkgroupSize = 32;
 

@@ -1,11 +1,10 @@
 #include "DxImage.h"
 #include "Context.h"
 
-namespace rprpp
-{
+namespace rprpp {
 
 DxImage::DxImage(Context* context, const ImageDescription& desc, HANDLE dx11textureHandle)
-: Image(context)
+    : Image(context)
 {
     const ImageDescription& imageDescription = desc;
     vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage;
@@ -26,8 +25,7 @@ DxImage::DxImage(Context* context, const ImageDescription& desc, HANDLE dx11text
         usage,
         access,
         layout,
-        stages
-    );
+        stages);
 
     transitionImageLayout(
         vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "DenoiserFilter.h"
-#include "Filter.h"
 #include "rprpp/Image.h"
 #include "rprpp/UniformObjectBuffer.h"
 #include "rprpp/vk/CommandBuffer.h"

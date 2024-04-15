@@ -14,21 +14,19 @@ public:
     void setInput(const Image& image);
     void setOutput(const Image& image);
 
-    [[nodiscard]]
-    RprPpFilter get() const noexcept;
+    [[nodiscard]] RprPpFilter get() const noexcept;
 
-    Filter(const Filter&)            = delete;
+    Filter(const Filter&) = delete;
     Filter& operator=(const Filter&) = delete;
+
 protected:
     // only constructed by child filters
     explicit Filter(const Context& context);
     void setFilter(RprPpFilter filter);
 
-    [[nodiscard]]
-    RprPpContext context() const noexcept { return m_context; }
+    [[nodiscard]] RprPpContext context() const noexcept { return m_context; }
 
-    [[nodiscard]]
-    RprPpFilter filter() const noexcept { return m_filter; }
+    [[nodiscard]] RprPpFilter filter() const noexcept { return m_filter; }
 
 private:
     RprPpContext m_context;

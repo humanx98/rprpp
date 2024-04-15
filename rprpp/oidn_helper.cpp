@@ -27,14 +27,13 @@ oidn::DeviceRef createDevice(uint8_t luid[OIDN_LUID_SIZE], uint8_t uuid[OIDN_UUI
     for (int i = 0; i < numPhysicalDevices; i++) {
         oidn::PhysicalDeviceRef physicalDevice(i);
         if (physicalDevice.get<bool>("luidSupported")) {
-            oidn::LUID oidnLUID =  physicalDevice.get<oidn::LUID>("luid");
-            if (std::equal(std::begin(oidnLUID.bytes), std::end(oidnLUID.bytes), luid))
-            {
+            oidn::LUID oidnLUID = physicalDevice.get<oidn::LUID>("luid");
+            if (std::equal(std::begin(oidnLUID.bytes), std::end(oidnLUID.bytes), luid)) {
                 deviceId = i;
                 break;
             }
         }
-        
+
         if (physicalDevice.get<bool>("uuidSupported")) {
             oidn::UUID oidnUUID = physicalDevice.get<oidn::UUID>("uuid");
             if (std::equal(std::begin(oidnUUID.bytes), std::end(oidnUUID.bytes), uuid)) {
@@ -52,7 +51,7 @@ oidn::DeviceRef createDevice(uint8_t luid[OIDN_LUID_SIZE], uint8_t uuid[OIDN_UUI
     if (deviceId < 0) {
         deviceId = cpuId;
     }
-    
+
     BOOST_LOG_TRIVIAL(info) << "Initialize Selected Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
     oidn::DeviceRef device = oidn::newDevice(deviceId);
     device.commit();
@@ -62,7 +61,6 @@ oidn::DeviceRef createDevice(uint8_t luid[OIDN_LUID_SIZE], uint8_t uuid[OIDN_UUI
         BOOST_LOG_TRIVIAL(error) << errorMessage;
         throw std::runtime_error(errorMessage);
     }
-
 
     return device;
 }

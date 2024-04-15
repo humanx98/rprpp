@@ -3,10 +3,8 @@
 #include "ContextObjectHash.h"
 #include <boost/uuid/uuid.hpp>
 
-namespace rprpp
-{
-struct ContextObjectContainerHasher
-{
+namespace rprpp {
+struct ContextObjectContainerHasher {
     using hash_type = std::hash<ContextObject>;
     using is_transparent = void;
 

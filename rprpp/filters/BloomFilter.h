@@ -31,14 +31,11 @@ public:
     void setBrightnessScale(float brightnessScale) noexcept;
     void setThreshold(float threshold) noexcept;
 
-    [[nodiscard]]
-    float getRadius() const noexcept;
+    [[nodiscard]] float getRadius() const noexcept;
 
-    [[nodiscard]]
-    float getBrightnessScale() const noexcept;
+    [[nodiscard]] float getBrightnessScale() const noexcept;
 
-    [[nodiscard]]
-    float getThreshold() const noexcept;
+    [[nodiscard]] float getThreshold() const noexcept;
 
 private:
     void validateInputsAndOutput();

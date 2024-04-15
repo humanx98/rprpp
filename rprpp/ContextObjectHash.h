@@ -5,8 +5,7 @@
 #include <boost/uuid/uuid_hash.hpp>
 #include <functional>
 
-namespace std
-{
+namespace std {
 
 template <>
 struct hash<rprpp::ContextObject> {

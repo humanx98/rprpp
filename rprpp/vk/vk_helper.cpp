@@ -74,8 +74,8 @@ uint32_t getDeviceCount()
 }
 
 vk::raii::Device createDevice(const vk::raii::PhysicalDevice& physicalDevice,
-        const std::vector<const char*>& enabledLayers,
-        const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
+    const std::vector<const char*>& enabledLayers,
+    const std::vector<vk::DeviceQueueCreateInfo>& queueInfos)
 {
     std::vector<const char*> requiredExtensions {
         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,

@@ -1,6 +1,6 @@
 #include "DeviceContext.h"
-#include "vk_helper.h"
 #include "rprpp/Error.h"
+#include "vk_helper.h"
 
 namespace vk::helper {
 
