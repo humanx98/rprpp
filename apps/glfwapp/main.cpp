@@ -1,18 +1,22 @@
 #include "NoAovsInteropApp.h"
 #include "WithAovsInteropApp.h"
+
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
+
 #include <iostream>
 
-#define WIDTH 2000
-#define HEIGHT 1000
-#define RENDERED_ITERATIONS 16
-#define INTEROP true
-#define DEVICE_ID 0
+const int FB_WIDTH = 2000;
+const int FB_HEIGHT = 1000;
+const int FB_RENDERED_ITERATIONS = 16;
+const bool FB_INTEROP = true;
+const size_t FB_DEVICE_ID = 0;
 #ifdef NDEBUG
 // please note that when we use frames in flight > 1
 // hybridpro produces Validation Error with VK_OBJECT_TYPE_QUERY_POOL message looks like "query not reset. After query pool creation"
-#define FRAMES_IN_FLIGHT 4
+const unsigned int FB_FRAMES_IN_FLIGHT = 4;
 #else
-#define FRAMES_IN_FLIGHT 1
+const unsigned int FB_FRAMES_IN_FLIGHT = 1;
 #endif
 
 DeviceInfo getDeviceInfoOf(int index)
@@ -52,7 +56,42 @@ int main(int argc, const char* argv[])
         .assetsDir = exeDirPath,
     };
 
-    RPRPP_CHECK(rprppSetLogVerbosity("trace"));
+    bool useInterop;
+    int width;
+    int height;
+    int render_iterations;
+    size_t deviceId;
+    unsigned int framesInFlight;
+
+    boost::program_options::options_description genericOptions("generic");
+    genericOptions.add_options()
+        ("help,h", "produce help message")
+        ("interop,b", boost::program_options::value<bool>(&useInterop)->default_value(FB_INTEROP), "use vulkan interop")
+        ("width,w", boost::program_options::value<int>(&width)->default_value(FB_WIDTH), "framebuffer width")
+        ("height,h", boost::program_options::value<int>(&height)->default_value(FB_HEIGHT), "framebuffer height")
+        ("iterations,i", boost::program_options::value<int>(&render_iterations)->default_value(FB_RENDERED_ITERATIONS), "iterations")
+        ("device,d", boost::program_options::value<size_t>(&deviceId)->default_value(FB_DEVICE_ID), "device id")
+        ("frames,f", boost::program_options::value<unsigned int>(&framesInFlight)->default_value(FB_FRAMES_IN_FLIGHT), "frames in flight")
+        ("verbosity,v", boost::program_options::value<std::string>(), "verbosity");
+
+    boost::program_options::options_description cmdline_options;
+    cmdline_options.add(genericOptions);
+
+    boost::program_options::variables_map vm;
+    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, cmdline_options), vm);
+
+    if (vm.contains("help")) {
+        std::cout << cmdline_options << "\n";
+        return 0;
+    }
+    boost::program_options::notify(vm);
+
+    if (vm.contains("verbosity")) {
+        RPRPP_CHECK(rprppSetLogVerbosity(vm["verbosity"].as<std::string>().c_str()));
+    } else {
+        RPRPP_CHECK(rprppSetLogVerbosity("trace"));
+    }
+
     RPRPP_CHECK(rprppInitialize());
 
     std::vector<DeviceInfo> deviceInfos;
@@ -71,17 +110,17 @@ int main(int argc, const char* argv[])
         std::cout << std::endl;
     }
 
-    if (DEVICE_ID >= deviceCount) {
-        throw std::runtime_error("There is no device with index = " + std::to_string(DEVICE_ID));
+    if (deviceId >= deviceCount) {
+        throw std::runtime_error("There is no device with index = " + std::to_string(deviceId));
     }
 
     try {
-        if(INTEROP) {
-            WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, deviceInfos.at(DEVICE_ID));
+        if(useInterop) {
+            WithAovsInteropApp app(width, height, render_iterations, framesInFlight, paths, deviceInfos.at(deviceId));
             app.run();
         }
         else {
-            NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, deviceInfos.at(DEVICE_ID));
+            NoAovsInteropApp app(width, height, render_iterations, paths, deviceInfos.at(deviceId));
             app.run();
         }
     } catch (const std::runtime_error& e) {
