@@ -69,6 +69,8 @@ extern "C" {
 
 RPRPP_API RprPpError rprppInitialize();
 RPRPP_API RprPpError rprppDestroy();
+RPRPP_API RprPpError rprppSetLogVerbosity(const char* verbosityLevel);
+
 
 RPRPP_API RprPpError rprppGetDeviceCount(unsigned int* deviceCount);
 RPRPP_API RprPpError rprppGetDeviceInfo(unsigned int deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet);

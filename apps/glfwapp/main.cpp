@@ -52,6 +52,9 @@ int main(int argc, const char* argv[])
         .assetsDir = exeDirPath,
     };
 
+    RPRPP_CHECK(rprppSetLogVerbosity("trace"));
+    RPRPP_CHECK(rprppInitialize());
+
     std::vector<DeviceInfo> deviceInfos;
     uint32_t deviceCount;
     RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
@@ -72,17 +75,22 @@ int main(int argc, const char* argv[])
         throw std::runtime_error("There is no device with index = " + std::to_string(DEVICE_ID));
     }
 
-#if INTEROP
-    WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, deviceInfos.at(DEVICE_ID));
-#else
-    NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, deviceInfos.at(DEVICE_ID));
-#endif
     try {
-        app.run();
+        if(INTEROP) {
+            WithAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, FRAMES_IN_FLIGHT, paths, deviceInfos.at(DEVICE_ID));
+            app.run();
+        }
+        else {
+            NoAovsInteropApp app(WIDTH, HEIGHT, RENDERED_ITERATIONS, paths, deviceInfos.at(DEVICE_ID));
+            app.run();
+        }
     } catch (const std::runtime_error& e) {
         printf("%s\n", e.what());
         return EXIT_FAILURE;
     }
-    std::cout << "GlfwApp finished..." << std::endl;
+
+    std::cout << "GlfwApp finished...\n";
+    RPRPP_CHECK(rprppDestroy()); // <-- explicit destroy
+
     return 0;
 }

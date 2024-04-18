@@ -9,10 +9,14 @@
 #include <mutex>
 #include <optional>
 #include <type_traits>
+
 #include <boost/log/trivial.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
 
 static std::mutex Mutex;
 static map<rprpp::Context> GlobalContextObjects;
+static boost::log::filter BoostLogFilter = boost::log::trivial::severity >= boost::log::trivial::error;
 
 using namespace rprpp;
 
@@ -166,6 +170,8 @@ RprPpError rprppInitialize()
     // For such cases, we try to be gentle
     (void)rprppDestroy(); // we don't care about errors
 
+    boost::log::core::get()->set_filter(BoostLogFilter);
+
     return RPRPP_SUCCESS;
 }
 
@@ -176,6 +182,20 @@ RprPpError rprppDestroy()
         GlobalContextObjects.clear();
     });
     check(result);
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppSetLogVerbosity(const char* verbosityLevel)
+{
+    std::string verbosity(verbosityLevel);
+
+    boost::log::trivial::severity_level severityLevel;
+    boost::log::trivial::from_string(verbosity.c_str(), verbosity.size(), severityLevel);
+
+    BoostLogFilter = boost::log::trivial::severity >= severityLevel;
+
+    boost::log::core::get()->set_filter(BoostLogFilter);
 
     return RPRPP_SUCCESS;
 }
