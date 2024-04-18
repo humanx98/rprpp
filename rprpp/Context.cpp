@@ -16,7 +16,7 @@ namespace rprpp {
 
 Context::Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize])
     : m_deviceContext(vk::helper::DeviceContext::create(deviceId))
-    , m_denoiserDevice(oidn::helper::createDevice(luid, uuid))
+    , m_denoiserDevice(createOidnDevice(luid, uuid))
 {
 }
 

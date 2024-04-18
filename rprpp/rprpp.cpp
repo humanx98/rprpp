@@ -14,6 +14,8 @@
 static std::mutex Mutex;
 static map<rprpp::Context> GlobalContextObjects;
 
+using namespace rprpp;
+
 void getDeviceInfo(uint32_t deviceId, RprPpDeviceInfo info, void* data, size_t size, size_t* sizeRet)
 {
     vk::raii::Context context;
