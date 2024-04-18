@@ -1,8 +1,6 @@
 #ifndef __RPRPP_H
 #define __RPRPP_H
 
-#include <stdint.h>
-
 #ifdef _WIN32
 #ifdef RPRPP_EXPORT_API
 #define RPRPP_API __declspec(dllexport)
@@ -39,7 +37,7 @@ typedef enum RprPpImageFormat {
     RPRPP_IMAGE_FROMAT_B8G8R8A8_UNORM = 2,
 } RprPpImageFormat;
 
-typedef uint32_t RprPpBool;
+typedef unsigned int RprPpBool;
 typedef void* RprPpContext;
 typedef void* RprPpFilter;
 typedef void* RprPpBuffer;
@@ -53,15 +51,15 @@ typedef void* RprPpVkQueue;
 typedef void* RprPpVkImage;
 
 typedef struct RprPpImageDescription {
-    uint32_t width;
-    uint32_t height;
+    unsigned int width;
+    unsigned int height;
     RprPpImageFormat format;
 } RprPpImageDescription;
 
 typedef struct RprPpVkSubmitInfo {
-    uint32_t waitSemaphoreCount;
+    unsigned int waitSemaphoreCount;
     RprPpVkSemaphore* pWaitSemaphores;
-    uint32_t signalSemaphoreCount;
+    unsigned int signalSemaphoreCount;
     RprPpVkSemaphore* pSignalSemaphores;
 } RprPpVkSubmitInfo;
 
@@ -69,9 +67,9 @@ typedef struct RprPpVkSubmitInfo {
 extern "C" {
 #endif
 
-RPRPP_API RprPpError rprppGetDeviceCount(uint32_t* deviceCount);
-RPRPP_API RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet);
-RPRPP_API RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext);
+RPRPP_API RprPpError rprppGetDeviceCount(unsigned int* deviceCount);
+RPRPP_API RprPpError rprppGetDeviceInfo(unsigned int deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet);
+RPRPP_API RprPpError rprppCreateContext(unsigned int deviceId, RprPpContext* outContext);
 RPRPP_API RprPpError rprppDestroyContext(RprPpContext context);
 RPRPP_API RprPpError rprppContextCreateBloomFilter(RprPpContext context, RprPpFilter* outFilter);
 RPRPP_API RprPpError rprppContextCreateComposeColorShadowReflectionFilter(RprPpContext context, RprPpFilter* outFilter);
@@ -110,19 +108,19 @@ RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovShadowCatcher(
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovReflectionCatcher(RprPpFilter filter, RprPpImage image);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovMattePass(RprPpFilter filter, RprPpImage image);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovBackground(RprPpFilter filter, RprPpImage image);
-RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, unsigned int* x, unsigned int* y);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColor(RprPpFilter filter, float* x, float* y, float* z);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterGetNotRefractiveBackgroundColorWeight(RprPpFilter filter, float* weight);
-RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y);
+RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, unsigned int x, unsigned int y);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColor(RprPpFilter filter, float x, float y, float z);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColorWeight(RprPpFilter filter, float weight);
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity);
 // ComposeOpacityShadow Filter
 RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetAovShadowCatcher(RprPpFilter filter, RprPpImage image);
-RPRPP_API RprPpError rprppComposeOpacityShadowFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y);
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterGetTileOffset(RprPpFilter filter, unsigned int* x, unsigned int* y);
 RPRPP_API RprPpError rprppComposeOpacityShadowFilterGetShadowIntensity(RprPpFilter filter, float* shadowIntensity);
-RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y);
+RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetTileOffset(RprPpFilter filter, unsigned int x, unsigned int y);
 RPRPP_API RprPpError rprppComposeOpacityShadowFilterSetShadowIntensity(RprPpFilter filter, float shadowIntensity);
 // ToneMap Filter
 RPRPP_API RprPpError rprppToneMapFilterSetWhitepoint(RprPpFilter filter, float x, float y, float z);
@@ -163,12 +161,12 @@ RPRPP_API RprPpError rprppVkDestroySemaphore(RprPpVkDevice device, RprPpVkSemaph
 
 RPRPP_API RprPpError rprppVkCreateFence(RprPpVkDevice device, RprPpBool signaled, RprPpVkFence* outFence);
 RPRPP_API RprPpError rprppVkDestroyFence(RprPpVkDevice device, RprPpVkFence fence);
-RPRPP_API RprPpError rprppVkWaitForFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences, RprPpBool waitAll, uint64_t timeout);
-RPRPP_API RprPpError rprppVkResetFences(RprPpVkDevice device, uint32_t fenceCount, RprPpVkFence* pFences);
+RPRPP_API RprPpError rprppVkWaitForFences(RprPpVkDevice device, unsigned int fenceCount, RprPpVkFence* pFences, RprPpBool waitAll, unsigned long long timeout);
+RPRPP_API RprPpError rprppVkResetFences(RprPpVkDevice device, unsigned int fenceCount, RprPpVkFence* pFences);
 RPRPP_API RprPpError rprppVkQueueSubmit(RprPpVkQueue queue, RprPpVkSubmitInfo submit, RprPpVkFence fence);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
 #endif

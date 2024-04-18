@@ -12,7 +12,6 @@ namespace
             BOOST_LOG_TRIVIAL(info) << "Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
         }
     }
-
 }
 
 oidn::DeviceRef createOidnDevice(uint8_t luid[OIDN_LUID_SIZE], uint8_t uuid[OIDN_UUID_SIZE])

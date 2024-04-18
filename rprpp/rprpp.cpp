@@ -16,7 +16,7 @@ static map<rprpp::Context> GlobalContextObjects;
 
 using namespace rprpp;
 
-void getDeviceInfo(uint32_t deviceId, RprPpDeviceInfo info, void* data, size_t size, size_t* sizeRet)
+void getDeviceInfo(unsigned int deviceId, RprPpDeviceInfo info, void* data, size_t size, size_t* sizeRet)
 {
     vk::raii::Context context;
     vk::helper::Instance instance = vk::helper::createInstance(context, false);
@@ -67,7 +67,9 @@ void getDeviceInfo(uint32_t deviceId, RprPpDeviceInfo info, void* data, size_t s
         break;
     }
     case RPRPP_DEVICE_INFO_SUPPORT_HARDWARE_RAY_TRACING: {
-        size_t len = sizeof(uint32_t);
+        const size_t len = sizeof(unsigned int);
+	static_assert(len == 4);
+
         if (sizeRet != nullptr) {
             *sizeRet = len;
         }
@@ -80,7 +82,7 @@ void getDeviceInfo(uint32_t deviceId, RprPpDeviceInfo info, void* data, size_t s
                 availableExtensions.push_back(property.extensionName);
             }
             std::vector<const char*> rayTracingExtensions = vk::helper::getRayTracingExtensions();
-            uint32_t supportHardwareRT = vk::helper::validateRequiredExtensions(availableExtensions, rayTracingExtensions)
+            unsigned int supportHardwareRT = vk::helper::validateRequiredExtensions(availableExtensions, rayTracingExtensions)
                 ? RPRPP_TRUE
                 : RPRPP_FALSE;
             std::memcpy(data, &supportHardwareRT, len);
@@ -88,14 +90,16 @@ void getDeviceInfo(uint32_t deviceId, RprPpDeviceInfo info, void* data, size_t s
         break;
     }
     case RPRPP_DEVICE_INFO_SUPPORT_GPU_DENOISER: {
-        size_t len = sizeof(uint32_t);
+        const size_t len = sizeof(unsigned int);
+	static_assert(len == 4);
+
         if (sizeRet != nullptr) {
             *sizeRet = len;
         }
 
         if (data != nullptr && len <= size) {
             int numPhysicalDevices = oidn::getNumPhysicalDevices();
-            uint32_t supportGpuDenoiser = RPRPP_FALSE;
+            unsigned int supportGpuDenoiser = RPRPP_FALSE;
             for (int i = 0; i < numPhysicalDevices; i++) {
                 oidn::PhysicalDeviceRef physicalDevice(i);
                 if (physicalDevice.get<bool>("luidSupported")) {
@@ -150,7 +154,7 @@ template <class Function,
     if (!status.has_value()) \
         return status.error();
 
-RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
+RprPpError rprppGetDeviceCount(unsigned int* deviceCount)
 {
     auto result = safeCall(vk::helper::getDeviceCount);
     check(result);
@@ -160,7 +164,7 @@ RprPpError rprppGetDeviceCount(uint32_t* deviceCount)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet)
+RprPpError rprppGetDeviceInfo(unsigned int deviceId, RprPpDeviceInfo deviceInfo, void* data, size_t size, size_t* sizeRet)
 {
     auto result = safeCall(getDeviceInfo, deviceId, deviceInfo, data, size, sizeRet);
     check(result);
@@ -168,7 +172,7 @@ RprPpError rprppGetDeviceInfo(uint32_t deviceId, RprPpDeviceInfo deviceInfo, voi
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppCreateContext(uint32_t deviceId, RprPpContext* outContext)
+RprPpError rprppCreateContext(unsigned int deviceId, RprPpContext* outContext)
 {
     assert(outContext);
 
@@ -672,7 +676,7 @@ RprPpError rprppComposeColorShadowReflectionFilterSetAovBackground(RprPpFilter f
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y)
+RprPpError rprppComposeColorShadowReflectionFilterSetTileOffset(RprPpFilter filter, unsigned int x, unsigned int y)
 {
     assert(filter);
 
@@ -724,13 +728,13 @@ RprPpError rprppComposeColorShadowReflectionFilterSetNotRefractiveBackgroundColo
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y)
+RprPpError rprppComposeColorShadowReflectionFilterGetTileOffset(RprPpFilter filter, unsigned int* x, unsigned int* y)
 {
     assert(filter);
 
     auto result = safeCall([&] {
         rprpp::filters::ComposeColorShadowReflectionFilter* f = static_cast<rprpp::filters::ComposeColorShadowReflectionFilter*>(filter);
-        uint32_t xy[2];
+        unsigned int xy[2];
         f->getTileOffset(xy[0], xy[1]);
 
         if (x != nullptr) {
@@ -817,7 +821,7 @@ RprPpError rprppComposeOpacityShadowFilterSetAovShadowCatcher(RprPpFilter filter
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppComposeOpacityShadowFilterSetTileOffset(RprPpFilter filter, uint32_t x, uint32_t y)
+RprPpError rprppComposeOpacityShadowFilterSetTileOffset(RprPpFilter filter, unsigned int x, unsigned int y)
 {
     assert(filter);
 
@@ -843,13 +847,13 @@ RprPpError rprppComposeOpacityShadowFilterSetShadowIntensity(RprPpFilter filter,
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppComposeOpacityShadowFilterGetTileOffset(RprPpFilter filter, uint32_t* x, uint32_t* y)
+RprPpError rprppComposeOpacityShadowFilterGetTileOffset(RprPpFilter filter, unsigned int* x, unsigned int* y)
 {
     assert(filter);
 
     auto result = safeCall([&] {
         rprpp::filters::ComposeOpacityShadowFilter* f = static_cast<rprpp::filters::ComposeOpacityShadowFilter*>(filter);
-        uint32_t xy[2];
+        unsigned int xy[2];
         f->getTileOffset(xy[0], xy[1]);
 
         if (x != nullptr) {
@@ -1352,7 +1356,7 @@ RprPpError rprppVkDestroyFence(RprPpVkDevice device, RprPpVkFence fence)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppVkWaitForFences(RprPpVkDevice rprppDevice, uint32_t fenceCount, RprPpVkFence* rprppFences, RprPpBool waitAll, uint64_t timeout)
+RprPpError rprppVkWaitForFences(RprPpVkDevice rprppDevice, unsigned int fenceCount, RprPpVkFence* rprppFences, RprPpBool waitAll, unsigned long long timeout)
 {
     assert(rprppDevice);
 
@@ -1366,7 +1370,7 @@ RprPpError rprppVkWaitForFences(RprPpVkDevice rprppDevice, uint32_t fenceCount, 
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppVkResetFences(RprPpVkDevice rprppDevice, uint32_t fenceCount, RprPpVkFence* rprppFences)
+RprPpError rprppVkResetFences(RprPpVkDevice rprppDevice, unsigned int fenceCount, RprPpVkFence* rprppFences)
 {
     assert(rprppDevice);
 
