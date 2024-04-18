@@ -16,6 +16,9 @@ static map<rprpp::Context> GlobalContextObjects;
 
 using namespace rprpp;
 
+// -------------------------------------------------
+// Private functions and helpers. Not part of public API
+// -------------------------------------------------
 void getDeviceInfo(unsigned int deviceId, RprPpDeviceInfo info, void* data, size_t size, size_t* sizeRet)
 {
     vk::raii::Context context;
@@ -153,6 +156,29 @@ template <class Function,
 #define check(status)        \
     if (!status.has_value()) \
         return status.error();
+
+// ---------------------------------------------------
+// API implementation
+// ---------------------------------------------------
+RprPpError rprppInitialize()
+{
+    // sometimes public API callers may forget to call rprppDestroy public function.
+    // For such cases, we try to be gentle
+    (void)rprppDestroy(); // we don't care about errors
+
+    return RPRPP_SUCCESS;
+}
+
+RprPpError rprppDestroy()
+{
+    auto result = safeCall([&]{
+        std::lock_guard<std::mutex> lock(Mutex);
+        GlobalContextObjects.clear();
+    });
+    check(result);
+
+    return RPRPP_SUCCESS;
+}
 
 RprPpError rprppGetDeviceCount(unsigned int* deviceCount)
 {
