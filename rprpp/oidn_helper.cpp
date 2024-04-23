@@ -2,20 +2,19 @@
 
 #include <boost/log/trivial.hpp>
 
-namespace oidn::helper {
-
-namespace {
-
+namespace rprpp
+{
+namespace
+{
     void printAllDenoiserDevices(int maxDevicesNumber)
     {
         for (int deviceId = 0; deviceId < maxDevicesNumber; ++deviceId) {
             BOOST_LOG_TRIVIAL(info) << "Denoiser Device id = " << deviceId << ", name = " << oidnGetPhysicalDeviceString(deviceId, "name");
         }
     }
-
 }
 
-oidn::DeviceRef createDevice(uint8_t luid[OIDN_LUID_SIZE], uint8_t uuid[OIDN_UUID_SIZE])
+oidn::DeviceRef createOidnDevice(uint8_t luid[OIDN_LUID_SIZE], uint8_t uuid[OIDN_UUID_SIZE])
 {
     BOOST_LOG_TRIVIAL(trace) << "oidn::helper::createDevice";
 

@@ -36,5 +36,6 @@ target_link_libraries(appcommon
 	PUBLIC RadeonProRenderSDK::RPR
 	PUBLIC stbimpl
 	PUBLIC rprpp
+    PUBLIC Boost::program_options
 )
 

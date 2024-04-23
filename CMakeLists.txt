@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26.1)
-project(rprpp LANGUAGES CXX VERSION 1.0.1)
+project(rprpp LANGUAGES CXX VERSION 2.0.1)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +20,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/VulkanTools.cmake")
 
 set(RPR_SDK_ROOT "${CMAKE_SOURCE_DIR}/ThirdParty/RadeonProRenderSDK")
 
-find_package(Boost REQUIRED COMPONENTS system log)
+find_package(Boost REQUIRED COMPONENTS system log program_options)
 
 find_package(Vulkan COMPONENTS shaderc_combined REQUIRED)
 find_package(Stb REQUIRED)

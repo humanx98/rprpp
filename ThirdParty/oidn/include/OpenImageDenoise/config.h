@@ -9,17 +9,17 @@
 #define OIDN_VERSION 20202
 #define OIDN_VERSION_STRING "2.2.2"
 
-/* #undef OIDN_API_NAMESPACE */
+#define OIDN_API_NAMESPACE rprpp
 /* #undef OIDN_STATIC_LIB */
 
 #if defined(OIDN_API_NAMESPACE)
-  #define OIDN_API_NAMESPACE_BEGIN namespace  {
+  #define OIDN_API_NAMESPACE_BEGIN namespace rprpp {
   #define OIDN_API_NAMESPACE_END }
-  #define OIDN_API_NAMESPACE_USING using namespace ;
+  #define OIDN_API_NAMESPACE_USING using namespace rprpp;
   #define OIDN_API_EXTERN_C
-  #define OIDN_NAMESPACE ::oidn
-  #define OIDN_NAMESPACE_C _oidn
-  #define OIDN_NAMESPACE_BEGIN namespace  { namespace oidn {
+  #define OIDN_NAMESPACE rprpp::oidn
+  #define OIDN_NAMESPACE_C rprpp_oidn
+  #define OIDN_NAMESPACE_BEGIN namespace rprpp { namespace oidn {
   #define OIDN_NAMESPACE_END }}
 #else
   #define OIDN_API_NAMESPACE_BEGIN
@@ -49,7 +49,7 @@
   #define OIDN_API_EXPORT OIDN_API_EXTERN_C __attribute__((visibility ("default")))
 #endif
 
-#if defined(OpenImageDenoise_EXPORTS)
+#if defined(OpenImageDenoiseAMD_EXPORTS)
   #define OIDN_API OIDN_API_EXPORT
 #else
   #define OIDN_API OIDN_API_IMPORT
@@ -68,7 +68,7 @@
 /* #undef OIDN_DEVICE_SYCL */
 #endif
 #if !defined(OIDN_DEVICE_CUDA)
-/* #undef OIDN_DEVICE_CUDA */
+  #define OIDN_DEVICE_CUDA
 #endif
 #if !defined(OIDN_DEVICE_HIP)
   #define OIDN_DEVICE_HIP

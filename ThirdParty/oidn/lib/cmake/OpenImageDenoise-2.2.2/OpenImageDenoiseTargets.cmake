@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "2.8.3")
    message(FATAL_ERROR "CMake >= 2.8.3 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.8.3...3.25)
+cmake_policy(VERSION 2.8.3...3.26)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -19,7 +19,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_cmake_targets_defined "")
 set(_cmake_targets_not_defined "")
 set(_cmake_expected_targets "")
-foreach(_cmake_expected_target IN ITEMS OpenImageDenoise_weights OpenImageDenoise_common OpenImageDenoise_core OpenImageDenoise)
+foreach(_cmake_expected_target IN ITEMS OpenImageDenoise_weights OpenImageDenoise_common OpenImageDenoiseAMD_core OpenImageDenoiseAMD)
   list(APPEND _cmake_expected_targets "${_cmake_expected_target}")
   if(TARGET "${_cmake_expected_target}")
     list(APPEND _cmake_targets_defined "${_cmake_expected_target}")
@@ -61,17 +61,17 @@ add_library(OpenImageDenoise_weights INTERFACE IMPORTED)
 # Create imported target OpenImageDenoise_common
 add_library(OpenImageDenoise_common INTERFACE IMPORTED)
 
-# Create imported target OpenImageDenoise_core
-add_library(OpenImageDenoise_core SHARED IMPORTED)
+# Create imported target OpenImageDenoiseAMD_core
+add_library(OpenImageDenoiseAMD_core SHARED IMPORTED)
 
-set_target_properties(OpenImageDenoise_core PROPERTIES
+set_target_properties(OpenImageDenoiseAMD_core PROPERTIES
   INTERFACE_LINK_LIBRARIES "OpenImageDenoise_common"
 )
 
-# Create imported target OpenImageDenoise
-add_library(OpenImageDenoise SHARED IMPORTED)
+# Create imported target OpenImageDenoiseAMD
+add_library(OpenImageDenoiseAMD SHARED IMPORTED)
 
-set_target_properties(OpenImageDenoise PROPERTIES
+set_target_properties(OpenImageDenoiseAMD PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
 )
 
