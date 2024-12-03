@@ -3,6 +3,8 @@
 #include "rprpp/rprpp.h"
 #include "vk_helper.h"
 
+#include <optional>
+
 namespace vk::helper {
 
 struct DeviceContext {
