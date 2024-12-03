@@ -5,11 +5,11 @@
 #define RPRPP_CHECK(x)                           \
     {                                            \
         if ((x) != RPRPP_SUCCESS) {              \
-            ErrorManager(x, __FILE__, __LINE__); \
+            process_error(x, __FILE__, __LINE__);\
         }                                        \
     }
 
-void ErrorManager(RprPpError errorCode, const char* fileName, int line);
+void process_error(RprPpError errorCode, const char* fileName, int line);
 
 namespace rprpp::wrappers {
 

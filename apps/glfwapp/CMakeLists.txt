@@ -17,7 +17,8 @@ set(HEADERS
 )
 
 set(SOURCES
-    NoAovsInteropApp.cpp
+	dx_helper.cpp
+	NoAovsInteropApp.cpp
     WithAovsInteropApp.cpp
 )
 add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
@@ -25,6 +26,7 @@ add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
 target_link_libraries(glfwapp
     PUBLIC glfw
     PUBLIC appcommon
+    PUBLIC Boost::log
 )
 # automatically copy all dll's deps.
 add_custom_command(TARGET glfwapp POST_BUILD

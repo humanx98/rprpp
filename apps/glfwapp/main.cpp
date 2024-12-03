@@ -4,6 +4,8 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 
+#include <boost/log/trivial.hpp>
+
 #include <iostream>
 
 const int FB_WIDTH = 2000;
@@ -48,7 +50,7 @@ DeviceInfo getDeviceInfoOf(int index)
 
 int main(int argc, const char* argv[])
 {
-    std::cout << "GlfwApp started..." << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "GlfwApp started...";
     std::filesystem::path exeDirPath = std::filesystem::path(argv[0]).parent_path();
     Paths paths = {
         .hybridproDll = exeDirPath / "HybridPro.dll",
@@ -97,19 +99,22 @@ int main(int argc, const char* argv[])
     RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
     for (int i = 0; i < deviceCount; i++) {
         deviceInfos.push_back(getDeviceInfoOf(i));
-        std::cout << "Device id = " << i << ", name = " << deviceInfos[i].name;
+        BOOST_LOG_TRIVIAL(info) << "Device id = " << i << ", name = " << deviceInfos[i].name;
         if (deviceInfos[i].supportHardwareRT) {
-            std::cout << ", support Hardware Ray Tracing";
+            BOOST_LOG_TRIVIAL(info) << "GPU Ray Tracing:\tSupported";
+        } else {
+            BOOST_LOG_TRIVIAL(info) << "GPU Ray Tracing:\tUnsupported";
         }
 
         if (deviceInfos[i].supportGpuDenoiser) {
-            std::cout << ", support Gpu Denoiser";
+            BOOST_LOG_TRIVIAL(info) << "GPU Denoiser:\tSupported";
+        } else {
+            BOOST_LOG_TRIVIAL(info) << "GPU Denoiser:\tUnsupported";
         }
-        std::cout << std::endl;
     }
 
     if (deviceId >= deviceCount) {
-        std::cerr << "There is no device with index = " << deviceId << "\n";
+        BOOST_LOG_TRIVIAL(error) << "There is no device with index = " << deviceId;
         return EXIT_FAILURE;
     }
 
@@ -123,11 +128,11 @@ int main(int argc, const char* argv[])
             app.run();
         }
     } catch (const std::exception& e) {
-        std::cerr << e.what() << "\n";
+        BOOST_LOG_TRIVIAL(error) << e.what();
         return EXIT_FAILURE;
     }
 
-    std::cout << "GlfwApp finished...\n";
+    BOOST_LOG_TRIVIAL(debug) << "GlfwApp finished...";
 
-    return 0;
+    return EXIT_SUCCESS;
 }

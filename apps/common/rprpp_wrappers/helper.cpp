@@ -1,17 +1,18 @@
 #include "helper.h"
 
 #include <cassert>
-#include <fstream>
 #include <iostream>
 #include <sstream>
 
-void ErrorManager(RprPpError errorCode, const char* fileName, int line)
+void process_error(RprPpError errorCode, const char* fileName, int line)
 {
-    std::cerr << "ERROR detected - program will stop." << std::endl;
-    std::cerr << "file = " << fileName << std::endl;
-    std::cerr << "line = " << line << std::endl;
-    std::cerr << "RPRPP error code = " << errorCode << std::endl;
-    assert(0);
+    std::stringstream stream;
+    stream << "ERROR detected - program will stop\n";
+    stream << "file = " << fileName << "\n";
+    stream << "line = " << line << "\n";
+    stream << "RPRPP error code = " << errorCode << "\n";
+
+    throw std::runtime_error(stream.str());
 }
 
 size_t rprpp::wrappers::to_pixel_size(RprPpImageFormat from)

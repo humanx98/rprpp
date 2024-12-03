@@ -1,19 +1,19 @@
 #include "rpr_helper.h"
 
-#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-void ErrorManager(rpr_status errorCode, const char* fileName, int line)
+void process_rpr_error(rpr_status errorCode, const char* fileName, int line)
 {
-    std::cerr << "ERROR detected - program will stop." << std::endl;
-    std::cerr << "file = " << fileName << std::endl;
-    std::cerr << "line = " << line << std::endl;
-    std::cerr << "RPR error code = " << errorCode << std::endl;
-    assert(0);
+    std::stringstream stream;
+    stream << "ERROR detected - program will stop.\n" << std::endl;
+    stream << "file = " << fileName << "\n";
+    stream << "line = " << line << "\n";
+    stream << "RPR error code = " << errorCode << "\n";
+    throw std::runtime_error(stream.str());
 }
 
 void CheckNoLeak(rpr_context context)

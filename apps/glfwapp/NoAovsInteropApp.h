@@ -2,12 +2,9 @@
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 #include <d3d11_3.h>
 #pragma comment(lib, "d3d11.lib")
-#include <dxgi1_6.h>
 #pragma comment(lib, "dxgi.lib")
-#include <comdef.h>
 #include <wrl/client.h>
 
 #include "dx_helper.h"
@@ -25,6 +22,11 @@
 using Microsoft::WRL::ComPtr;
 
 class NoAovsInteropApp {
+public:
+    NoAovsInteropApp(int width, int height, int rendererdIterations, const Paths& paths, const DeviceInfo& deviceInfo);
+    ~NoAovsInteropApp();
+    void run();
+
 private:
     int m_width;
     int m_height;
@@ -67,9 +69,4 @@ private:
     void resize(int width, int height);
     static void onResize(GLFWwindow* window, int width, int height);
     void mainLoop();
-
-public:
-    NoAovsInteropApp(int width, int height, int rendererdIterations, Paths paths, DeviceInfo deviceInfo);
-    ~NoAovsInteropApp();
-    void run();
 };

@@ -1,6 +1,10 @@
 #include "WithAovsInteropApp.h"
+#include <boost/log/trivial.hpp>
+#include <GLFW/glfw3native.h>
+#include <dxgi1_6.h>
+#include <comdef.h>
 
-#define FORMAT DXGI_FORMAT_B8G8R8A8_UNORM
+constexpr DXGI_FORMAT FORMAT = DXGI_FORMAT_B8G8R8A8_UNORM;
 
 inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
 {
@@ -14,7 +18,12 @@ inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
     }
 }
 
-WithAovsInteropApp::WithAovsInteropApp(int width, int height, int renderedIterations, uint32_t framesInFlight, Paths paths, DeviceInfo deviceInfo)
+WithAovsInteropApp::WithAovsInteropApp(int width,
+    int height,
+    int renderedIterations,
+    uint32_t framesInFlight,
+    const Paths& paths,
+    const DeviceInfo& deviceInfo)
     : m_width(width)
     , m_height(height)
     , m_renderedIterations(renderedIterations)
@@ -22,12 +31,12 @@ WithAovsInteropApp::WithAovsInteropApp(int width, int height, int renderedIterat
     , m_paths(paths)
     , m_deviceInfo(deviceInfo)
 {
-    std::cout << "WithAovsInteropApp()" << std::endl;
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::WithAovsInteropApp()";
 }
 
 WithAovsInteropApp::~WithAovsInteropApp()
 {
-    std::cout << "~WithAovsInteropApp()" << std::endl;
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::~WithAovsInteropApp()";
     for (auto f : m_fences) {
         RPRPP_CHECK(rprppVkDestroyFence(m_ppContext->getVkDevice(), f));
     }
@@ -42,9 +51,10 @@ WithAovsInteropApp::~WithAovsInteropApp()
 
 void WithAovsInteropApp::run()
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::run()";
     initWindow();
     findAdapter();
-    intiSwapChain();
+    initSwapChain();
     initRpr();
     resize(m_width, m_height);
     mainLoop();
@@ -52,6 +62,8 @@ void WithAovsInteropApp::run()
 
 void WithAovsInteropApp::initWindow()
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::initWindow()";
+
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -64,6 +76,7 @@ void WithAovsInteropApp::initWindow()
 
 void WithAovsInteropApp::findAdapter()
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::findAdapter()";
     ComPtr<IDXGIFactory4> factory;
     DX_CHECK(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
     ComPtr<IDXGIFactory6> factory6;
@@ -73,8 +86,10 @@ void WithAovsInteropApp::findAdapter()
     SUCCEEDED(factory6->EnumAdapterByLuid(*luid, IID_PPV_ARGS(&m_adapter)));
 }
 
-void WithAovsInteropApp::intiSwapChain()
+void WithAovsInteropApp::initSwapChain()
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::initSwapChain()";
+
     DXGI_SWAP_CHAIN_DESC scd = {};
     ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
     scd.BufferDesc.Width = 0; // use window width
@@ -103,6 +118,8 @@ void WithAovsInteropApp::intiSwapChain()
 
 void WithAovsInteropApp::initRpr()
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::initRpr()";
+
     m_ppContext = std::make_unique<rprpp::wrappers::Context>(m_deviceInfo.index);
     m_bloomFilter = std::make_unique<rprpp::wrappers::filters::BloomFilter>(*m_ppContext);
     m_composeColorShadowReflectionFilter = std::make_unique<rprpp::wrappers::filters::ComposeColorShadowReflectionFilter>(*m_ppContext);
@@ -140,6 +157,8 @@ void WithAovsInteropApp::initRpr()
 
 void WithAovsInteropApp::resize(int width, int height)
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::resize()";
+
     if (m_width != width || m_height != height || m_backBuffer.Get() == nullptr) {
         m_deviceContex->OMSetRenderTargets(0, nullptr, nullptr);
         m_sharedTextureResource.Reset();
@@ -232,12 +251,16 @@ void WithAovsInteropApp::resize(int width, int height)
 
 void WithAovsInteropApp::onResize(GLFWwindow* window, int width, int height)
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::onResize()";
+
     auto app = static_cast<WithAovsInteropApp*>(glfwGetWindowUserPointer(window));
     app->resize(width, height);
 }
 
 void WithAovsInteropApp::mainLoop()
 {
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::mainLoop()";
+
     clock_t deltaTime = 0;
     unsigned int frames = 0;
     while (!glfwWindowShouldClose(m_window)) {
@@ -298,14 +321,15 @@ void WithAovsInteropApp::mainLoop()
         frames += m_renderedIterations;
         double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
         if (deltaTimeInSeconds > 1.0) { // every second
-            std::cout << "Iterations per second = "
+            BOOST_LOG_TRIVIAL(info) << "Iterations per second = "
                       << frames / deltaTimeInSeconds
                       << ", Time per iteration = "
                       << deltaTimeInSeconds * 1000.0 / frames
-                      << "ms"
-                      << std::endl;
+                      << "ms";
             frames = 0;
             deltaTime -= CLOCKS_PER_SEC;
         }
     }
+
+    BOOST_LOG_TRIVIAL(trace) << "WithAovsInteropApp::mainLoop() - DONE";
 }
