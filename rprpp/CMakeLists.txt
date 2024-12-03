@@ -107,7 +107,7 @@ target_include_directories(rprpp
 target_link_libraries(rprpp
     PRIVATE Vulkan::Vulkan
     PRIVATE Vulkan::shaderc_combined
-    PRIVATE OpenImageDenoiseAMD
+    PRIVATE OpenImageDenoise
     PRIVATE Boost::log
 )
 set_target_properties(rprpp PROPERTIES PUBLIC_HEADER "rprpp.h")
@@ -116,11 +116,11 @@ install(TARGETS rprpp
         RUNTIME PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/rprpp)
 
 if (INSTALL_DEPENDENCIES)
-    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_core.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_device_cpu.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_device_cuda.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_device_hip.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_core.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_device_cpu.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_device_cuda.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_device_hip.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbb12.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(FILES ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbbmalloc.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()

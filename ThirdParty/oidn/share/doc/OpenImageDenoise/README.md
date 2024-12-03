@@ -1,6 +1,6 @@
 # Intel® Open Image Denoise
 
-This is release v2.2.2 of Intel Open Image Denoise. For changes and new
+This is release v2.3.1 of Intel Open Image Denoise. For changes and new
 features see the [changelog](CHANGELOG.md). Visit
 https://www.openimagedenoise.org for more information.
 
@@ -47,13 +47,13 @@ different vendors:
 
   - ARM64 (AArch64) architecture CPUs (e.g. Apple silicon CPUs)
 
-  - Intel Xe architecture dedicated and integrated GPUs, including
-    Intel® Arc™ A-Series Graphics, Intel® Data Center GPU Flex Series,
-    Intel® Data Center GPU Max Series, Intel® Iris® Xe Graphics, Intel®
-    Core™ Ultra Processors with Intel® Arc™ Graphics, 11th-14th Gen
-    Intel® Core™ processor graphics, and related Intel Pentium® and
-    Celeron® processors (Xe-LP, Xe-LPG, Xe-HPG, and Xe-HPC
-    microarchitectures)
+  - Intel Xe and Xe2 architecture dedicated and integrated GPUs,
+    including Intel® Arc™ A-Series Graphics, Intel® Data Center GPU Flex
+    Series, Intel® Data Center GPU Max Series, Intel® Iris® Xe Graphics,
+    Intel® Core™ Ultra Processors with Intel® Arc™ Graphics, 11th-14th
+    Gen Intel® Core™ processor graphics, and related Intel Pentium® and
+    Celeron® processors (Xe-LP, Xe-LPG, Xe-LPG+, Xe-HPG, Xe-HPC,
+    Xe2-LPG, and Xe2-HPG microarchitectures)
 
   - NVIDIA GPUs with Volta, Turing, Ampere, Ada Lovelace, and Hopper
     architectures
@@ -107,11 +107,10 @@ drivers](https://www.nvidia.com/en-us/geforce/drivers/):
 For AMD GPU support, please also install the latest [AMD graphics
 drivers](https://www.amd.com/en/support):
 
-  - Windows: AMD Software: Adrenalin Edition 23.4.3 Driver Version
-    22.40.51.05 or newer
+  - Windows: AMD Software: Adrenalin Edition 24.10.1 or newer
 
   - Linux: [Radeon Software for
-    Linux](https://www.amd.com/en/support/linux-drivers) version 22.40.5
+    Linux](https://www.amd.com/en/support/linux-drivers) version 24.20.3
     or newer
 
 For Apple GPU support, macOS Ventura or newer is required.
@@ -216,8 +215,8 @@ additional prerequisites are needed:
 
   - Intel® Graphics Offline Compiler for OpenCL™ Code (OCLOC)
     
-      - Windows: Version
-        [31.0.101.5082](https://registrationcenter-download.intel.com/akdlm/IRC_NAS/77a13ae6-6100-4ddc-b069-0086ff44730c/ocloc_win_101.5082.zip)
+      - Windows: Version [2025.0.0
+        / 32.0.101.6129](https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7000f8d2-dda8-4dd6-8b63-3917e4476fa5/intel-ocloc-2025.0.0.257_offline.exe)
         or newer as a [standalone component of Intel® oneAPI
         Toolkits](https://www.intel.com/content/www/us/en/developer/articles/tool/oneapi-standalone-components.html),
         which must be extracted and its contents added to the `PATH`.
@@ -226,7 +225,7 @@ additional prerequisites are needed:
     
       - Linux: Included with [Intel® software for General Purpose GPU
         capabilities](https://dgpu-docs.intel.com) release
-        [20231219](https://dgpu-docs.intel.com/releases/stable_775_20_20231219.html)
+        [2441.19](https://dgpu-docs.intel.com/releases/rolling-release-notes.html#release-2024-10-31)
         or newer (install at least `intel-opencl-icd` on Ubuntu,
         `intel-ocloc` on RHEL or SLES). Also available with [Intel®
         Graphics Compute Runtime for oneAPI Level Zero and OpenCL™
@@ -252,7 +251,7 @@ additional prerequisites are needed:
   - [Ninja](https://ninja-build.org) or Make as the CMake generator. The
     Visual Studio generator is *not* supported.
 
-  - [AMD ROCm (HIP SDK)](https://rocm.docs.amd.com) v5.5.0 or newer.
+  - [AMD ROCm (HIP SDK)](https://rocm.docs.amd.com) v6.1.2 or newer.
 
   - Perl (e.g. [Strawberry Perl](https://strawberryperl.com) on Windows)
 
@@ -260,7 +259,7 @@ additional prerequisites are needed:
 
   - [CMake](http://www.cmake.org) 3.21 or newer
 
-  - [Xcode](https://developer.apple.com/xcode/) 14 or newer
+  - [Xcode](https://developer.apple.com/xcode/) 15.0 or newer
 
 Depending on your operating system, you can install some required
 dependencies (e.g., TBB) using `yum` or `apt-get` on Linux,
@@ -399,10 +398,13 @@ CMake:
     support is enabled) or a hybrid static/shared (if GPU support is
     enabled as well) library.
 
-  - `OIDN_API_NAMESPACE`: Specifies a namespace to put all Intel Open
-    Image Denoise API symbols inside. This is also added as an outer
-    namespace for the C++ wrapper API. By default no namespace is used
-    and plain C symbols are exported.
+  - `OIDN_LIBRARY_NAME`: Specifies the base name of the Open Image
+    Denoise library files (`OpenImageDenoise` by default).
+
+  - `OIDN_API_NAMESPACE`: Specifies a namespace to put all Open Image
+    Denoise API symbols inside. This is also added as an outer namespace
+    for the C++ wrapper API. By default no namespace is used and plain C
+    symbols are exported.
 
   - `OIDN_DEVICE_CPU`: Enable CPU device support (ON by default).
 
@@ -453,7 +455,7 @@ CMake:
   - `ROCM_PATH`: The path to the ROCm installation (autodetected by
     default).
 
-  - `OPENIMAGEIO_ROOT`: The path to the OpenImageIO installation
+  - `OpenImageIO_ROOT`: The path to the OpenImageIO installation
     (autodetected by default).
 
 # Documentation
@@ -643,8 +645,8 @@ overhead of copying as much as possible:
   - Data should be copied to/from buffers only if the data in system
     memory indeed cannot be accessed by the device. This can be
     determined by simply querying the `systemMemorySupported` device
-    parameter. If system memory is accessible by the device, no buffers
-    are necessary and filter image parameters can be set with
+    parameter. If system allocated memory is accessible by the device,
+    no buffers are necessary and filter image parameters can be set with
     `oidnSetSharedFilterImage`.
 
   - If the image data cannot be accessed by the device, buffers must be
@@ -751,15 +753,10 @@ identification might fail.
 
 ### Asynchronous Execution
 
-With the introduction of GPU support, it is now possible to execute some
-operations asynchronously, most importantly filtering
-(`oidnExecuteFilterAsync`, `oidnExecuteSYCLFilterAsync`) and copying
-data (the already mentioned `oidnReadBufferAsync` and
-`oidnWriteBufferAsync`). Although these new asynchronous functions can
-be used with any device type, it is *not* guaranteed that these will be
-actually executed asynchronously. The most important such exceptions are
-CPU devices, which are still blocking the calling thread when these
-functions are called.
+It is now possible to execute some operations asynchronously, most
+importantly filtering (`oidnExecuteFilterAsync`,
+`oidnExecuteSYCLFilterAsync`) and copying data (the already mentioned
+`oidnReadBufferAsync` and `oidnWriteBufferAsync`).
 
 When using any asynchronous function it is the responsibility of the
 application to handle correct synchronization using `oidnSyncDevice`.
@@ -771,10 +768,10 @@ device types as before, including on GPUs. But often filtering
 performance is more important than having the highest possible image
 quality, so it is now possible to switch between multiple filter quality
 modes. Filters have a new parameter called `quality`, which defaults to
-the existing high image quality (`OIDN_QUALITY_HIGH`) but a balanced
-quality mode (`OIDN_QUALITY_BALANCED`) has been added as well for even
-higher performance. We recommend using balanced quality for interactive
-and real-time use cases.
+the existing *high* image quality (`OIDN_QUALITY_HIGH`) but *balanced*
+(`OIDN_QUALITY_BALANCED`) and *fast* (`OIDN_QUALITY_FAST`) quality modes
+have been added as well for even higher performance. We recommend using
+*balanced* or *fast* quality for interactive and real-time use cases.
 
 ### Small API Changes
 
@@ -855,6 +852,18 @@ queried:
 
 Constant parameters supported by physical devices.
 
+It is also possible to directly query whether a physical device of a
+particular type is supported, without iterating over all supported
+physical devices:
+
+``` cpp
+bool oidnIsCPUDeviceSupported();
+bool oidnIsSYCLDeviceSupported(const sycl::device* device);
+bool oidnIsCUDADeviceSupported(int deviceID);
+bool oidnIsHIPDeviceSupported(int deviceID);
+bool oidnIsMetalDeviceSupported(MTLDevice_id device);
+```
+
 ## Devices
 
 Open Image Denoise has a *logical* device concept as well, or simply
@@ -933,11 +942,10 @@ supported SYCL backend is oneAPI Level Zero.
 
 For CUDA and HIP, pairs of CUDA/HIP device IDs and corresponding streams
 can be specified but the current implementation supports only one pair.
-Negative device IDs correspond to the default device, and a `NULL`
-stream corresponds to the default stream on the corresponding device.
-Open Image Denoise automatically sets and restores the current CUDA/HIP
-device on the calling thread when necessary, thus the current device
-does not have to be changed manually by the application.
+A `NULL` stream corresponds to the default stream on the corresponding
+device. Open Image Denoise automatically sets and restores the current
+CUDA/HIP device/context on the calling thread when necessary, thus the
+current device does not have to be changed manually by the application.
 
 For Metal, a single command queue is supported.
 
@@ -1008,10 +1016,11 @@ operations to complete, which can be done by calling
 void oidnSyncDevice(OIDNDevice device);
 ```
 
-Currently the CPU device does not support asynchronous execution, and
-thus the asynchronous versions of functions will block as well. However,
-`oidnSyncDevice` should be always called to ensure correctness on GPU
-devices too, which do support asynchronous execution.
+If any errors have occurred during asynchronous operations (e.g.,
+cancellation through a progress monitor callback), those will be
+reported only when synchronization is triggered explicitly with
+`oidnSyncDevice` or implicitly with some other API call (e.g.,
+`oidnExecuteFilter`, `oidnCommitFilter`).
 
 Before the application exits, it should release all devices by invoking
 
@@ -1176,9 +1185,10 @@ where `devPtr` points to user-managed device-accessible memory and
 data is allocated, but the buffer data provided by the user is used. The
 buffer data must remain valid for as long as the buffer may be used, and
 the user is responsible to free the buffer data when no longer required.
-The user must also ensure that the memory is accessible by the device by
-using allocation functions supported by the device
-(e.g. `sycl::malloc_device`, `cudaMalloc`, `hipMalloc`).
+The user must also ensure that the memory is accessible to the device by
+using a supported allocation function (e.g., `sycl::malloc_device`,
+`cudaMalloc`, `hipMalloc`) and alignment (e.g., Metal requires the
+allocation to be page-aligned).
 
 Buffers can be also imported from graphics APIs as external memory, to
 avoid expensive copying of data through host memory. Different types of
@@ -1273,9 +1283,8 @@ void oidnWriteBuffer(OIDNBuffer buffer,
 ```
 
 These functions will always block until the read/write operation has
-been completed, which is often suboptimal. The following functions may
-execute the operation asynchronously if it is supported by the device
-(GPUs), or still block otherwise (CPUs):
+been completed, which is often suboptimal. The following functions
+execute these operations asynchronously:
 
 ``` cpp
 void oidnReadBufferAsync(OIDNBuffer buffer,
@@ -1455,12 +1464,12 @@ argument). When returning `true` from the callback function, Open Image
 Denoise will continue the filter operation normally. When returning
 `false`, the library will attempt to cancel the filter operation as soon
 as possible, and if that is fulfilled, it will raise an
-`OIDN_ERROR_CANCELLED` error.
+`OIDN_ERROR_CANCELLED` error. Note that cancellation is not guaranteed.
 
-Please note that using a progress monitor callback function introduces
-some overhead, which may be significant on GPU devices, hurting
-performance. Therefore we recommend progress monitoring only for offline
-denoising, when denoising an image is expected to take several seconds.
+Using a progress monitor callback function introduces some overhead,
+which may be significant on GPU devices, hurting performance. Therefore
+we strongly recommend progress monitoring only for offline denoising,
+when denoising an image is expected to take several seconds.
 
 After setting all necessary parameters for the filter, the changes must
 be committed by calling
@@ -1485,9 +1494,7 @@ which will read the input image data from the specified buffers and
 produce the denoised output image.
 
 This function will always block until the filtering operation has been
-completed. The following function may execute the operation
-asynchronously if it is supported by the device (GPUs), or block
-otherwise (CPUs):
+completed. The following function executes the operation asynchronously:
 
 ``` cpp
 void oidnExecuteFilterAsync(OIDNFilter filter);
@@ -1710,28 +1717,33 @@ table.
 | Name                    | Description                                                        |
 | :---------------------- | :----------------------------------------------------------------- |
 | `OIDN_QUALITY_DEFAULT`  | default quality                                                    |
+| `OIDN_QUALITY_FAST`     | high performance (for interactive/real-time preview rendering)     |
 | `OIDN_QUALITY_BALANCED` | balanced quality/performance (for interactive/real-time rendering) |
 | `OIDN_QUALITY_HIGH`     | high quality (for final-frame rendering); *default*                |
 
 Supported image quality modes, i.e., valid constants of type
 `OIDNQuality`.
 
-By default filtering is performed in high quality mode, which is
+By default, filtering is performed in *high* quality mode, which is
 recommended for final-frame rendering. Using this setting the results
 have the same high quality regardless of what kind of device (CPU or
 GPU) is used. However, due to significant hardware architecture
 differences between devices, there might be small numerical differences
 between the produced outputs.
 
-The balanced quality mode is very close in image quality to the high
-quality mode except that lower numerical precision is used, if this is
-supported by the device. This may result in significantly higher
-performance on some devices but on others there might be no difference
-at all due to hardware specifics. This mode is recommended for
-interactive and real-time rendering.
+The *balanced* quality mode may provide somewhat lower image quality but
+higher performance and lower default memory usage, and is thus
+recommended for interactive and real-time rendering. For even higher
+performance and lower memory usage, a *fast* quality mode is also
+available but has noticeably lower image quality, making it suitable
+mainly for fast previews. Note that in the *balanced* and *fast* quality
+modes larger numerical differences should be expected across devices
+compared to the *high* quality mode.
 
-Note that in balanced quality mode a higher variation in image quality
-should be expected across devices.
+The difference in quality and performance between quality modes depends
+on the combination of input features, parameters (e.g. `cleanAux`), and
+the device architecture. In some cases the difference may be small or
+even none.
 
 #### Weights
 
@@ -1842,14 +1854,13 @@ prerequisites:
 
   - Python 3.7 or later
 
-  - [PyTorch](https://pytorch.org/) 1.8 or later
+  - [PyTorch](https://pytorch.org/) 2.4 or later
 
   - [NumPy](https://numpy.org/) 1.19 or later
 
   - [OpenImageIO](http://openimageio.org/) 2.1 or later
 
   - [TensorBoard](https://www.tensorflow.org/tensorboard) 2.4 or later
-    (*optional*)
 
 ## Devices
 
@@ -1953,10 +1964,17 @@ of the preprocessed features.
 
 By default, all input features are assumed to be noisy, including the
 auxiliary features (e.g. albedo, normal), each having versions at
-different samples per pixel. However, it is also possible to train with
+different samples per pixel. It is also possible to train with
 noise-free auxiliary features, in which case the reference auxiliary
 features are used instead of the various noisy ones (`--clean_aux`
-option).
+option). This improves quality significantly if the auxiliary features
+used for inference will be either originally noise-free or prefiltered
+with separately trained auxiliary feature denoising models. If inference
+will be done only with prefiltered features, even higher quality can be
+achieved by training with prefiltered features instead of the reference
+onces. This can be achieved by first training the auxiliary feature
+models and then specifying the list of these results when preprocessing
+the dataset for the main feature (`--aux_results` or `-a` option).
 
 Preprocessing also depends on the filter that will be trained
 (e.g. determines which HDR/LDR transfer function has to be used), which
@@ -1993,7 +2011,14 @@ After preprocessing the datasets, it is possible to start training a
 model using the `train.py` script. Similar to the preprocessing script,
 the input features must be specified (could be a subset of the
 preprocessed features), and the dataset names, directory paths, and the
-filter can be also passed.
+filter can be also passed. If the `--clean_aux` or `--aux_results`
+options were specified for preprocessing, these must be passed
+identically to the training script as well.
+
+Open Image Denoise uses models of different sizes for different quality
+modes (high, balanced, fast). Specifying the quality mode (`--quality`
+or `-q` option) will cause the model to be implicitly selected, or the
+model can be specified explicitly as well (`--model` or `-m` option).
 
 The tool will produce a training *result*, the name of which can be
 either specified (`--result` or `-r` option) or automatically generated
@@ -2063,9 +2088,7 @@ Example usage:
 
 The inference tool supports prefiltering of auxiliary features as well,
 which can be performed by specifying the list of training results for
-each feature to prefilter (`--aux_results` or `-a` option). This is
-primarily useful for evaluating the quality of models trained with clean
-auxiliary features.
+each feature to prefilter (`--aux_results` or `-a` option).
 
 ## Exporting Results (export.py)
 

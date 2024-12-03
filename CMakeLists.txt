@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26.1)
-project(rprpp LANGUAGES CXX VERSION 2.0.3)
+project(rprpp LANGUAGES CXX VERSION 2.1.0)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,7 +11,7 @@ option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)
 option(INSTALL_DEPENDENCIES "Install ThirdParty dependencies (dlls)" TRUE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-set(OpenImageDenoise_DIR "${CMAKE_SOURCE_DIR}/ThirdParty/oidn/lib/cmake/OpenImageDenoise-2.2.2")
+set(OpenImageDenoise_DIR "${CMAKE_SOURCE_DIR}/ThirdParty/oidn/lib/cmake/OpenImageDenoise-2.3.1")
 
 include("${CMAKE_SOURCE_DIR}/cmake/CompileOptions.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/WindowsFileVersion.cmake")
