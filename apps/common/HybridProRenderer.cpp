@@ -2,7 +2,8 @@
 #include "rpr_helper.h"
 #include <RadeonProRender_VK.h>
 #include <set>
-#include <iostream>
+#include <boost/log/trivial.hpp>
+
 
 HybridProRenderer::HybridProRenderer(int deviceId,
     const std::optional<HybridProInteropInfo>& interopInfo,
@@ -11,7 +12,7 @@ HybridProRenderer::HybridProRenderer(int deviceId,
     const std::filesystem::path& assetsDir)
     : m_interopInfo(interopInfo)
 {
-    std::cout << "HybridProRenderer()" << std::endl;
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::HybridProRenderer()";
 
     std::vector<rpr_context_properties> properties;
     rpr_creation_flags creation_flags = intToRprCreationFlag(deviceId);
@@ -193,7 +194,8 @@ HybridProRenderer::HybridProRenderer(int deviceId,
 
 HybridProRenderer::~HybridProRenderer()
 {
-    std::cout << "~HybridProRenderer()" << std::endl;
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::~HybridProRenderer()";
+
     RPR_CHECK(rprSceneDetachLight(m_scene, m_light));
     RPR_CHECK(rprSceneDetachShape(m_scene, m_teapot));
     for (auto& aov : m_aovs) {
@@ -224,6 +226,8 @@ HybridProRenderer::~HybridProRenderer()
 
 const std::vector<uint8_t>& HybridProRenderer::readAovBuff(rpr_aov aovKey)
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::readAovBuff()";
+
     rpr_framebuffer aov = m_aovs[aovKey];
     size_t size;
     RPR_CHECK(rprFrameBufferGetInfo(aov, RPR_FRAMEBUFFER_DATA, 0, nullptr, &size));
@@ -275,11 +279,15 @@ void HybridProRenderer::resize(uint32_t width, uint32_t height)
 
 void HybridProRenderer::render()
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::render()";
+
     RPR_CHECK(rprContextRender(m_context));
 }
 
 std::vector<RprPpVkSemaphore> HybridProRenderer::getFrameBuffersReadySemaphores()
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::getFrameBuffersReadySemaphores()";
+
     if (!m_interopInfo.has_value()) {
         throw std::runtime_error("getFrameBuffersReadySemaphores is unavailable without vulkan interop");
     }
@@ -289,6 +297,8 @@ std::vector<RprPpVkSemaphore> HybridProRenderer::getFrameBuffersReadySemaphores(
 
 uint32_t HybridProRenderer::getSemaphoreIndex()
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::getSemaphoreIndex()";
+
     if (!m_interopInfo.has_value()) {
         throw std::runtime_error("getSemaphoreIndex is unavailable without vulkan interop");
     }
@@ -305,6 +315,8 @@ uint32_t HybridProRenderer::getSemaphoreIndex()
 
 void HybridProRenderer::flushFrameBuffers()
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::flushFrameBuffers()";
+
     if (!m_interopInfo.has_value()) {
         throw std::runtime_error("flushFrameBuffers is unavailable without vulkan interop");
     }
@@ -314,6 +326,8 @@ void HybridProRenderer::flushFrameBuffers()
 
 RprPpVkImage HybridProRenderer::getAovVkImage(rpr_aov aov)
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::getAovVkImage()";
+
     if (!m_interopInfo.has_value()) {
         throw std::runtime_error("getAovVkImage is unavailable without vulkan interop");
     }
@@ -325,6 +339,8 @@ RprPpVkImage HybridProRenderer::getAovVkImage(rpr_aov aov)
 
 float HybridProRenderer::getFocalLength()
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::getFocalLength()";
+
     float focalLength;
     RPR_CHECK(rprCameraGetInfo(m_camera, RPR_CAMERA_FOCAL_LENGTH, sizeof(focalLength), &focalLength, nullptr));
     return focalLength;
@@ -332,12 +348,16 @@ float HybridProRenderer::getFocalLength()
 
 void HybridProRenderer::saveResultTo(const std::filesystem::path& path, rpr_aov aov)
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::saveResultTo()";
+
     RPR_CHECK(rprFrameBufferSaveToFile(m_aovs[aov], path.string().c_str()));
 }
 
 
 void HybridProRenderer::getAov(rpr_aov aov, void* data, size_t size, size_t* retSize) const
 {
+    BOOST_LOG_TRIVIAL(trace) << "HybridProRenderer::getAov()";
+
     rpr_framebuffer rprfb = m_aovs.at(aov);
     if (retSize != nullptr) {
         RPR_CHECK(rprFrameBufferGetInfo(rprfb, RPR_FRAMEBUFFER_DATA, 0, nullptr, retSize));

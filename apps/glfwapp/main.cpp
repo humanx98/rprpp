@@ -5,6 +5,7 @@
 #include <boost/program_options/parsers.hpp>
 
 #include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 
 #include <iostream>
 
@@ -89,9 +90,16 @@ int main(int argc, const char* argv[])
     boost::program_options::notify(vm);
 
     if (vm.contains("verbosity")) {
-        RPRPP_CHECK(rprppSetLogVerbosity(vm["verbosity"].as<std::string>().c_str()));
+        std::string verbosity = vm["verbosity"].as<std::string>();
+
+        boost::log::trivial::severity_level severityLevel;
+        boost::log::trivial::from_string(verbosity.c_str(), verbosity.size(), severityLevel);
+        boost::log::core::get()->set_filter(boost::log::trivial::severity >= severityLevel);
+
+        RPRPP_CHECK(rprppSetLogVerbosity(verbosity.c_str()));
     } else {
         RPRPP_CHECK(rprppSetLogVerbosity("trace"));
+        boost::log::core::get()->set_filter(boost::log::trivial::severity >= boost::log::trivial::info);
     }
 
     std::vector<DeviceInfo> deviceInfos;
@@ -99,7 +107,8 @@ int main(int argc, const char* argv[])
     RPRPP_CHECK(rprppGetDeviceCount(&deviceCount));
     for (int i = 0; i < deviceCount; i++) {
         deviceInfos.push_back(getDeviceInfoOf(i));
-        BOOST_LOG_TRIVIAL(info) << "Device id = " << i << ", name = " << deviceInfos[i].name;
+        BOOST_LOG_TRIVIAL(info) << "Device id:\t" << i;
+        BOOST_LOG_TRIVIAL(info) << "GPU\t" << deviceInfos[i].name;
         if (deviceInfos[i].supportHardwareRT) {
             BOOST_LOG_TRIVIAL(info) << "GPU Ray Tracing:\tSupported";
         } else {

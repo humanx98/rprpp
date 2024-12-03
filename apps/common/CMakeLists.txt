@@ -37,5 +37,6 @@ target_link_libraries(appcommon
 	PUBLIC stbimpl
 	PUBLIC rprpp
     PUBLIC Boost::program_options
+	PUBLIC Boost::log
 )
 
