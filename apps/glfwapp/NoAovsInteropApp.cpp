@@ -1,20 +1,28 @@
 #include "NoAovsInteropApp.h"
+#include <GLFW/glfw3native.h>
+#include <dxgi1_6.h>
+#include <comdef.h>
 
-#define FORMAT DXGI_FORMAT_B8G8R8A8_UNORM
+constexpr DXGI_FORMAT FORMAT = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-inline RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
+#include <boost/log/trivial.hpp>
+
+namespace
 {
-    switch (format) {
-    case DXGI_FORMAT_R8G8B8A8_UNORM:
-        return RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
-    case DXGI_FORMAT_B8G8R8A8_UNORM:
-        return RPRPP_IMAGE_FROMAT_B8G8R8A8_UNORM;
-    default:
-        throw std::runtime_error("unsupported image format");
+    RprPpImageFormat to_rprppformat(DXGI_FORMAT format)
+    {
+        switch (format) {
+            case DXGI_FORMAT_R8G8B8A8_UNORM:
+                return RPRPP_IMAGE_FROMAT_R8G8B8A8_UNORM;
+            case DXGI_FORMAT_B8G8R8A8_UNORM:
+                return RPRPP_IMAGE_FROMAT_B8G8R8A8_UNORM;
+            default:
+                throw std::runtime_error("unsupported image format");
+        }
     }
 }
 
-NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIterations, Paths paths, DeviceInfo deviceInfo)
+NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIterations, const Paths& paths, const DeviceInfo& deviceInfo)
     : m_width(width)
     , m_height(height)
     , m_renderedIterations(rendererdIterations)
@@ -22,7 +30,7 @@ NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIteration
     , m_deviceInfo(deviceInfo)
     , m_hybridproRenderer(deviceInfo.index, std::nullopt, paths.hybridproDll, paths.hybridproCacheDir, paths.assetsDir)
 {
-    std::cout << "NoAovsInteropApp()" << std::endl;
+    BOOST_LOG_TRIVIAL(trace) << "NoAovsInteropApp()";
     m_ppContext = std::make_unique<rprpp::wrappers::Context>(deviceInfo.index);
     m_bloomFilter = std::make_unique<rprpp::wrappers::filters::BloomFilter>(*m_ppContext);
     m_composeColorShadowReflectionFilter = std::make_unique<rprpp::wrappers::filters::ComposeColorShadowReflectionFilter>(*m_ppContext);
@@ -33,13 +41,15 @@ NoAovsInteropApp::NoAovsInteropApp(int width, int height, int rendererdIteration
 
 NoAovsInteropApp::~NoAovsInteropApp()
 {
-    std::cout << "~NoAovsInteropApp()" << std::endl;
+    BOOST_LOG_TRIVIAL(trace) << "~NoAovsInteropApp()";
     glfwDestroyWindow(m_window);
     glfwTerminate();
 }
 
 void NoAovsInteropApp::run()
 {
+    BOOST_LOG_TRIVIAL(trace) << "NoAovsInteropApp::run()";
+
     initWindow();
     findAdapter();
     intiSwapChain();
@@ -254,12 +264,12 @@ void NoAovsInteropApp::mainLoop()
         frames += m_renderedIterations;
         double deltaTimeInSeconds = (deltaTime / (double)CLOCKS_PER_SEC);
         if (deltaTimeInSeconds > 1.0) { // every second
-            std::cout << "Iterations per second = "
+            BOOST_LOG_TRIVIAL(info)
+                      << "Iterations per second = "
                       << frames / deltaTimeInSeconds
                       << ", Time per iteration = "
                       << deltaTimeInSeconds * 1000.0 / frames
-                      << "ms"
-                      << std::endl;
+                      << "ms";
             frames = 0;
             deltaTime -= CLOCKS_PER_SEC;
         }

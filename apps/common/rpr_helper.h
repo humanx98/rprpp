@@ -3,12 +3,7 @@
 #include <RadeonProRender.h>
 #include <string>
 
-#define RPR_CHECK(x)                             \
-    {                                            \
-        if ((x) != RPR_SUCCESS) {                \
-            ErrorManager(x, __FILE__, __LINE__); \
-        }                                        \
-    }
+#define RPR_CHECK(x) if (x != RPR_SUCCESS) process_rpr_error(x, __FILE__, __LINE__);
 
 inline rpr_creation_flags intToRprCreationFlag(int index)
 {
@@ -50,6 +45,6 @@ inline rpr_creation_flags intToRprCreationFlag(int index)
     }
 }
 
-void ErrorManager(rpr_status errorCode, const char* fileName, int line);
+void process_rpr_error(rpr_status errorCode, const char* fileName, int line);
 void CheckNoLeak(rpr_context context);
 rpr_shape ImportOBJ(const std::string& file, rpr_context ctx);

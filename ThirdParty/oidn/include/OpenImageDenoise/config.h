@@ -4,10 +4,10 @@
 #pragma once
 
 #define OIDN_VERSION_MAJOR 2
-#define OIDN_VERSION_MINOR 2
-#define OIDN_VERSION_PATCH 2
-#define OIDN_VERSION 20202
-#define OIDN_VERSION_STRING "2.2.2"
+#define OIDN_VERSION_MINOR 3
+#define OIDN_VERSION_PATCH 1
+#define OIDN_VERSION 20301
+#define OIDN_VERSION_STRING "2.3.1"
 
 #define OIDN_API_NAMESPACE rprpp
 /* #undef OIDN_STATIC_LIB */
@@ -49,7 +49,7 @@
   #define OIDN_API_EXPORT OIDN_API_EXTERN_C __attribute__((visibility ("default")))
 #endif
 
-#if defined(OpenImageDenoiseAMD_EXPORTS)
+#if defined(OpenImageDenoise_EXPORTS)
   #define OIDN_API OIDN_API_EXPORT
 #else
   #define OIDN_API OIDN_API_IMPORT

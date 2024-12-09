@@ -1,7 +1,7 @@
 #include "vk_helper.h"
 #include "rprpp/Error.h"
 #include <boost/log/trivial.hpp>
-
+#include <optional>
 
 namespace vk::helper {
 

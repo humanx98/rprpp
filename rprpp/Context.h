@@ -24,15 +24,20 @@ class Context : public boost::noncopyable {
 public:
     explicit Context(uint32_t deviceId, uint8_t luid[vk::LuidSize], uint8_t uuid[vk::UuidSize]);
 
-    [[nodiscard]] VkPhysicalDevice getVkPhysicalDevice() const noexcept;
+    [[nodiscard]]
+    VkPhysicalDevice getVkPhysicalDevice() const noexcept;
 
-    [[nodiscard]] VkDevice getVkDevice() const noexcept;
+    [[nodiscard]]
+    VkDevice getVkDevice() const noexcept;
 
-    [[nodiscard]] VkQueue getVkQueue() const noexcept;
+    [[nodiscard]]
+    VkQueue getVkQueue() const noexcept;
 
     void waitQueueIdle();
 
-    [[nodiscard]] Buffer* createBuffer(size_t size);
+    [[nodiscard]]
+    Buffer* createBuffer(size_t size);
+
     void destroyBuffer(Buffer* buffer);
 
     filters::BloomFilter* createBloomFilter();

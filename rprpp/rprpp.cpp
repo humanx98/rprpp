@@ -14,10 +14,6 @@
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 
-static std::mutex Mutex;
-static map<rprpp::Context> GlobalContextObjects;
-static boost::log::filter BoostLogFilter = boost::log::trivial::severity >= boost::log::trivial::error;
-
 using namespace rprpp;
 
 // -------------------------------------------------
@@ -164,28 +160,6 @@ template <class Function,
 // ---------------------------------------------------
 // API implementation
 // ---------------------------------------------------
-RprPpError rprppInitialize()
-{
-    // sometimes public API callers may forget to call rprppDestroy public function.
-    // For such cases, we try to be gentle
-    (void)rprppDestroy(); // we don't care about errors
-
-    boost::log::core::get()->set_filter(BoostLogFilter);
-
-    return RPRPP_SUCCESS;
-}
-
-RprPpError rprppDestroy()
-{
-    auto result = safeCall([&]{
-        std::lock_guard<std::mutex> lock(Mutex);
-        GlobalContextObjects.clear();
-    });
-    check(result);
-
-    return RPRPP_SUCCESS;
-}
-
 RprPpError rprppSetLogVerbosity(const char* verbosityLevel)
 {
     std::string verbosity(verbosityLevel);
@@ -193,7 +167,7 @@ RprPpError rprppSetLogVerbosity(const char* verbosityLevel)
     boost::log::trivial::severity_level severityLevel;
     boost::log::trivial::from_string(verbosity.c_str(), verbosity.size(), severityLevel);
 
-    BoostLogFilter = boost::log::trivial::severity >= severityLevel;
+    const auto BoostLogFilter = boost::log::trivial::severity >= severityLevel;
 
     boost::log::core::get()->set_filter(BoostLogFilter);
 
@@ -228,12 +202,7 @@ RprPpError rprppCreateContext(unsigned int deviceId, RprPpContext* outContext)
         getDeviceInfo(deviceId, RPRPP_DEVICE_INFO_LUID, luid, sizeof(luid), nullptr);
         getDeviceInfo(deviceId, RPRPP_DEVICE_INFO_UUID, uuid, sizeof(uuid), nullptr);
 
-        auto contextRef = std::make_unique<rprpp::Context>(deviceId, luid, uuid);
-        *outContext = contextRef.get();
-
-        // avoid memleak
-        std::lock_guard<std::mutex> lock(Mutex);
-        GlobalContextObjects.emplace(contextRef.get(), std::move(contextRef));
+        *outContext = new rprpp::Context(deviceId, luid, uuid);
     });
     check(result);
 
@@ -247,11 +216,10 @@ RprPpError rprppDestroyContext(RprPpContext context)
         return RPRPP_SUCCESS;
     }
 
-    std::lock_guard<std::mutex> lock(Mutex);
-    auto result = safeCall([context]() {
-        GlobalContextObjects.erase(static_cast<rprpp::Context*>(context));
-    });
-    check(result);
+    rprpp::Context* ptr = static_cast<rprpp::Context*>(context);
+    delete ptr;
+
+    ptr = nullptr;
 
     return RPRPP_SUCCESS;
 }

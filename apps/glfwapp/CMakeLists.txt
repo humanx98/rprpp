@@ -17,7 +17,8 @@ set(HEADERS
 )
 
 set(SOURCES
-    NoAovsInteropApp.cpp
+	dx_helper.cpp
+	NoAovsInteropApp.cpp
     WithAovsInteropApp.cpp
 )
 add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
@@ -25,6 +26,7 @@ add_executable(glfwapp ${SOURCES} ${HEADERS} main.cpp)
 target_link_libraries(glfwapp
     PUBLIC glfw
     PUBLIC appcommon
+    PUBLIC Boost::log
 )
 # automatically copy all dll's deps.
 add_custom_command(TARGET glfwapp POST_BUILD
@@ -40,11 +42,11 @@ _copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/apps/assets/teapot.obj)
 _copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/apps/assets/envLightImage.exr)
 
 # bug in oidn cmake. Manually copy backend dll's
-_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD.dll)
-_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_core.dll)
-_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_device_cpu.dll)
-_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_device_cuda.dll)
-_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiseAMD_device_hip.dll)
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD.dll)
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_core.dll)
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_device_cpu.dll)
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_device_cuda.dll)
+_copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oidn/bin/OpenImageDenoiserAMD_device_hip.dll)
 
 _copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbb12.dll)
 _copy_file_to_target(glfwapp ${CMAKE_SOURCE_DIR}/ThirdParty/oneTBB/bin/tbbmalloc.dll)

@@ -1,20 +1,11 @@
 #pragma once
 
-#include <assert.h>
 #include <filesystem>
-#include <iostream>
 #include <winerror.h>
 
-#define DX_CHECK(f)                                                                         \
-    {                                                                                       \
-        HRESULT res = (f);                                                                  \
-        if (!SUCCEEDED(res)) {                                                              \
-            printf("Fatal : DX HRESULT is %d in %s at line %d\n", res, __FILE__, __LINE__); \
-            _com_error err(res);                                                            \
-            printf("messsage : %s\n", err.ErrorMessage());                                  \
-            assert(false);                                                                  \
-        }                                                                                   \
-    }
+void process_dx_error(HRESULT res, const char* file, int line);
+
+#define DX_CHECK(f) if (!SUCCEEDED((HRESULT)f)) process_dx_error(f, __FILE__, __LINE__);
 
 struct DeviceInfo {
     int index;
