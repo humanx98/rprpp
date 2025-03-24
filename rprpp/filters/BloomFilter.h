@@ -10,13 +10,27 @@
 #include <memory>
 #include <optional>
 
+// we have a naive, not optimized 2d convolution and it has poor performance
+// so instead we use 1d version
+// #define USE_2D_CONVOLUTION
+
 namespace rprpp::filters {
 
 struct BloomParams {
-    int radiusInPixel = 0;
-    float radius = 0.0f;
-    float brightnessScale = 0.1f;
+    int kernelSize = 0;
+    int kernelRadius = 0.0f;
+    float intensity = 0.1f;
     float threshold = 0.0f;
+
+    [[nodiscard]] size_t getKernelData2DBufferSizeInBytes() const noexcept
+    {
+        return kernelSize * kernelSize * sizeof(float);
+    }
+
+    [[nodiscard]] size_t getKernelData1DBufferSizeInBytes() const noexcept
+    {
+        return (kernelRadius + 1) * sizeof(float);
+    }
 };
 
 class BloomFilter : public Filter {
@@ -28,12 +42,12 @@ public:
     void setOutput(Image* img) override;
 
     void setRadius(float radius) noexcept;
-    void setBrightnessScale(float brightnessScale) noexcept;
+    void setIntensity(float intensity) noexcept;
     void setThreshold(float threshold) noexcept;
 
     [[nodiscard]] float getRadius() const noexcept;
 
-    [[nodiscard]] float getBrightnessScale() const noexcept;
+    [[nodiscard]] float getIntensity() const noexcept;
 
     [[nodiscard]] float getThreshold() const noexcept;
 
@@ -43,26 +57,38 @@ private:
     void createDescriptorSet();
     void createComputePipelines();
     void recordComputeCommandBuffers();
+    void generateGaussianKernel1d();
+    void generateGaussianKernel2d();
 
     bool m_descriptorsDirty = true;
+    bool m_kernelDirty = true;
+    float m_radius = 0.0f;
     Image* m_input = nullptr;
     Image* m_output = nullptr;
 
     vk::helper::ShaderManager m_shaderManager;
-    vk::raii::Semaphore m_verticalFinishedSemaphore;
-    vk::raii::Semaphore m_horizontalFinishedSemaphore;
+    vk::raii::Semaphore m_finishedSemaphore;
     UniformObjectBuffer<BloomParams> m_ubo;
-    vk::helper::CommandBuffer m_verticalCommandBuffer;
-    vk::helper::CommandBuffer m_horizontalCommandBuffer;
-    std::unique_ptr<Image> m_tmpImage;
-    std::optional<vk::raii::ShaderModule> m_verticalShaderModule;
-    std::optional<vk::raii::ShaderModule> m_horizontalShaderModule;
+    vk::helper::CommandBuffer m_commandBuffer;
+    std::unique_ptr<Buffer> m_threshold;
+    std::unique_ptr<Buffer> m_tmpBuffer;
+    std::unique_ptr<Buffer> m_kernelData;
     std::optional<vk::raii::DescriptorSetLayout> m_descriptorSetLayout;
     std::optional<vk::raii::DescriptorPool> m_descriptorPool;
     std::optional<vk::raii::DescriptorSet> m_descriptorSet;
     std::optional<vk::raii::PipelineLayout> m_pipelineLayout;
-    std::optional<vk::raii::Pipeline> m_verticalComputePipeline;
-    std::optional<vk::raii::Pipeline> m_horizontalComputePipeline;
+
+    std::optional<vk::raii::ShaderModule> m_thresholdShaderModule;
+    std::optional<vk::raii::Pipeline> m_thresholdComputePipeline;
+#if defined(USE_2D_CONVOLUTION)
+    std::optional<vk::raii::ShaderModule> m_convolve2dShaderModule;
+    std::optional<vk::raii::Pipeline> m_convolve2dComputePipeline;
+#else
+    std::optional<vk::raii::ShaderModule> m_convolve1dVerticalShaderModule;
+    std::optional<vk::raii::Pipeline> m_convolve1dVerticalComputePipeline;
+    std::optional<vk::raii::ShaderModule> m_convolve1dHorizontalShaderModule;
+    std::optional<vk::raii::Pipeline> m_convolve1dHorizontalComputePipeline;
+#endif
 };
 
 }

@@ -79,6 +79,30 @@ void DescriptorBuilder::bindUniformBuffer(vk::DescriptorBufferInfo* bufferInfo)
     poolSize.descriptorCount++;
 }
 
+void DescriptorBuilder::bindStorageBuffer(vk::DescriptorBufferInfo* bufferInfo)
+{
+    uint32_t bindingIndex = static_cast<uint32_t>(m_bindings.size());
+    vk::DescriptorType type = vk::DescriptorType::eStorageBuffer;
+
+    vk::DescriptorSetLayoutBinding binding;
+    binding.binding = bindingIndex;
+    binding.descriptorCount = 1;
+    binding.descriptorType = type;
+    binding.pImmutableSamplers = nullptr;
+    binding.stageFlags = vk::ShaderStageFlagBits::eCompute;
+    m_bindings.push_back(binding);
+
+    vk::WriteDescriptorSet write;
+    write.dstBinding = bindingIndex;
+    write.descriptorCount = 1;
+    write.descriptorType = type;
+    write.pBufferInfo = bufferInfo;
+    m_writes.push_back(write);
+
+    vk::DescriptorPoolSize& poolSize = findOrCreate(type);
+    poolSize.descriptorCount++;
+}
+
 vk::DescriptorPoolSize& DescriptorBuilder::findOrCreate(vk::DescriptorType type)
 {
     auto same_type = [&type](const vk::DescriptorPoolSize& p) { return p.type == type; };

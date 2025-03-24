@@ -1,0 +1,40 @@
+#version 450
+// these defs are provided by shaderc lib
+// #define WORKGROUP_SIZE 1024
+// #define INPUT_FORMAT rgba8/rgba32f
+// #define OUTPUT_FORMAT rgba8/rgba32f
+
+layout (set = 0, binding = 0) uniform UBO 
+{
+    int kernelSize;
+    int kernelRadius;
+    float intensity;
+    float threshold;
+} ubo;
+layout (set = 0, binding = 1) buffer KernelBuffer {
+    float kernelData[];
+};
+layout (set = 0, binding = 2) buffer TmpBuffer {
+    vec4 tmpBuffer[];
+};
+layout (set = 0, binding = 3) buffer ThresholdBuffer {
+    vec4 thresholdBuffer[];
+};
+layout (set = 0, binding = 4, OUTPUT_FORMAT) uniform image2D outputImage;
+layout (set = 0, binding = 5, INPUT_FORMAT) uniform readonly image2D inputImage;
+
+float luminance(vec4 pixel) {
+    return dot(pixel.xyz, vec3(0.2126729f, 0.7151522f, 0.072175f));
+}
+
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    ivec2 resolution = imageSize(outputImage);
+    ivec2 coord = ivec2(index % resolution.x, index / resolution.x);
+    if (coord.x >= resolution.x || coord.y >= resolution.y)
+        return;
+    
+    vec4 rgba = imageLoad(inputImage, coord);
+    thresholdBuffer[index] = luminance(rgba) < ubo.threshold ? vec4(0.0f) : rgba;
+}

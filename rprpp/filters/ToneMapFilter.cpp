@@ -103,12 +103,12 @@ vk::Semaphore ToneMapFilter::run(std::optional<vk::Semaphore> waitSemaphore)
         createShaderModule();
         createDescriptorSet();
         createComputePipeline();
+        recordComputeCommandBuffer();
         m_descriptorsDirty = false;
     }
 
     if (m_ubo.dirty()) {
         m_ubo.update();
-        recordComputeCommandBuffer();
     }
 
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eAllCommands;

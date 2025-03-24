@@ -185,7 +185,7 @@ void NoAovsInteropApp::resize(int width, int height)
             m_bloomFilter->setInput(*m_rgba32Output);
             m_bloomFilter->setRadius(0.03f);
             m_bloomFilter->setThreshold(0.0f);
-            m_bloomFilter->setBrightnessScale(1.0f);
+            m_bloomFilter->setIntensity(1.0f);
 
             m_tonemapFilter->setOutput(*m_output);
             m_tonemapFilter->setInput(*m_rgba32Output);

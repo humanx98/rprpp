@@ -1,0 +1,78 @@
+#version 450
+// these defs are provided by shaderc lib
+// #define WORKGROUP_SIZE 1024
+// #define HORIZONTAL
+// #define INPUT_FORMAT rgba8/rgba32f
+// #define OUTPUT_FORMAT rgba8/rgba32f
+
+layout (set = 0, binding = 0) uniform UBO 
+{
+    int kernelSize;
+    int kernelRadius;
+    float intensity;
+    float threshold;
+} ubo;
+layout (set = 0, binding = 1) buffer KernelBuffer {
+    float kernelData[];
+};
+layout (set = 0, binding = 2) buffer TmpBuffer {
+    vec4 tmpBuffer[];
+};
+layout (set = 0, binding = 3) buffer ThresholdBuffer {
+    vec4 thresholdBuffer[];
+};
+layout (set = 0, binding = 4, OUTPUT_FORMAT) uniform image2D outputImage;
+layout (set = 0, binding = 5, INPUT_FORMAT) uniform readonly image2D inputImage;
+
+vec4 clamp4(vec4 val, float minVal, float maxVal)
+{
+    return vec4(
+        clamp(val.x, minVal, maxVal),
+        clamp(val.y, minVal, maxVal),
+        clamp(val.z, minVal, maxVal),
+        clamp(val.w, minVal, maxVal)
+    );
+}
+
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    ivec2 resolution = imageSize(outputImage);
+    ivec2 coord = ivec2(index % resolution.x, index / resolution.x);
+    vec4 sum = vec4(0.0f);
+    if (coord.x >= resolution.x || coord.y >= resolution.y)
+        return;
+
+#ifdef HORIZONTAL
+    for (int i = 0; i < ubo.kernelRadius + 1; i++) {
+        float w = kernelData[i];
+        ivec2 offset = ivec2(i, 0);
+
+        ivec2 thresholdCoord = coord - offset;
+        if (0 <= thresholdCoord.x && thresholdCoord.x < resolution.x)
+            sum += tmpBuffer[thresholdCoord.y * resolution.x + thresholdCoord.x] * w;
+
+        thresholdCoord = coord + offset;
+        if (0 <= thresholdCoord.x && thresholdCoord.x < resolution.x)
+            sum += tmpBuffer[thresholdCoord.y * resolution.x + thresholdCoord.x] * w;
+    }
+
+    vec4 rgba = sum * ubo.intensity + imageLoad(inputImage, coord);
+    imageStore(outputImage, coord, clamp4(rgba, 0.0f, 1.0f));
+#else
+    for (int i = 0; i < ubo.kernelRadius + 1; i++) {
+        float w = kernelData[i];
+        ivec2 offset = ivec2(0, i);
+
+        ivec2 thresholdCoord = coord - offset;
+        if (0 <= thresholdCoord.y && thresholdCoord.y < resolution.y)
+            sum += thresholdBuffer[thresholdCoord.y * resolution.x + thresholdCoord.x] * w;
+
+        thresholdCoord = coord + offset;
+        if (0 <= thresholdCoord.y && thresholdCoord.y < resolution.y)
+            sum += thresholdBuffer[thresholdCoord.y * resolution.x + thresholdCoord.x] * w;
+    }
+
+    tmpBuffer[index] = sum;
+#endif
+}

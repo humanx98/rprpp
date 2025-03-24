@@ -551,13 +551,13 @@ RprPpError rprppBloomFilterSetRadius(RprPpFilter filter, float radius)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppBloomFilterSetBrightnessScale(RprPpFilter filter, float brightnessScale)
+RprPpError rprppBloomFilterSetIntensity(RprPpFilter filter, float intensity)
 {
     assert(filter);
 
     auto result = safeCall([&] {
         rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
-        f->setBrightnessScale(brightnessScale);
+        f->setIntensity(intensity);
     });
     check(result);
 
@@ -593,15 +593,15 @@ RprPpError rprppBloomFilterGetRadius(RprPpFilter filter, float* radius)
     return RPRPP_SUCCESS;
 }
 
-RprPpError rprppBloomFilterGetBrightnessScale(RprPpFilter filter, float* brightnessScale)
+RprPpError rprppBloomFilterGetIntensity(RprPpFilter filter, float* intensity)
 {
     assert(filter);
 
     auto result = safeCall([&] {
         rprpp::filters::BloomFilter* f = static_cast<rprpp::filters::BloomFilter*>(filter);
 
-        if (brightnessScale != nullptr) {
-            *brightnessScale = f->getBrightnessScale();
+        if (intensity != nullptr) {
+            *intensity = f->getIntensity();
         }
     });
     check(result);

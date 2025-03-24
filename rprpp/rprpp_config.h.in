@@ -3,8 +3,9 @@
 
 #define rprpp_VERSION_MAJOR @rprpp_VERSION_MAJOR@
 #define rprpp_VERSION_MINOR @rprpp_VERSION_MINOR@
-#cmakedefine RPRPP_bloom_horizontal_SHADER "@RPRPP_bloom_horizontal_SHADER@"
-#cmakedefine RPRPP_bloom_vertical_SHADER "@RPRPP_bloom_vertical_SHADER@"
+#cmakedefine RPRPP_bloom_convolve1d_SHADER "@RPRPP_bloom_convolve1d_SHADER@"
+#cmakedefine RPRPP_bloom_convolve2d_SHADER "@RPRPP_bloom_convolve2d_SHADER@"
+#cmakedefine RPRPP_bloom_threshold_SHADER "@RPRPP_bloom_threshold_SHADER@"
 #cmakedefine RPRPP_compose_color_shadow_reflection_SHADER "@RPRPP_compose_color_shadow_reflection_SHADER@"
 #cmakedefine RPRPP_compose_opacity_shadow_SHADER "@RPRPP_compose_opacity_shadow_SHADER@"
 #cmakedefine RPRPP_tonemap_SHADER "@RPRPP_tonemap_SHADER@"

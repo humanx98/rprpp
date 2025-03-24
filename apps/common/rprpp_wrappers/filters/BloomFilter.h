@@ -8,7 +8,7 @@ class BloomFilter : public Filter {
 public:
     explicit BloomFilter(const Context& context);
     void setRadius(float radius);
-    void setBrightnessScale(float brightnessScale);
+    void setIntensity(float intensity);
     void setThreshold(float threshold);
 };
 

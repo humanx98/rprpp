@@ -140,8 +140,8 @@ void WithAovsInteropApp::initRpr()
     // set frame buffers realese to signal state
     RprPpVkSubmitInfo submitInfo;
     submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pSignalSemaphores = &m_frameBuffersReleaseSemaphores[1 % m_framesInFlight];
-    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = m_frameBuffersReleaseSemaphores.data();
+    submitInfo.signalSemaphoreCount = m_frameBuffersReleaseSemaphores.size();
     RPRPP_CHECK(rprppVkQueueSubmit(m_ppContext->getVkQueue(), submitInfo, nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
@@ -233,7 +233,7 @@ void WithAovsInteropApp::resize(int width, int height)
             m_bloomFilter->setInput(*m_rgba32Output);
             m_bloomFilter->setRadius(0.03f);
             m_bloomFilter->setThreshold(0.0f);
-            m_bloomFilter->setBrightnessScale(1.0f);
+            m_bloomFilter->setIntensity(1.0f);
 
             m_tonemapFilter->setOutput(*m_output);
             m_tonemapFilter->setInput(*m_rgba32Output);
@@ -268,10 +268,12 @@ void WithAovsInteropApp::mainLoop()
         {
             glfwPollEvents();
             {
+                RprPpVkFence fence;
+                const size_t timeoutInNanoseconds = 10ll * 1000 * 1000 * 1000;
                 for (unsigned int i = 0; i < m_renderedIterations; i++) {
                     // +1 because we get semaphore before rendering
                     uint32_t semaphoreIndex = (m_hybridproRenderer->getSemaphoreIndex() + 1) % m_framesInFlight;
-                    RprPpVkFence fence = m_fences[semaphoreIndex];
+                    fence = m_fences[semaphoreIndex];
                     RPRPP_CHECK(rprppVkWaitForFences(m_ppContext->getVkDevice(), 1, &fence, true, UINT64_MAX));
                     RPRPP_CHECK(rprppVkResetFences(m_ppContext->getVkDevice(), 1, &fence));
 
@@ -279,7 +281,7 @@ void WithAovsInteropApp::mainLoop()
                     m_hybridproRenderer->flushFrameBuffers();
 
                     RprPpVkSemaphore aovsReadySemaphore = m_frameBuffersReadySemaphores[semaphoreIndex];
-                    RprPpVkSemaphore aovsReleasedSemaphore = m_frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % m_framesInFlight];
+                    RprPpVkSemaphore aovsReleasedSemaphore = m_frameBuffersReleaseSemaphores[semaphoreIndex];
 
                     if (i < m_renderedIterations - 1) {
                         RprPpVkSubmitInfo submitInfo;
@@ -293,7 +295,7 @@ void WithAovsInteropApp::mainLoop()
                         filterFinished = m_composeOpacityShadowFilter->run(filterFinished);
                         filterFinished = m_composeColorShadowReflectionFilter->run(filterFinished);
                         filterFinished = m_denoiserFilter->run(filterFinished);
-                        // filterFinished = m_bloomFilter->run(filterFinished);
+                        filterFinished = m_bloomFilter->run(filterFinished);
                         filterFinished = m_tonemapFilter->run(filterFinished);
 
                         RprPpVkSubmitInfo submitInfo;
@@ -305,7 +307,7 @@ void WithAovsInteropApp::mainLoop()
                     }
                 }
 
-                m_ppContext->waitQueueIdle();
+                RPRPP_CHECK(rprppVkWaitForFences(m_ppContext->getVkDevice(), 1, &fence, true, timeoutInNanoseconds));
                 m_ppContext->copyImage(m_output->get(), m_dx11output->get());
             }
 

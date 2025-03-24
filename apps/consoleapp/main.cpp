@@ -91,8 +91,8 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     // set frame buffers realese to signal state
     RprPpVkSubmitInfo submitInfo;
     submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pSignalSemaphores = &frameBuffersReleaseSemaphores[1 % FRAMES_IN_FLIGHT];
-    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = frameBuffersReleaseSemaphores.data();
+    submitInfo.signalSemaphoreCount = frameBuffersReleaseSemaphores.size();
     RPRPP_CHECK(rprppVkQueueSubmit(ppContext.getVkQueue(), submitInfo, nullptr));
 
     HybridProInteropInfo aovsInteropInfo = HybridProInteropInfo {
@@ -140,7 +140,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
     bloomFilter.setInput(output);
     bloomFilter.setRadius(0.03f);
     bloomFilter.setThreshold(0.0f);
-    bloomFilter.setBrightnessScale(0.2f);
+    bloomFilter.setIntensity(0.2f);
 
     tonemapFilter.setOutput(output);
     tonemapFilter.setInput(output);
@@ -157,7 +157,7 @@ void runWithInterop(const std::filesystem::path& exeDirPath, int deviceId)
 
         uint32_t semaphoreIndex = renderer.getSemaphoreIndex();
         RprPpVkSemaphore aovsReadySemaphore = frameBuffersReadySemaphores[semaphoreIndex];
-        RprPpVkSemaphore aovReleasedSemaphore = frameBuffersReleaseSemaphores[(semaphoreIndex + 1) % FRAMES_IN_FLIGHT];
+        RprPpVkSemaphore aovReleasedSemaphore = frameBuffersReleaseSemaphores[semaphoreIndex];
 
         RprPpVkSemaphore filterFinished = composeColorShadowReflectionFilter.run(aovsReadySemaphore);
         filterFinished = denoiserFilter.run(filterFinished);
@@ -246,7 +246,7 @@ void runWithoutInterop(const std::filesystem::path& exeDirPath, int deviceId)
     bloomFilter.setInput(output);
     bloomFilter.setRadius(0.03f);
     bloomFilter.setThreshold(0.0f);
-    bloomFilter.setBrightnessScale(0.2f);
+    bloomFilter.setIntensity(0.2f);
 
     tonemapFilter.setOutput(output);
     tonemapFilter.setInput(output);

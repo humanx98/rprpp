@@ -99,10 +99,10 @@ RPRPP_API RprPpError rprppFilterSetInput(RprPpFilter filter, RprPpImage image);
 RPRPP_API RprPpError rprppFilterSetOutput(RprPpFilter filter, RprPpImage image);
 // Bloom Filter
 RPRPP_API RprPpError rprppBloomFilterGetRadius(RprPpFilter filter, float* radius);
-RPRPP_API RprPpError rprppBloomFilterGetBrightnessScale(RprPpFilter filter, float* brightnessScale);
+RPRPP_API RprPpError rprppBloomFilterGetIntensity(RprPpFilter filter, float* intensity);
 RPRPP_API RprPpError rprppBloomFilterGetThreshold(RprPpFilter filter, float* threshold);
 RPRPP_API RprPpError rprppBloomFilterSetRadius(RprPpFilter filter, float radius);
-RPRPP_API RprPpError rprppBloomFilterSetBrightnessScale(RprPpFilter filter, float brightnessScale);
+RPRPP_API RprPpError rprppBloomFilterSetIntensity(RprPpFilter filter, float intensity);
 RPRPP_API RprPpError rprppBloomFilterSetThreshold(RprPpFilter filter, float threshold);
 // ComposeColorShadowReflection Filter
 RPRPP_API RprPpError rprppComposeColorShadowReflectionFilterSetAovOpacity(RprPpFilter filter, RprPpImage image);

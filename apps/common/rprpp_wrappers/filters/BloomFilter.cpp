@@ -22,11 +22,11 @@ void BloomFilter::setRadius(float radius)
     RPRPP_CHECK(status);
 }
 
-void BloomFilter::setBrightnessScale(float brightnessScale)
+void BloomFilter::setIntensity(float intensity)
 {
     RprPpError status;
 
-    status = rprppBloomFilterSetBrightnessScale(filter(), brightnessScale);
+    status = rprppBloomFilterSetIntensity(filter(), intensity);
     RPRPP_CHECK(status);
 }
 

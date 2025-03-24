@@ -9,8 +9,8 @@
 
 #include <iostream>
 
-const int FB_WIDTH = 2000;
-const int FB_HEIGHT = 1000;
+const int FB_WIDTH = 1000;
+const int FB_HEIGHT = 700;
 const int FB_RENDERED_ITERATIONS = 16;
 const bool FB_INTEROP = true;
 const size_t FB_DEVICE_ID = 0;

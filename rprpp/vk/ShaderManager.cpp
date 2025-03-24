@@ -48,23 +48,33 @@ vk::raii::ShaderModule ShaderManager::get(const vk::raii::Device& device,
     return vk::raii::ShaderModule(device, shaderModuleInfo);
 }
 
-vk::raii::ShaderModule ShaderManager::getBloomHorizontalShader(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
+vk::raii::ShaderModule ShaderManager::getBloomConvolve1dShader(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
 {
     return get(device,
-        "bloom_horizontal",
-        RPRPP_bloom_horizontal_SHADER,
+        "bloom_convolve1d",
+        RPRPP_bloom_convolve1d_SHADER,
         // size - null terminator
-        sizeof(RPRPP_bloom_horizontal_SHADER) - 1,
+        sizeof(RPRPP_bloom_convolve1d_SHADER) - 1,
         macroDefinitions);
 }
 
-vk::raii::ShaderModule ShaderManager::getBloomVerticalShader(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
+vk::raii::ShaderModule ShaderManager::getBloomConvolve2dShader(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
 {
     return get(device,
-        "bloom_vertical",
-        RPRPP_bloom_vertical_SHADER,
+        "bloom_convolve2d",
+        RPRPP_bloom_convolve2d_SHADER,
         // size - null terminator
-        sizeof(RPRPP_bloom_vertical_SHADER) - 1,
+        sizeof(RPRPP_bloom_convolve2d_SHADER) - 1,
+        macroDefinitions);
+}
+
+vk::raii::ShaderModule ShaderManager::getBloomThresholdShader(const vk::raii::Device& device, const std::unordered_map<std::string, std::string>& macroDefinitions)
+{
+    return get(device,
+        "blooom_threshold",
+        RPRPP_bloom_threshold_SHADER,
+        // size - null terminator
+        sizeof(RPRPP_bloom_threshold_SHADER) - 1,
         macroDefinitions);
 }
 
